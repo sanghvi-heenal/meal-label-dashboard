@@ -41,6 +41,8 @@ const LogMeal = () => {
   const [describeMode, setDescribeMode] = useState(false);
   const [textDescription, setTextDescription] = useState("");
   const [isAnalyzingText, setIsAnalyzingText] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const labelScanRef = useRef<HTMLInputElement>(null);
