@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Camera, Image, Edit3, Lightbulb, Sun, UtensilsCrossed, Moon, Coffee, X, Loader2, Package, AlertTriangle, RefreshCw, ChevronDown, MessageSquare, Send } from "lucide-react";
+import { Camera, Image, Edit3, Lightbulb, Sun, UtensilsCrossed, Moon, Coffee, X, Loader2, Package, AlertTriangle, RefreshCw, ChevronDown, MessageSquare, Send, Mic, MicOff } from "lucide-react";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { saveMeal, getTodayString, type MealEntry } from "@/lib/nutrition-store";
 import { useNavigate } from "react-router-dom";
@@ -41,6 +41,8 @@ const LogMeal = () => {
   const [describeMode, setDescribeMode] = useState(false);
   const [textDescription, setTextDescription] = useState("");
   const [isAnalyzingText, setIsAnalyzingText] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const labelScanRef = useRef<HTMLInputElement>(null);
@@ -192,6 +194,56 @@ const LogMeal = () => {
       setIsAnalyzingText(false);
     }
   };
+
+  const toggleListening = useCallback(() => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      toast({ title: "Speech not supported", description: "Your browser doesn't support voice input.", variant: "destructive" });
+      return;
+    }
+
+    if (isListening && recognitionRef.current) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = "en-US";
+    recognitionRef.current = recognition;
+
+    let finalTranscript = textDescription;
+
+    recognition.onresult = (event: any) => {
+      let interim = "";
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const transcript = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          finalTranscript += (finalTranscript ? " " : "") + transcript;
+          setTextDescription(finalTranscript);
+        } else {
+          interim += transcript;
+        }
+      }
+    };
+
+    recognition.onerror = (event: any) => {
+      console.error("Speech recognition error:", event.error);
+      setIsListening(false);
+      if (event.error !== "aborted") {
+        toast({ title: "Voice input error", description: "Please try again or type instead.", variant: "destructive" });
+      }
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+    };
+
+    recognition.start();
+    setIsListening(true);
+  }, [isListening, textDescription, toast]);
 
   const handleSave = () => {
     if (!foodName.trim()) {
@@ -375,24 +427,39 @@ const LogMeal = () => {
       {/* Describe meal textarea */}
       {describeMode && (
         <div className="space-y-3">
-          <textarea
-            value={textDescription}
-            onChange={(e) => setTextDescription(e.target.value)}
-            placeholder="Describe what's on your plate (e.g. '2 chapatis, 1 cup dal, small bowl of rice with 1 tsp ghee')"
-            rows={3}
-            className="w-full px-3 py-2.5 rounded-lg bg-secondary border border-border text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary resize-none"
-          />
-          <button
-            onClick={handleTextAnalyze}
-            disabled={isAnalyzingText || !textDescription.trim()}
-            className="w-full py-2.5 rounded-lg bg-primary text-primary-foreground font-semibold text-sm hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-          >
-            {isAnalyzingText ? (
-              <><Loader2 size={16} className="animate-spin" /> Analyzing...</>
-            ) : (
-              <><Send size={16} /> Analyze</>
-            )}
-          </button>
+          <div className="relative">
+            <textarea
+              value={textDescription}
+              onChange={(e) => setTextDescription(e.target.value)}
+              placeholder={isListening ? "Listening... speak now" : "Describe what's on your plate (e.g. '2 chapatis, 1 cup dal, small bowl of rice with 1 tsp ghee')"}
+              rows={3}
+              className="w-full px-3 py-2.5 pr-12 rounded-lg bg-secondary border border-border text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary resize-none"
+            />
+            <button
+              onClick={toggleListening}
+              type="button"
+              className={`absolute right-2 bottom-2 w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
+                isListening
+                  ? "bg-destructive text-destructive-foreground animate-pulse"
+                  : "bg-primary/20 text-primary hover:bg-primary/30"
+              }`}
+            >
+              {isListening ? <MicOff size={16} /> : <Mic size={16} />}
+            </button>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={handleTextAnalyze}
+              disabled={isAnalyzingText || !textDescription.trim()}
+              className="flex-1 py-2.5 rounded-lg bg-primary text-primary-foreground font-semibold text-sm hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {isAnalyzingText ? (
+                <><Loader2 size={16} className="animate-spin" /> Analyzing...</>
+              ) : (
+                <><Send size={16} /> Analyze</>
+              )}
+            </button>
+          </div>
         </div>
       )}
 
