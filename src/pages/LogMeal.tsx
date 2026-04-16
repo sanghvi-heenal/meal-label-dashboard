@@ -341,12 +341,29 @@ const LogMeal = () => {
 
       {/* Camera / Gallery buttons */}
       <div className="grid grid-cols-2 gap-3">
-        <button onClick={() => cameraInputRef.current?.click()} className="card-surface flex flex-col items-center gap-2 py-4 hover:border-primary/50 transition-colors">
-          <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-            <Camera size={20} className="text-primary" />
-          </div>
-          <span className="text-sm font-medium text-foreground">Camera</span>
-        </button>
+        <div className="card-surface flex items-center py-4 hover:border-primary/50 transition-colors">
+          <button onClick={() => { setDescribeMode(false); cameraInputRef.current?.click(); }} className="flex-1 flex flex-col items-center gap-2">
+            <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+              <Camera size={20} className="text-primary" />
+            </div>
+            <span className="text-sm font-medium text-foreground">Camera</span>
+          </button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="pr-3 pl-1 self-stretch flex items-center border-l border-border ml-1">
+                <ChevronDown size={16} className="text-muted-foreground" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="min-w-[160px]">
+              <DropdownMenuItem onClick={() => { setDescribeMode(false); cameraInputRef.current?.click(); }}>
+                <Camera size={14} className="mr-2" /> Take Photo
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setDescribeMode(true)}>
+                <MessageSquare size={14} className="mr-2" /> Describe Meal
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
         <button onClick={() => fileInputRef.current?.click()} className="card-surface flex flex-col items-center gap-2 py-4 hover:border-primary/50 transition-colors">
           <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
             <Image size={20} className="text-primary" />
@@ -354,6 +371,30 @@ const LogMeal = () => {
           <span className="text-sm font-medium text-foreground">Gallery</span>
         </button>
       </div>
+
+      {/* Describe meal textarea */}
+      {describeMode && (
+        <div className="space-y-3">
+          <textarea
+            value={textDescription}
+            onChange={(e) => setTextDescription(e.target.value)}
+            placeholder="Describe what's on your plate (e.g. '2 chapatis, 1 cup dal, small bowl of rice with 1 tsp ghee')"
+            rows={3}
+            className="w-full px-3 py-2.5 rounded-lg bg-secondary border border-border text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary resize-none"
+          />
+          <button
+            onClick={handleTextAnalyze}
+            disabled={isAnalyzingText || !textDescription.trim()}
+            className="w-full py-2.5 rounded-lg bg-primary text-primary-foreground font-semibold text-sm hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+          >
+            {isAnalyzingText ? (
+              <><Loader2 size={16} className="animate-spin" /> Analyzing...</>
+            ) : (
+              <><Send size={16} /> Analyze</>
+            )}
+          </button>
+        </div>
+      )}
 
       {/* Portion size */}
       <div className="space-y-2">
