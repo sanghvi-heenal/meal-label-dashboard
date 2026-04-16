@@ -245,7 +245,7 @@ const LogMeal = () => {
     setIsListening(true);
   }, [isListening, textDescription, toast]);
 
-
+  const handleSave = () => {
     if (!foodName.trim()) {
       toast({ title: "Please enter a food name", variant: "destructive" });
       return;
