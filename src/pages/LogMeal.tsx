@@ -166,6 +166,33 @@ const LogMeal = () => {
     setIsSecondScan(false);
   };
 
+  const handleTextAnalyze = async () => {
+    if (!textDescription.trim()) return;
+    setIsAnalyzingText(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("analyze-food-text", {
+        body: { description: textDescription.trim() },
+      });
+      if (error) throw error;
+      if (data.error) {
+        toast({ title: "Analysis failed", description: data.error, variant: "destructive" });
+        return;
+      }
+      if (data.foodType === "not_food") {
+        toast({ title: "Not a food item", description: data.message || "Try describing a meal.", variant: "destructive" });
+        return;
+      }
+      autoFillForm(data);
+      setDescribeMode(false);
+      toast({ title: "Meal estimated!", description: `Detected: ${data.name}` });
+    } catch (err) {
+      console.error("Text analyze error:", err);
+      toast({ title: "Could not analyze description", description: "Please try again.", variant: "destructive" });
+    } finally {
+      setIsAnalyzingText(false);
+    }
+  };
+
   const handleSave = () => {
     if (!foodName.trim()) {
       toast({ title: "Please enter a food name", variant: "destructive" });
