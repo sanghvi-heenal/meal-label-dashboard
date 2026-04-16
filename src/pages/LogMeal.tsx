@@ -38,6 +38,9 @@ const LogMeal = () => {
   const [detectedName, setDetectedName] = useState("");
   const [detectionMessage, setDetectionMessage] = useState("");
   const [isSecondScan, setIsSecondScan] = useState(false);
+  const [describeMode, setDescribeMode] = useState(false);
+  const [textDescription, setTextDescription] = useState("");
+  const [isAnalyzingText, setIsAnalyzingText] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const labelScanRef = useRef<HTMLInputElement>(null);
