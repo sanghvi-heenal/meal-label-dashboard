@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Camera, Image, Edit3, Lightbulb, Sun, UtensilsCrossed, Moon, Coffee, X, Loader2, Package, AlertTriangle, RefreshCw } from "lucide-react";
+import { Camera, Image, Edit3, Lightbulb, Sun, UtensilsCrossed, Moon, Coffee, X, Loader2, Package, AlertTriangle, RefreshCw, ChevronDown, MessageSquare, Send } from "lucide-react";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { saveMeal, getTodayString, type MealEntry } from "@/lib/nutrition-store";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -15,6 +16,7 @@ const mealTypes = [
 const portionOptions = ["Small", "Medium", "Large", "Extra Large"];
 
 type DetectionState = "idle" | "analyzing" | "packaged" | "not_food" | "low_confidence" | "done";
+type InputMode = "camera" | "describe";
 
 const LogMeal = () => {
   const [selectedMeal, setSelectedMeal] = useState<MealEntry["mealType"]>("lunch");
@@ -36,6 +38,9 @@ const LogMeal = () => {
   const [detectedName, setDetectedName] = useState("");
   const [detectionMessage, setDetectionMessage] = useState("");
   const [isSecondScan, setIsSecondScan] = useState(false);
+  const [describeMode, setDescribeMode] = useState(false);
+  const [textDescription, setTextDescription] = useState("");
+  const [isAnalyzingText, setIsAnalyzingText] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const labelScanRef = useRef<HTMLInputElement>(null);
@@ -159,6 +164,33 @@ const LogMeal = () => {
     setDetectedName("");
     setDetectionMessage("");
     setIsSecondScan(false);
+  };
+
+  const handleTextAnalyze = async () => {
+    if (!textDescription.trim()) return;
+    setIsAnalyzingText(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("analyze-food-text", {
+        body: { description: textDescription.trim() },
+      });
+      if (error) throw error;
+      if (data.error) {
+        toast({ title: "Analysis failed", description: data.error, variant: "destructive" });
+        return;
+      }
+      if (data.foodType === "not_food") {
+        toast({ title: "Not a food item", description: data.message || "Try describing a meal.", variant: "destructive" });
+        return;
+      }
+      autoFillForm(data);
+      setDescribeMode(false);
+      toast({ title: "Meal estimated!", description: `Detected: ${data.name}` });
+    } catch (err) {
+      console.error("Text analyze error:", err);
+      toast({ title: "Could not analyze description", description: "Please try again.", variant: "destructive" });
+    } finally {
+      setIsAnalyzingText(false);
+    }
   };
 
   const handleSave = () => {
@@ -309,12 +341,29 @@ const LogMeal = () => {
 
       {/* Camera / Gallery buttons */}
       <div className="grid grid-cols-2 gap-3">
-        <button onClick={() => cameraInputRef.current?.click()} className="card-surface flex flex-col items-center gap-2 py-4 hover:border-primary/50 transition-colors">
-          <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-            <Camera size={20} className="text-primary" />
-          </div>
-          <span className="text-sm font-medium text-foreground">Camera</span>
-        </button>
+        <div className="card-surface flex items-center py-4 hover:border-primary/50 transition-colors">
+          <button onClick={() => { setDescribeMode(false); cameraInputRef.current?.click(); }} className="flex-1 flex flex-col items-center gap-2">
+            <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+              <Camera size={20} className="text-primary" />
+            </div>
+            <span className="text-sm font-medium text-foreground">Camera</span>
+          </button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="pr-3 pl-1 self-stretch flex items-center border-l border-border ml-1">
+                <ChevronDown size={16} className="text-muted-foreground" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="min-w-[160px]">
+              <DropdownMenuItem onClick={() => { setDescribeMode(false); cameraInputRef.current?.click(); }}>
+                <Camera size={14} className="mr-2" /> Take Photo
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setDescribeMode(true)}>
+                <MessageSquare size={14} className="mr-2" /> Describe Meal
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
         <button onClick={() => fileInputRef.current?.click()} className="card-surface flex flex-col items-center gap-2 py-4 hover:border-primary/50 transition-colors">
           <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
             <Image size={20} className="text-primary" />
@@ -322,6 +371,30 @@ const LogMeal = () => {
           <span className="text-sm font-medium text-foreground">Gallery</span>
         </button>
       </div>
+
+      {/* Describe meal textarea */}
+      {describeMode && (
+        <div className="space-y-3">
+          <textarea
+            value={textDescription}
+            onChange={(e) => setTextDescription(e.target.value)}
+            placeholder="Describe what's on your plate (e.g. '2 chapatis, 1 cup dal, small bowl of rice with 1 tsp ghee')"
+            rows={3}
+            className="w-full px-3 py-2.5 rounded-lg bg-secondary border border-border text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary resize-none"
+          />
+          <button
+            onClick={handleTextAnalyze}
+            disabled={isAnalyzingText || !textDescription.trim()}
+            className="w-full py-2.5 rounded-lg bg-primary text-primary-foreground font-semibold text-sm hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+          >
+            {isAnalyzingText ? (
+              <><Loader2 size={16} className="animate-spin" /> Analyzing...</>
+            ) : (
+              <><Send size={16} /> Analyze</>
+            )}
+          </button>
+        </div>
+      )}
 
       {/* Portion size */}
       <div className="space-y-2">
