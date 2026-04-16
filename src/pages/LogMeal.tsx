@@ -16,6 +16,7 @@ const mealTypes = [
 const portionOptions = ["Small", "Medium", "Large", "Extra Large"];
 
 type DetectionState = "idle" | "analyzing" | "packaged" | "not_food" | "low_confidence" | "done";
+type InputMode = "camera" | "describe";
 
 const LogMeal = () => {
   const [selectedMeal, setSelectedMeal] = useState<MealEntry["mealType"]>("lunch");
