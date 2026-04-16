@@ -31,7 +31,7 @@ serve(async (req) => {
    - "nutrition_label" — a nutritional facts panel is clearly visible (for FOOD products only)
    - "packaged_food" — a sealed/packaged food item without a visible nutrition label
    - "open_meal" — an open/plated food item, prepared meal, or raw ingredient
-   - "not_food" — NOT a food item (cleaning products, electronics, clothing, etc.), OR a nutrition/ingredient label for non-food items (medicine, supplements, cosmetics)
+   - "not_food" — NOT a food item (cleaning products, electronics, clothing, etc.), OR a nutrition/ingredient label for non-food items (cosmetics, household chemicals)
 
 2. Provide a CONFIDENCE score (0 to 1) for your classification.
 
@@ -46,7 +46,7 @@ Rules:
 - Use per-serving values when available.
 - If you cannot determine a value, use 0.
 - For packaged_food, identify the product name but do NOT estimate nutrition — the user will scan the label next.
-- Supplements, vitamins, and medicines are NOT food — classify as "not_food".`;
+- Supplements, vitamins, protein powders, and medicines with visible nutrition/supplement facts labels should be classified as "nutrition_label" and their values extracted. Only non-ingestible products (cosmetics, cleaning supplies, electronics) should be "not_food".`;
 
     const response = await fetch(
       "https://ai.gateway.lovable.dev/v1/chat/completions",
