@@ -25,15 +25,28 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    const systemPrompt = `You are a nutrition label reader. Given an image of food or a nutritional label, extract the following information and return it as a JSON object using the tool provided.
+    const systemPrompt = `You are a food recognition and nutrition expert. Given an image, you must:
+
+1. CLASSIFY the image into one of these categories:
+   - "nutrition_label" — a nutritional facts panel is clearly visible (for FOOD products only)
+   - "packaged_food" — a sealed/packaged food item without a visible nutrition label
+   - "open_meal" — an open/plated food item, prepared meal, or raw ingredient
+   - "not_food" — NOT a food item (cleaning products, electronics, clothing, etc.), OR a nutrition/ingredient label for non-food items (medicine, supplements, cosmetics)
+
+2. Provide a CONFIDENCE score (0 to 1) for your classification.
+
+3. Based on classification:
+   - "nutrition_label": Read exact nutritional values from the label. Set all numeric fields accurately.
+   - "open_meal": Estimate nutritional values based on what you see. Set all numeric fields to your best estimate.
+   - "packaged_food": Only provide the food name. Set all numeric fields to 0.
+   - "not_food": Set name to empty string and all numeric fields to 0. Provide a helpful message explaining what you see.
 
 Rules:
-- If you can see a nutritional facts label, read the exact values from it.
-- If it's a photo of food without a label, estimate the nutritional values based on what you see.
-- For the food name, use a short descriptive name (e.g. "Granola Bar", "Grilled Chicken Breast").
 - All numeric values should be numbers, not strings.
+- Use per-serving values when available.
 - If you cannot determine a value, use 0.
-- Use per-serving values when available.`;
+- For packaged_food, identify the product name but do NOT estimate nutrition — the user will scan the label next.
+- Supplements, vitamins, and medicines are NOT food — classify as "not_food".`;
 
     const response = await fetch(
       "https://ai.gateway.lovable.dev/v1/chat/completions",
@@ -56,7 +69,7 @@ Rules:
                 },
                 {
                   type: "text",
-                  text: "Read the nutritional information from this image. Extract the food name, calories, protein, carbs, fat, fiber, sodium, sugar, and saturated fat values.",
+                  text: "Classify this image and extract nutritional information if applicable.",
                 },
               ],
             },
@@ -67,17 +80,30 @@ Rules:
               function: {
                 name: "extract_nutrition",
                 description:
-                  "Extract nutritional information from a food image or label",
+                  "Classify a food image and extract nutritional information",
                 parameters: {
                   type: "object",
                   properties: {
+                    foodType: {
+                      type: "string",
+                      enum: ["open_meal", "packaged_food", "nutrition_label", "not_food"],
+                      description: "Classification of the image",
+                    },
+                    confidence: {
+                      type: "number",
+                      description: "Confidence score from 0 to 1",
+                    },
+                    message: {
+                      type: "string",
+                      description: "Optional message for not_food items explaining what was detected",
+                    },
                     name: {
                       type: "string",
-                      description: "Name of the food item",
+                      description: "Name of the food item (empty for not_food)",
                     },
                     calories: {
                       type: "number",
-                      description: "Calories in kcal",
+                      description: "Calories in kcal (0 for packaged_food and not_food)",
                     },
                     protein: {
                       type: "number",
@@ -87,7 +113,10 @@ Rules:
                       type: "number",
                       description: "Carbohydrates in grams",
                     },
-                    fat: { type: "number", description: "Total fat in grams" },
+                    fat: {
+                      type: "number",
+                      description: "Total fat in grams",
+                    },
                     fiber: {
                       type: "number",
                       description: "Dietary fiber in grams",
@@ -96,13 +125,18 @@ Rules:
                       type: "number",
                       description: "Sodium in milligrams",
                     },
-                    sugar: { type: "number", description: "Sugar in grams" },
+                    sugar: {
+                      type: "number",
+                      description: "Sugar in grams",
+                    },
                     satFat: {
                       type: "number",
                       description: "Saturated fat in grams",
                     },
                   },
                   required: [
+                    "foodType",
+                    "confidence",
                     "name",
                     "calories",
                     "protein",

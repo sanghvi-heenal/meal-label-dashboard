@@ -1,5 +1,5 @@
-import { useState, useRef } from "react";
-import { Camera, Image, Edit3, Lightbulb, Sun, UtensilsCrossed, Moon, Coffee, X, Loader2, ScanLine } from "lucide-react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { Camera, Image, Edit3, Lightbulb, Sun, UtensilsCrossed, Moon, Coffee, X, Loader2, Package, AlertTriangle, RefreshCw } from "lucide-react";
 import { saveMeal, getTodayString, type MealEntry } from "@/lib/nutrition-store";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -13,6 +13,8 @@ const mealTypes = [
 ];
 
 const portionOptions = ["Small", "Medium", "Large", "Extra Large"];
+
+type DetectionState = "idle" | "analyzing" | "packaged" | "not_food" | "low_confidence" | "done";
 
 const LogMeal = () => {
   const [selectedMeal, setSelectedMeal] = useState<MealEntry["mealType"]>("lunch");
@@ -30,60 +32,133 @@ const LogMeal = () => {
   const [portionUnit, setPortionUnit] = useState("g");
   const [selectedPortion, setSelectedPortion] = useState("Medium");
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [analyzing, setAnalyzing] = useState(false);
-  const [analyzed, setAnalyzed] = useState(false);
+  const [detectionState, setDetectionState] = useState<DetectionState>("idle");
+  const [detectedName, setDetectedName] = useState("");
+  const [detectionMessage, setDetectionMessage] = useState("");
+  const [isSecondScan, setIsSecondScan] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
+  const labelScanRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-        setAnalyzed(false);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
+  const autoFillForm = useCallback((data: any) => {
+    setFoodName(data.name || "");
+    setCalories(String(data.calories || 0));
+    setProtein(String(data.protein || 0));
+    setCarbs(String(data.carbs || 0));
+    setFat(String(data.fat || 0));
+    setFiber(String(data.fiber || 0));
+    setSodium(String(data.sodium || 0));
+    setSugar(String(data.sugar || 0));
+    setSatFat(String(data.satFat || 0));
+    setShowManual(true);
+  }, []);
 
-  const handleAnalyze = async () => {
-    if (!imagePreview) return;
-    setAnalyzing(true);
+  const handleAnalyze = useCallback(async (base64: string) => {
+    setDetectionState("analyzing");
     try {
       const { data, error } = await supabase.functions.invoke("analyze-food", {
-        body: { imageBase64: imagePreview },
+        body: { imageBase64: base64 },
       });
 
       if (error) throw error;
-
       if (data.error) {
         toast({ title: "Analysis failed", description: data.error, variant: "destructive" });
+        setDetectionState("idle");
         return;
       }
 
-      // Auto-fill all fields
-      setFoodName(data.name || "");
-      setCalories(String(data.calories || 0));
-      setProtein(String(data.protein || 0));
-      setCarbs(String(data.carbs || 0));
-      setFat(String(data.fat || 0));
-      setFiber(String(data.fiber || 0));
-      setSodium(String(data.sodium || 0));
-      setSugar(String(data.sugar || 0));
-      setSatFat(String(data.satFat || 0));
-      setShowManual(true);
-      setAnalyzed(true);
+      const { foodType, confidence, message } = data;
 
-      toast({ title: "Label scanned!", description: `Detected: ${data.name}` });
+      // Low confidence — ask for clearer photo
+      if (confidence < 0.5) {
+        setDetectionMessage("We're not sure what this is. Try taking a clearer photo.");
+        setDetectionState("low_confidence");
+        return;
+      }
+
+      switch (foodType) {
+        case "not_food":
+          setDetectionMessage(message || "This doesn't appear to be a food item.");
+          setDetectionState("not_food");
+          break;
+
+        case "packaged_food":
+          if (isSecondScan) {
+            // Second scan still didn't find a label
+            setDetectionMessage("We couldn't find a nutritional label. You can enter values manually.");
+            setDetectionState("not_food");
+            setFoodName(data.name || detectedName);
+            setShowManual(true);
+          } else {
+            setDetectedName(data.name || "Unknown item");
+            setDetectionState("packaged");
+          }
+          break;
+
+        case "nutrition_label":
+        case "open_meal":
+          autoFillForm(data);
+          setDetectionState("done");
+          toast({
+            title: foodType === "nutrition_label" ? "Label scanned!" : "Meal detected!",
+            description: `Detected: ${data.name}`,
+          });
+          break;
+
+        default:
+          setDetectionState("idle");
+      }
     } catch (err) {
       console.error("Analyze error:", err);
-      toast({ title: "Could not analyze image", description: "Try a clearer photo of the nutritional label.", variant: "destructive" });
-    } finally {
-      setAnalyzing(false);
+      toast({ title: "Could not analyze image", description: "Try a clearer photo.", variant: "destructive" });
+      setDetectionState("idle");
     }
+  }, [toast, autoFillForm, isSecondScan, detectedName]);
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64 = reader.result as string;
+      setImagePreview(base64);
+      setDetectionState("idle");
+      setIsSecondScan(false);
+    };
+    reader.readAsDataURL(file);
+    // Reset input so same file can be re-selected
+    e.target.value = "";
+  };
+
+  const handleLabelScan = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64 = reader.result as string;
+      setImagePreview(base64);
+      setIsSecondScan(true);
+      setDetectionState("idle");
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
+
+  // Auto-analyze when image changes
+  useEffect(() => {
+    if (imagePreview && detectionState === "idle") {
+      handleAnalyze(imagePreview);
+    }
+  }, [imagePreview, detectionState]);
+
+  const resetCapture = () => {
+    setImagePreview(null);
+    setDetectionState("idle");
+    setDetectedName("");
+    setDetectionMessage("");
+    setIsSecondScan(false);
   };
 
   const handleSave = () => {
@@ -115,7 +190,7 @@ const LogMeal = () => {
     <div className="px-4 pt-6 pb-24 max-w-md mx-auto space-y-5">
       <div>
         <h1 className="text-2xl font-bold text-foreground">Log a Meal</h1>
-        <p className="text-sm text-muted-foreground mt-1">Track your food intake</p>
+        <p className="text-sm text-muted-foreground mt-1">Take a photo and we'll handle the rest</p>
       </div>
 
       {/* Meal type selector */}
@@ -140,31 +215,100 @@ const LogMeal = () => {
       {imagePreview ? (
         <div className="relative rounded-xl overflow-hidden border border-border">
           <img src={imagePreview} alt="Food" className="w-full h-48 object-cover" />
+          {/* Loading overlay */}
+          {detectionState === "analyzing" && (
+            <div className="absolute inset-0 bg-background/60 flex flex-col items-center justify-center gap-2">
+              <Loader2 size={32} className="text-primary animate-spin" />
+              <span className="text-sm font-medium text-foreground">Analyzing...</span>
+            </div>
+          )}
           <button
-            onClick={() => { setImagePreview(null); setAnalyzed(false); }}
+            onClick={resetCapture}
             className="absolute top-2 right-2 w-7 h-7 rounded-full bg-background/80 flex items-center justify-center"
           >
             <X size={16} className="text-foreground" />
           </button>
-          {analyzed && (
+          {detectionState === "done" && (
             <div className="absolute top-2 left-2 px-2 py-1 rounded-md bg-primary/90 text-primary-foreground text-xs font-medium">
-              ✓ Scanned
+              ✓ Detected
             </div>
           )}
         </div>
       ) : (
         <div className="border-2 border-dashed border-border rounded-xl p-8 flex flex-col items-center gap-2">
           <Camera size={32} className="text-muted-foreground" />
-          <p className="text-sm text-muted-foreground">Snap a photo of a food label or meal</p>
+          <p className="text-sm text-muted-foreground">Snap a photo of your food or a nutrition label</p>
+        </div>
+      )}
+
+      {/* Detection feedback cards */}
+      {detectionState === "packaged" && (
+        <div className="rounded-xl bg-accent/50 border border-accent p-4 flex gap-3">
+          <Package size={20} className="text-primary shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-foreground">
+              This looks like <span className="text-primary">{detectedName}</span>
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Flip it over and take a photo of the nutritional label for accurate values.
+            </p>
+            <div className="flex gap-2 mt-3">
+              <button
+                onClick={() => labelScanRef.current?.click()}
+                className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors"
+              >
+                📸 Scan Label
+              </button>
+              <button
+                onClick={() => {
+                  setFoodName(detectedName);
+                  setShowManual(true);
+                  setDetectionState("done");
+                }}
+                className="px-3 py-1.5 rounded-lg border border-border text-xs font-medium text-muted-foreground hover:border-muted-foreground transition-colors"
+              >
+                Enter manually
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {(detectionState === "not_food" || detectionState === "low_confidence") && (
+        <div className="rounded-xl bg-destructive/10 border border-destructive/30 p-4 flex gap-3">
+          <AlertTriangle size={20} className="text-destructive shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-foreground">
+              {detectionState === "not_food" ? "Not a food item" : "Unclear image"}
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">{detectionMessage}</p>
+            <div className="flex gap-2 mt-3">
+              <button
+                onClick={resetCapture}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors"
+              >
+                <RefreshCw size={12} /> Try again
+              </button>
+              {showManual && (
+                <button
+                  onClick={() => setDetectionState("done")}
+                  className="px-3 py-1.5 rounded-lg border border-border text-xs font-medium text-muted-foreground hover:border-muted-foreground transition-colors"
+                >
+                  Enter manually
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       )}
 
       {/* Hidden file inputs */}
       <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleImageSelect} />
       <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageSelect} />
+      <input ref={labelScanRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleLabelScan} />
 
-      {/* Camera / Gallery / Analyze buttons */}
-      <div className={`grid gap-3 ${imagePreview && !analyzed ? "grid-cols-3" : "grid-cols-2"}`}>
+      {/* Camera / Gallery buttons */}
+      <div className="grid grid-cols-2 gap-3">
         <button onClick={() => cameraInputRef.current?.click()} className="card-surface flex flex-col items-center gap-2 py-4 hover:border-primary/50 transition-colors">
           <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
             <Camera size={20} className="text-primary" />
@@ -177,24 +321,6 @@ const LogMeal = () => {
           </div>
           <span className="text-sm font-medium text-foreground">Gallery</span>
         </button>
-        {imagePreview && !analyzed && (
-          <button
-            onClick={handleAnalyze}
-            disabled={analyzing}
-            className="card-surface flex flex-col items-center gap-2 py-4 hover:border-primary/50 transition-colors border-primary/30 disabled:opacity-50"
-          >
-            <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-              {analyzing ? (
-                <Loader2 size={20} className="text-primary animate-spin" />
-              ) : (
-                <ScanLine size={20} className="text-primary" />
-              )}
-            </div>
-            <span className="text-sm font-medium text-foreground">
-              {analyzing ? "Scanning…" : "Scan Label"}
-            </span>
-          </button>
-        )}
       </div>
 
       {/* Portion size */}
@@ -240,7 +366,7 @@ const LogMeal = () => {
       {/* Divider */}
       <div className="flex items-center gap-3">
         <div className="flex-1 h-px bg-border" />
-        <span className="text-xs text-muted-foreground">{analyzed ? "review & edit values" : "or add manually"}</span>
+        <span className="text-xs text-muted-foreground">{detectionState === "done" ? "review & edit values" : "or add manually"}</span>
         <div className="flex-1 h-px bg-border" />
       </div>
 
@@ -284,9 +410,9 @@ const LogMeal = () => {
       <div className="rounded-xl bg-warning/10 border border-warning/30 p-4 flex gap-3">
         <Lightbulb size={20} className="text-warning shrink-0 mt-0.5" />
         <div>
-          <p className="text-sm font-semibold text-warning">Tip: Scan Nutrition Labels</p>
+          <p className="text-sm font-semibold text-warning">Smart Detection</p>
           <p className="text-xs text-muted-foreground mt-1">
-            Take a clear photo of the nutritional facts label on any packaged food, then tap "Scan Label" to auto-fill all values.
+            Just snap a photo! We'll automatically detect if it's a meal or packaged food and guide you from there.
           </p>
         </div>
       </div>
