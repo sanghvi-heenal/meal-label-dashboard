@@ -427,24 +427,39 @@ const LogMeal = () => {
       {/* Describe meal textarea */}
       {describeMode && (
         <div className="space-y-3">
-          <textarea
-            value={textDescription}
-            onChange={(e) => setTextDescription(e.target.value)}
-            placeholder="Describe what's on your plate (e.g. '2 chapatis, 1 cup dal, small bowl of rice with 1 tsp ghee')"
-            rows={3}
-            className="w-full px-3 py-2.5 rounded-lg bg-secondary border border-border text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary resize-none"
-          />
-          <button
-            onClick={handleTextAnalyze}
-            disabled={isAnalyzingText || !textDescription.trim()}
-            className="w-full py-2.5 rounded-lg bg-primary text-primary-foreground font-semibold text-sm hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-          >
-            {isAnalyzingText ? (
-              <><Loader2 size={16} className="animate-spin" /> Analyzing...</>
-            ) : (
-              <><Send size={16} /> Analyze</>
-            )}
-          </button>
+          <div className="relative">
+            <textarea
+              value={textDescription}
+              onChange={(e) => setTextDescription(e.target.value)}
+              placeholder={isListening ? "Listening... speak now" : "Describe what's on your plate (e.g. '2 chapatis, 1 cup dal, small bowl of rice with 1 tsp ghee')"}
+              rows={3}
+              className="w-full px-3 py-2.5 pr-12 rounded-lg bg-secondary border border-border text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary resize-none"
+            />
+            <button
+              onClick={toggleListening}
+              type="button"
+              className={`absolute right-2 bottom-2 w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
+                isListening
+                  ? "bg-destructive text-destructive-foreground animate-pulse"
+                  : "bg-primary/20 text-primary hover:bg-primary/30"
+              }`}
+            >
+              {isListening ? <MicOff size={16} /> : <Mic size={16} />}
+            </button>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={handleTextAnalyze}
+              disabled={isAnalyzingText || !textDescription.trim()}
+              className="flex-1 py-2.5 rounded-lg bg-primary text-primary-foreground font-semibold text-sm hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {isAnalyzingText ? (
+                <><Loader2 size={16} className="animate-spin" /> Analyzing...</>
+              ) : (
+                <><Send size={16} /> Analyze</>
+              )}
+            </button>
+          </div>
         </div>
       )}
 
