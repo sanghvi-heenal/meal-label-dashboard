@@ -836,6 +836,7 @@ const LogMeal = () => {
           </select>
         </div>
       </div>
+      </>}
 
       {/* Divider */}
       <div className="flex items-center gap-3">
