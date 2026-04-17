@@ -621,6 +621,7 @@ const LogMeal = () => {
         </div>
       )}
 
+      {selectedMeal !== "drink" && <>
       {/* Image upload area */}
       {imagePreview ? (
         <div className="relative rounded-xl overflow-hidden border border-border">
