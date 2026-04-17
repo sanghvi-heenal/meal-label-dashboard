@@ -318,12 +318,7 @@ const LogMeal = () => {
             </div>
           )}
         </div>
-      ) : (
-        <div className="border-2 border-dashed border-border rounded-xl p-8 flex flex-col items-center gap-2">
-          <Camera size={32} className="text-muted-foreground" />
-          <p className="text-sm text-muted-foreground">Snap a photo of your food or a nutrition label</p>
-        </div>
-      )}
+      ) : null}
 
       {/* Detection feedback cards */}
       {detectionState === "packaged" && (
