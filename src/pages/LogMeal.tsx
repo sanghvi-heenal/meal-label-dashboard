@@ -56,6 +56,7 @@ const LogMeal = () => {
   const [textDescription, setTextDescription] = useState("");
   const [isAnalyzingText, setIsAnalyzingText] = useState(false);
   const [isListening, setIsListening] = useState(false);
+  const [speechLang, setSpeechLang] = useState("en-US");
   const recognitionRef = useRef<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
