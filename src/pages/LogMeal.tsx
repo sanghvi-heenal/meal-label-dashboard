@@ -232,6 +232,7 @@ const LogMeal = () => {
         return;
       }
       autoFillForm(data);
+      setIsApproximate(data.quantitySpecified === false);
       setDescribeMode(false);
       toast({ title: "Meal estimated!", description: `Detected: ${data.name}` });
     } catch (err) {
