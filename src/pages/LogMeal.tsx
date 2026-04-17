@@ -224,6 +224,32 @@ const LogMeal = () => {
     }
   };
 
+  const clearListeningTimers = useCallback(() => {
+    if (silenceTimerRef.current) {
+      clearTimeout(silenceTimerRef.current);
+      silenceTimerRef.current = null;
+    }
+    if (maxTimerRef.current) {
+      clearTimeout(maxTimerRef.current);
+      maxTimerRef.current = null;
+    }
+  }, []);
+
+  const stopListening = useCallback(() => {
+    clearListeningTimers();
+    if (recognitionRef.current) {
+      try { recognitionRef.current.stop(); } catch { /* noop */ }
+    }
+    setIsListening(false);
+  }, [clearListeningTimers]);
+
+  const resetSilenceTimer = useCallback(() => {
+    if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+    silenceTimerRef.current = setTimeout(() => {
+      stopListening();
+    }, 3000);
+  }, [stopListening]);
+
   const toggleListening = useCallback(() => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
@@ -232,8 +258,7 @@ const LogMeal = () => {
     }
 
     if (isListening && recognitionRef.current) {
-      recognitionRef.current.stop();
-      setIsListening(false);
+      stopListening();
       return;
     }
 
@@ -246,33 +271,50 @@ const LogMeal = () => {
     let finalTranscript = textDescription;
 
     recognition.onresult = (event: any) => {
-      let interim = "";
+      // Got speech — reset silence timer
+      resetSilenceTimer();
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const transcript = event.results[i][0].transcript;
         if (event.results[i].isFinal) {
           finalTranscript += (finalTranscript ? " " : "") + transcript;
           setTextDescription(finalTranscript);
-        } else {
-          interim += transcript;
         }
       }
     };
 
     recognition.onerror = (event: any) => {
       console.error("Speech recognition error:", event.error);
+      clearListeningTimers();
       setIsListening(false);
-      if (event.error !== "aborted") {
+      if (event.error !== "aborted" && event.error !== "no-speech") {
         toast({ title: "Voice input error", description: "Please try again or type instead.", variant: "destructive" });
       }
     };
 
     recognition.onend = () => {
+      clearListeningTimers();
       setIsListening(false);
     };
 
     recognition.start();
     setIsListening(true);
-  }, [isListening, textDescription, toast, speechLang]);
+    // Initial silence timer + 60s hard cap
+    resetSilenceTimer();
+    maxTimerRef.current = setTimeout(() => {
+      stopListening();
+    }, 60000);
+  }, [isListening, textDescription, toast, speechLang, stopListening, resetSilenceTimer, clearListeningTimers]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      clearListeningTimers();
+      if (recognitionRef.current) {
+        try { recognitionRef.current.stop(); } catch { /* noop */ }
+      }
+    };
+  }, [clearListeningTimers]);
+
 
   const handleSave = () => {
     if (!foodName.trim()) {
