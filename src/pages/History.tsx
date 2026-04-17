@@ -19,11 +19,19 @@ const History = () => {
   const dateStr = selectedDate.toISOString().split("T")[0];
   const meals = getMealsByDate(dateStr);
 
+  // Earliest loggable date = 6 days ago (so today + past 6 days = past week)
+  const minLogDate = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 6);
+
   const isToday = (d: number) =>
     d === today.getDate() && month === today.getMonth() && year === today.getFullYear();
 
   const isSelected = (d: number) =>
     d === selectedDate.getDate() && month === selectedDate.getMonth() && year === selectedDate.getFullYear();
+
+  const isDisabled = (d: number) => {
+    const cellDate = new Date(year, month, d);
+    return cellDate < minLogDate || cellDate > today;
+  };
 
   return (
     <div className="px-4 pt-6 pb-24 max-w-md mx-auto space-y-5">
