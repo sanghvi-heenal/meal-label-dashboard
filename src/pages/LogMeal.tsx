@@ -1,5 +1,17 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Camera, Image, Edit3, Lightbulb, Sun, UtensilsCrossed, Moon, Coffee, X, Loader2, Package, AlertTriangle, RefreshCw, ChevronDown, MessageSquare, Send, Mic, MicOff } from "lucide-react";
+import { Camera, Image, Edit3, Lightbulb, Sun, UtensilsCrossed, Moon, Coffee, X, Loader2, Package, AlertTriangle, RefreshCw, ChevronDown, MessageSquare, Send, Mic } from "lucide-react";
+
+const SoundWaveIcon = () => (
+  <div className="flex items-end justify-center gap-[2px] h-4 w-4" aria-label="Listening">
+    {[0, 1, 2, 3, 4].map((i) => (
+      <span
+        key={i}
+        className="soundwave-bar w-[2px] h-full bg-current rounded-full"
+        style={{ animationDelay: `${i * 0.12}s` }}
+      />
+    ))}
+  </div>
+);
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { saveMeal, getTodayString, type MealEntry } from "@/lib/nutrition-store";
 import { useNavigate } from "react-router-dom";
