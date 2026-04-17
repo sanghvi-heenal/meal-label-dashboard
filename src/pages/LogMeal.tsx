@@ -188,7 +188,7 @@ const LogMeal = () => {
     setIsAnalyzingText(true);
     try {
       const { data, error } = await supabase.functions.invoke("analyze-food-text", {
-        body: { description: textDescription.trim() },
+        body: { description: textDescription.trim(), language: speechLang },
       });
       if (error) throw error;
       if (data.error) {
