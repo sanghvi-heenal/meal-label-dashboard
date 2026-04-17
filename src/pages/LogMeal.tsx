@@ -599,21 +599,40 @@ const LogMeal = () => {
         </button>
       ) : (
         <div className="space-y-3">
-          <input
-            placeholder="Food name (e.g. Grilled chicken)"
-            value={foodName}
-            onChange={(e) => setFoodName(e.target.value)}
-            className="w-full px-3 py-2.5 rounded-lg bg-secondary border border-border text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-          />
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-muted-foreground px-1">Food name</label>
+            <input
+              placeholder="e.g. Grilled chicken"
+              value={foodName}
+              onChange={(e) => setFoodName(e.target.value)}
+              className="w-full px-3 py-2.5 rounded-lg bg-secondary border border-border text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+            />
+          </div>
           <div className="grid grid-cols-2 gap-2">
-            <input placeholder="Calories (kcal)" value={calories} onChange={(e) => setCalories(e.target.value)} type="number" className="px-3 py-2.5 rounded-lg bg-secondary border border-border text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary" />
-            <input placeholder="Protein (g)" value={protein} onChange={(e) => setProtein(e.target.value)} type="number" className="px-3 py-2.5 rounded-lg bg-secondary border border-border text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary" />
-            <input placeholder="Carbs (g)" value={carbs} onChange={(e) => setCarbs(e.target.value)} type="number" className="px-3 py-2.5 rounded-lg bg-secondary border border-border text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary" />
-            <input placeholder="Fat (g)" value={fat} onChange={(e) => setFat(e.target.value)} type="number" className="px-3 py-2.5 rounded-lg bg-secondary border border-border text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary" />
-            <input placeholder="Fiber (g)" value={fiber} onChange={(e) => setFiber(e.target.value)} type="number" className="px-3 py-2.5 rounded-lg bg-secondary border border-border text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary" />
-            <input placeholder="Sodium (mg)" value={sodium} onChange={(e) => setSodium(e.target.value)} type="number" className="px-3 py-2.5 rounded-lg bg-secondary border border-border text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary" />
-            <input placeholder="Sugar (g)" value={sugar} onChange={(e) => setSugar(e.target.value)} type="number" className="px-3 py-2.5 rounded-lg bg-secondary border border-border text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary" />
-            <input placeholder="Sat. Fat (g)" value={satFat} onChange={(e) => setSatFat(e.target.value)} type="number" className="px-3 py-2.5 rounded-lg bg-secondary border border-border text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary" />
+            {([
+              { label: "Calories", unit: "kcal", value: calories, setter: setCalories },
+              { label: "Protein", unit: "g", value: protein, setter: setProtein },
+              { label: "Carbs", unit: "g", value: carbs, setter: setCarbs },
+              { label: "Fat", unit: "g", value: fat, setter: setFat },
+              { label: "Fiber", unit: "g", value: fiber, setter: setFiber },
+              { label: "Sodium", unit: "mg", value: sodium, setter: setSodium },
+              { label: "Sugar", unit: "g", value: sugar, setter: setSugar },
+              { label: "Sat. Fat", unit: "g", value: satFat, setter: setSatFat },
+            ] as const).map((f) => (
+              <div key={f.label} className="space-y-1">
+                <label className="text-xs font-medium text-muted-foreground px-1 flex items-center justify-between">
+                  <span>{f.label}</span>
+                  <span className="text-[10px] uppercase tracking-wide opacity-70">{f.unit}</span>
+                </label>
+                <input
+                  placeholder="0"
+                  value={f.value}
+                  onChange={(e) => f.setter(e.target.value)}
+                  type="number"
+                  className="w-full px-3 py-2.5 rounded-lg bg-secondary border border-border text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                />
+              </div>
+            ))}
           </div>
           <button
             onClick={handleSave}

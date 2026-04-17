@@ -33,13 +33,19 @@ Your task:
 1. Understand the description regardless of language or script (Devanagari, Tamil, Bengali, Roman, etc.).
 2. Identify each food item and its quantity. Quantities may use local units: katori (~150ml bowl), chamach (spoon), mutthi (handful), thali, plate, glass, tsp, tbsp, cup, piece, etc.
 3. Estimate the total nutritional content using standard databases (USDA, IFCT for Indian foods).
-4. Return the food name in English (transliterated if needed, e.g. "2 Chapati with Dal Tadka and Rice").
+4. Return the food name as a faithful, concise English rewording of EXACTLY what the user said (transliterated if needed).
 
-Rules:
-- Always return your best estimate — never return 0 unless the item truly has none of that nutrient.
-- Combine all items into a single total if multiple foods are described.
+CRITICAL Rules for the "name" field:
+- Use ONLY the food items the user explicitly mentioned. Do NOT add, assume, or infer ingredients that were not stated.
+- Example: if the user says "avocado with fried egg", the name MUST be "Avocado with Fried Egg" — NEVER "Avocado Toast with Fried Egg" (no toast was mentioned).
+- Example: if the user says "dal and rice", the name MUST be "Dal and Rice" — do not add ghee, roti, or anything else.
+- Translate non-English descriptions into English, but never invent additional foods.
+
+Other rules:
+- Always return your best estimate for nutrition — never return 0 unless the item truly has none of that nutrient.
+- Combine all items into a single nutritional total if multiple foods are described.
 - If the description is not food-related, classify as "not_food".
-- Use reasonable default portions when no quantity is given (e.g. 1 chapati ~ 30g, 1 katori dal ~ 150ml).
+- Use reasonable default portions when no quantity is given (e.g. 1 chapati ~ 30g, 1 katori dal ~ 150ml, 1 avocado ~ 150g, 1 egg ~ 50g).
 - All numeric values should be numbers, not strings.`;
 
     const userPrompt = language && language !== "en-US"
@@ -84,7 +90,7 @@ Rules:
                     },
                     name: {
                       type: "string",
-                      description: "A concise name summarizing the meal",
+                      description: "A concise name listing exactly the foods the user mentioned, nothing more. Translate to English if needed but NEVER add foods (like 'toast', 'bread', 'rice') that were not explicitly stated by the user.",
                     },
                     calories: { type: "number", description: "Calories in kcal" },
                     protein: { type: "number", description: "Protein in grams" },
