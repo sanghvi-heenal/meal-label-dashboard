@@ -84,6 +84,12 @@ const LogMeal = () => {
   const [speechLang, setSpeechLang] = useState("en-US");
   const [isAiFilled, setIsAiFilled] = useState(false);
   const [isApproximate, setIsApproximate] = useState(false);
+  const [drinkType, setDrinkType] = useState<DrinkType>("Water");
+  const [drinkDescription, setDrinkDescription] = useState("");
+  const [drinkVolume, setDrinkVolume] = useState("250");
+  const [drinkUnit, setDrinkUnit] = useState<"ml" | "oz">("ml");
+  const [isAnalyzingDrink, setIsAnalyzingDrink] = useState(false);
+  const [sizeHelperOpen, setSizeHelperOpen] = useState(false);
   const recognitionRef = useRef<any>(null);
   const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const maxTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
