@@ -91,6 +91,21 @@ const LogMeal = () => {
     setSugar(String(data.sugar || 0));
     setSatFat(String(data.satFat || 0));
     setShowManual(true);
+    setIsAiFilled(true);
+  }, []);
+
+  const clearForm = useCallback(() => {
+    setFoodName("");
+    setCalories("");
+    setProtein("");
+    setCarbs("");
+    setFat("");
+    setFiber("");
+    setSodium("");
+    setSugar("");
+    setSatFat("");
+    setIsAiFilled(false);
+    setIsApproximate(false);
   }, []);
 
   const handleAnalyze = useCallback(async (base64: string) => {
