@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Camera, Image, Edit3, Lightbulb, Sun, UtensilsCrossed, Moon, Coffee, X, Loader2, Package, AlertTriangle, RefreshCw, ChevronDown, MessageSquare, Send, Mic, Lock, Info } from "lucide-react";
+import { Camera, Image, Edit3, Lightbulb, Sun, UtensilsCrossed, Moon, Coffee, X, Loader2, Package, AlertTriangle, RefreshCw, ChevronDown, MessageSquare, Send, Mic, Lock, Info, GlassWater, Droplets } from "lucide-react";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 
 const SoundWaveIcon = () => (
   <div className="flex items-end justify-center gap-[2px] h-4 w-4" aria-label="Listening">
@@ -23,6 +24,18 @@ const mealTypes = [
   { value: "lunch" as const, label: "Lunch", icon: UtensilsCrossed },
   { value: "dinner" as const, label: "Dinner", icon: Moon },
   { value: "snack" as const, label: "Snack", icon: Coffee },
+  { value: "drink" as const, label: "Drink", icon: GlassWater },
+];
+
+const drinkTypes = ["Water", "Tea", "Coffee", "Smoothie", "Juice", "Milk", "Other"] as const;
+type DrinkType = typeof drinkTypes[number];
+const volumePresets = [100, 200, 250, 330, 500];
+const sizeReferences: { label: string; ml: number }[] = [
+  { label: "Small cup", ml: 150 },
+  { label: "Mug", ml: 250 },
+  { label: "Tall glass", ml: 350 },
+  { label: "Bottle", ml: 500 },
+  { label: "Large bottle", ml: 750 },
 ];
 
 const portionOptions = ["Small", "Medium", "Large", "Extra Large"];
@@ -71,6 +84,12 @@ const LogMeal = () => {
   const [speechLang, setSpeechLang] = useState("en-US");
   const [isAiFilled, setIsAiFilled] = useState(false);
   const [isApproximate, setIsApproximate] = useState(false);
+  const [drinkType, setDrinkType] = useState<DrinkType>("Water");
+  const [drinkDescription, setDrinkDescription] = useState("");
+  const [drinkVolume, setDrinkVolume] = useState("250");
+  const [drinkUnit, setDrinkUnit] = useState<"ml" | "oz">("ml");
+  const [isAnalyzingDrink, setIsAnalyzingDrink] = useState(false);
+  const [sizeHelperOpen, setSizeHelperOpen] = useState(false);
   const recognitionRef = useRef<any>(null);
   const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const maxTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -253,6 +272,65 @@ const LogMeal = () => {
     }
   };
 
+  const handleDrinkAnalyze = async () => {
+    const volNum = Number(drinkVolume);
+    if (!volNum || volNum <= 0) {
+      toast({ title: "Enter a volume", description: "How much did you drink?", variant: "destructive" });
+      return;
+    }
+    const volMl = drinkUnit === "oz" ? Math.round(volNum * 29.5735) : volNum;
+    const labelName = drinkType === "Water"
+      ? `Water (${volNum}${drinkUnit})`
+      : `${drinkDescription.trim() || drinkType} (${volNum}${drinkUnit})`;
+
+    // Water: skip AI, save zeros directly
+    if (drinkType === "Water") {
+      const entry: MealEntry = {
+        id: crypto.randomUUID(),
+        date: logDate,
+        mealType: "drink",
+        name: labelName,
+        calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, sodium: 0, sugar: 0, satFat: 0,
+        timestamp: Date.now(),
+      };
+      saveMeal(entry);
+      toast({ title: "💧 Hydration logged", description: `+ ${volNum}${drinkUnit} water on ${logDateLabel}` });
+      navigate(isLoggingToday ? "/" : "/history");
+      return;
+    }
+
+    // Caloric drink: estimate via AI
+    if (!drinkDescription.trim() && drinkType === "Other") {
+      toast({ title: "Describe your drink", variant: "destructive" });
+      return;
+    }
+    const composed = `${volMl} ml of ${drinkDescription.trim() || drinkType.toLowerCase()}`;
+    setIsAnalyzingDrink(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("analyze-food-text", {
+        body: { description: composed, language: "en-US" },
+      });
+      if (error) throw error;
+      if (data.error) {
+        toast({ title: "Analysis failed", description: data.error, variant: "destructive" });
+        return;
+      }
+      if (data.foodType === "not_food") {
+        toast({ title: "Not recognized", description: data.message || "Try describing the drink.", variant: "destructive" });
+        return;
+      }
+      autoFillForm({ ...data, name: labelName });
+      setIsApproximate(false);
+      setSelectedMeal("drink");
+      toast({ title: "Drink estimated!", description: labelName });
+    } catch (err) {
+      console.error("Drink analyze error:", err);
+      toast({ title: "Could not estimate drink", description: "Please try again.", variant: "destructive" });
+    } finally {
+      setIsAnalyzingDrink(false);
+    }
+  };
+
   const clearListeningTimers = useCallback(() => {
     if (silenceTimerRef.current) {
       clearTimeout(silenceTimerRef.current);
@@ -354,7 +432,9 @@ const LogMeal = () => {
       id: crypto.randomUUID(),
       date: logDate,
       mealType: selectedMeal,
-      name: foodName + (portionSize ? ` (${portionSize}${portionUnit}, ${selectedPortion})` : ` (${selectedPortion})`),
+      name: selectedMeal === "drink"
+        ? foodName
+        : foodName + (portionSize ? ` (${portionSize}${portionUnit}, ${selectedPortion})` : ` (${selectedPortion})`),
       calories: Number(calories) || 0,
       protein: Number(protein) || 0,
       carbs: Number(carbs) || 0,
@@ -413,6 +493,137 @@ const LogMeal = () => {
         ))}
       </div>
 
+      {/* Drink mode form */}
+      {selectedMeal === "drink" && (
+        <div className="space-y-4 card-surface p-4">
+          <div className="flex items-center gap-2">
+            <GlassWater size={18} className="text-primary" />
+            <h2 className="text-sm font-semibold text-foreground">Log a Drink</h2>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-muted-foreground">What did you drink?</label>
+            <div className="flex flex-wrap gap-2">
+              {drinkTypes.map((d) => (
+                <button
+                  key={d}
+                  onClick={() => setDrinkType(d)}
+                  className={`px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors ${
+                    drinkType === d
+                      ? "border-primary text-primary bg-primary/10"
+                      : "border-border text-muted-foreground hover:border-muted-foreground"
+                  }`}
+                >
+                  {d === "Water" && "💧 "}{d}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {drinkType !== "Water" && (
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">
+                Describe it {drinkType === "Other" ? "(required)" : "(optional)"}
+              </label>
+              <input
+                value={drinkDescription}
+                onChange={(e) => setDrinkDescription(e.target.value)}
+                placeholder={
+                  drinkType === "Tea" ? "e.g. masala chai with whole milk and 1 tsp sugar"
+                    : drinkType === "Coffee" ? "e.g. cappuccino with whole milk, no sugar"
+                    : drinkType === "Smoothie" ? "e.g. mango smoothie with yogurt and honey"
+                    : drinkType === "Juice" ? "e.g. fresh orange juice"
+                    : drinkType === "Milk" ? "e.g. whole cow milk"
+                    : "Describe your drink"
+                }
+                className="w-full px-3 py-2.5 rounded-lg bg-secondary border border-border text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+              />
+            </div>
+          )}
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-muted-foreground">How much?</label>
+            <div className="flex gap-2">
+              <input
+                type="number"
+                value={drinkVolume}
+                onChange={(e) => setDrinkVolume(e.target.value)}
+                placeholder="250"
+                className="flex-1 px-3 py-2.5 rounded-lg bg-secondary border border-border text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+              />
+              <div className="flex rounded-lg border border-border overflow-hidden">
+                {(["ml", "oz"] as const).map((u) => (
+                  <button
+                    key={u}
+                    onClick={() => setDrinkUnit(u)}
+                    className={`px-3 text-xs font-medium transition-colors ${
+                      drinkUnit === u
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-secondary text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {u}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {drinkUnit === "ml" && (
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {volumePresets.map((v) => (
+                  <button
+                    key={v}
+                    onClick={() => setDrinkVolume(String(v))}
+                    className="px-2.5 py-1 rounded-md border border-border text-[11px] font-medium text-muted-foreground hover:border-primary hover:text-primary transition-colors"
+                  >
+                    {v} ml
+                  </button>
+                ))}
+              </div>
+            )}
+            <Popover open={sizeHelperOpen} onOpenChange={setSizeHelperOpen}>
+              <PopoverTrigger asChild>
+                <button className="text-[11px] text-primary hover:underline mt-1">
+                  Not sure how much? Pick a typical size →
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-56 p-2" align="start">
+                <div className="space-y-1">
+                  {sizeReferences.map((s) => (
+                    <button
+                      key={s.label}
+                      onClick={() => {
+                        setDrinkVolume(String(s.ml));
+                        setDrinkUnit("ml");
+                        setSizeHelperOpen(false);
+                      }}
+                      className="w-full text-left px-2 py-1.5 rounded-md text-xs hover:bg-accent flex justify-between items-center"
+                    >
+                      <span className="text-foreground">{s.label}</span>
+                      <span className="text-muted-foreground">{s.ml} ml</span>
+                    </button>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
+
+          <button
+            onClick={handleDrinkAnalyze}
+            disabled={isAnalyzingDrink}
+            className="w-full py-2.5 rounded-lg bg-primary text-primary-foreground font-semibold text-sm hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+          >
+            {isAnalyzingDrink ? (
+              <><Loader2 size={16} className="animate-spin" /> Estimating...</>
+            ) : drinkType === "Water" ? (
+              <><Droplets size={16} /> Log Hydration</>
+            ) : (
+              <><Send size={16} /> Estimate & Review</>
+            )}
+          </button>
+        </div>
+      )}
+
+      {selectedMeal !== "drink" && <>
       {/* Image upload area */}
       {imagePreview ? (
         <div className="relative rounded-xl overflow-hidden border border-border">
@@ -627,6 +838,7 @@ const LogMeal = () => {
           </select>
         </div>
       </div>
+      </>}
 
       {/* Divider */}
       <div className="flex items-center gap-3">

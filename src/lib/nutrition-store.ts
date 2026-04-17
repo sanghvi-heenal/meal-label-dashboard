@@ -1,7 +1,7 @@
 export interface MealEntry {
   id: string;
   date: string; // YYYY-MM-DD
-  mealType: "breakfast" | "lunch" | "dinner" | "snack";
+  mealType: "breakfast" | "lunch" | "dinner" | "snack" | "drink";
   name: string;
   calories: number;
   protein: number;
