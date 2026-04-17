@@ -375,6 +375,24 @@ const LogMeal = () => {
       <div>
         <h1 className="text-2xl font-bold text-foreground">Log a Meal</h1>
         <p className="text-sm text-muted-foreground mt-1">Take a photo and we'll handle the rest</p>
+        <div
+          className={`mt-3 inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-semibold ${
+            isLoggingToday
+              ? "bg-primary/10 text-primary"
+              : "bg-warning/15 text-warning border border-warning/40"
+          }`}
+        >
+          <span>📅</span>
+          <span>Logging for: {logDateLabel}</span>
+          {!isLoggingToday && (
+            <button
+              onClick={() => navigate("/log", { replace: true, state: null })}
+              className="ml-1 underline underline-offset-2 text-xs font-medium hover:opacity-80"
+            >
+              Switch to Today
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Meal type selector */}
