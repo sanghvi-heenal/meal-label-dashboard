@@ -41,6 +41,11 @@ CRITICAL Rules for the "name" field:
 - Example: if the user says "dal and rice", the name MUST be "Dal and Rice" — do not add ghee, roti, or anything else.
 - Translate non-English descriptions into English, but never invent additional foods.
 
+Quantity detection:
+- Set "quantitySpecified" to true ONLY if the user explicitly mentioned a number, count, or measure (e.g. "2 eggs", "1 cup rice", "100g chicken", "1 katori dal", "a slice of bread", "half avocado", "one piece").
+- Set "quantitySpecified" to false if the user just listed foods without any quantity (e.g. "avocado with fried egg", "dal and rice", "chicken curry").
+- Words like "a", "an", "some" alone do NOT count as quantities. Specific counts like "one", "two", "half" DO count.
+
 Other rules:
 - Always return your best estimate for nutrition — never return 0 unless the item truly has none of that nutrient.
 - Combine all items into a single nutritional total if multiple foods are described.
