@@ -24,6 +24,18 @@ const mealTypes = [
   { value: "lunch" as const, label: "Lunch", icon: UtensilsCrossed },
   { value: "dinner" as const, label: "Dinner", icon: Moon },
   { value: "snack" as const, label: "Snack", icon: Coffee },
+  { value: "drink" as const, label: "Drink", icon: GlassWater },
+];
+
+const drinkTypes = ["Water", "Tea", "Coffee", "Smoothie", "Juice", "Milk", "Other"] as const;
+type DrinkType = typeof drinkTypes[number];
+const volumePresets = [100, 200, 250, 330, 500];
+const sizeReferences: { label: string; ml: number }[] = [
+  { label: "Small cup", ml: 150 },
+  { label: "Mug", ml: 250 },
+  { label: "Tall glass", ml: 350 },
+  { label: "Bottle", ml: 500 },
+  { label: "Large bottle", ml: 750 },
 ];
 
 const portionOptions = ["Small", "Medium", "Large", "Extra Large"];
