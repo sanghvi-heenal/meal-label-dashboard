@@ -258,7 +258,7 @@ const LogMeal = () => {
 
     recognition.start();
     setIsListening(true);
-  }, [isListening, textDescription, toast]);
+  }, [isListening, textDescription, toast, speechLang]);
 
   const handleSave = () => {
     if (!foodName.trim()) {
