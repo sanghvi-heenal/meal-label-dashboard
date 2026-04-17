@@ -1,45 +1,31 @@
 
-## Plan: Show clear macro labels + preserve user's exact food name
+## Plan: Lock auto-filled macros + flag approximate estimates
 
-### Issue 1: Inputs lose context once filled in
-Currently the macro grid uses placeholders like "Calories (kcal)", "Protein (g)" — but placeholders **disappear** the moment the AI auto-fills values. The user sees a grid of bare numbers (400, 15, 30, 25, 9, 400, 3, 7) with no idea what each means or its unit.
+Building on the previously approved plan (persistent labels + faithful name). Two additions:
 
-**Fix in `src/pages/LogMeal.tsx`** — replace the bare `<input>` grid (lines 608–617) with labeled fields. Each cell becomes a small block:
+### Addition 1: Lock macro fields once AI fills them
+After the AI (text or photo) returns nutrition values, the 8 macro inputs + the food-name field become **read-only**. User cannot edit numbers post-generation.
 
-```
-┌───────────────────────┐
-│ Calories  (kcal)      │   ← persistent label + unit
-│ ┌───────────────────┐ │
-│ │ 400               │ │
-│ └───────────────────┘ │
-└───────────────────────┘
-```
+- Add a state flag `isAiFilled` in `src/pages/LogMeal.tsx`, set to `true` whenever the text or photo analysis successfully populates the form, reset to `false` when user clears/starts a new entry.
+- Apply `readOnly` + a muted visual style (`bg-muted cursor-not-allowed`) to all 8 macro inputs and the name input when `isAiFilled` is true.
+- Manual entry (user types macros from scratch without using AI) stays fully editable — the lock only triggers after an AI fill.
+- Add a small "Clear & re-enter" link/button so the user can wipe the form and start over (manual or new AI attempt) if the values look wrong.
 
-Labels and units to show above each input:
-- Calories — kcal
-- Protein — g
-- Carbs — g
-- Fat — g
-- Fiber — g
-- Sodium — mg
-- Sugar — g
-- Sat. Fat — g
+### Addition 2: Approximate-estimate banner
+When the user describes a meal **verbally or in text without quantities** (e.g. "avocado with fried egg" — no "1", "2 slices", "100g", "katori", etc.), show a yellow info banner above the macro grid:
 
-Also add the same treatment to the food-name input (label "Food name" above it) for consistency.
+> ⚠️ **Approximate estimate.** We assumed standard portions. For accurate numbers, mention quantities (e.g. "2 eggs, 1 avocado") or snap a photo.
 
-### Issue 2: AI is adding words the user never said
-User said *"avocado with fried egg"* → AI returned *"Avocado Toast with Fried Egg"*. It invented "toast".
+How we detect "no quantity":
+- In `supabase/functions/analyze-food-text/index.ts`, add a new boolean field `quantitySpecified` to the tool schema. The AI sets it to `false` when the user did not state any explicit quantity/measure, `true` when they did (numbers, "katori", "cup", "slice", "piece", "g", "ml", etc.).
+- Frontend reads `quantitySpecified` from the response and shows the banner when `false`.
+- Photo analysis flow does NOT show this banner (a photo is already concrete evidence of portion).
 
-**Fix in `supabase/functions/analyze-food-text/index.ts`** — tighten the system prompt so the `name` field is built strictly from items the user mentioned:
-
-Add explicit rules:
-- "Use ONLY the food items the user explicitly mentioned. Do NOT add, assume, or infer ingredients that were not stated (e.g., if the user says 'avocado with egg', do NOT add 'toast' or 'bread')."
-- "The `name` field should be a faithful, concise rewording of what the user said — translated/transliterated to English if needed — without adding new foods."
-- Update the `name` parameter description to: *"A concise name listing exactly the foods the user mentioned, nothing more. Translate to English if needed but never add foods that were not explicitly stated."*
-
-Nutrition estimation can still assume reasonable default portions (1 avocado, 1 egg) — that part stays. We're only constraining the **name** and the **list of items**, not the math.
+### Files touched
+- `src/pages/LogMeal.tsx` — add lock state, readOnly styling, "Clear & re-enter" button, approximate banner.
+- `supabase/functions/analyze-food-text/index.ts` — add `quantitySpecified` field to schema + prompt instruction.
 
 ### Out of scope
-- No changes to the photo-analysis edge function (different flow).
-- No changes to voice/listening logic.
+- No changes to photo edge function.
+- No changes to voice/timeout logic.
 - No new dependencies.
