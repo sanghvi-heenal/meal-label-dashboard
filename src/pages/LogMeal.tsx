@@ -331,6 +331,7 @@ const LogMeal = () => {
     }
   };
 
+  const clearListeningTimers = useCallback(() => {
     if (silenceTimerRef.current) {
       clearTimeout(silenceTimerRef.current);
       silenceTimerRef.current = null;
