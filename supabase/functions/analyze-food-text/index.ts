@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { description } = await req.json();
+    const { description, language } = await req.json();
     if (!description || typeof description !== "string" || !description.trim()) {
       return new Response(JSON.stringify({ error: "No description provided" }), {
         status: 400,
@@ -25,17 +25,26 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    const systemPrompt = `You are a nutrition expert. Given a text description of a meal, estimate the total nutritional content.
+    const systemPrompt = `You are a multilingual nutrition expert with deep knowledge of global cuisines, especially Indian, South Asian, and regional foods (e.g. roti, chapati, dal, sabzi, paratha, idli, dosa, biryani, poha, upma, khichdi, curd rice, etc.).
 
-The user may specify quantities using teaspoons, tablespoons, cups, pieces, servings, bowls, plates, handfuls, etc.
-Use standard nutritional databases (USDA, etc.) as reference for your estimates.
+The user may describe their meal in ANY language — English, Hindi, Bengali, Tamil, Telugu, Marathi, Gujarati, Kannada, Malayalam, Punjabi, Urdu, or others. They may also mix languages (e.g. Hinglish: "2 roti aur ek katori dal").
+
+Your task:
+1. Understand the description regardless of language or script (Devanagari, Tamil, Bengali, Roman, etc.).
+2. Identify each food item and its quantity. Quantities may use local units: katori (~150ml bowl), chamach (spoon), mutthi (handful), thali, plate, glass, tsp, tbsp, cup, piece, etc.
+3. Estimate the total nutritional content using standard databases (USDA, IFCT for Indian foods).
+4. Return the food name in English (transliterated if needed, e.g. "2 Chapati with Dal Tadka and Rice").
 
 Rules:
 - Always return your best estimate — never return 0 unless the item truly has none of that nutrient.
 - Combine all items into a single total if multiple foods are described.
 - If the description is not food-related, classify as "not_food".
-- Use reasonable default portions when the user doesn't specify a quantity (e.g., "rice" = ~1 cup cooked).
+- Use reasonable default portions when no quantity is given (e.g. 1 chapati ~ 30g, 1 katori dal ~ 150ml).
 - All numeric values should be numbers, not strings.`;
+
+    const userPrompt = language && language !== "en-US"
+      ? `The user described their meal in ${language}. Estimate the nutritional content of: "${description}"`
+      : `Estimate the nutritional content of this meal: "${description}"`;
 
     const response = await fetch(
       "https://ai.gateway.lovable.dev/v1/chat/completions",
@@ -49,10 +58,7 @@ Rules:
           model: "google/gemini-2.5-flash",
           messages: [
             { role: "system", content: systemPrompt },
-            {
-              role: "user",
-              content: `Estimate the nutritional content of this meal: "${description}"`,
-            },
+            { role: "user", content: userPrompt },
           ],
           tools: [
             {
