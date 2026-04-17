@@ -15,6 +15,20 @@ const mealTypes = [
 
 const portionOptions = ["Small", "Medium", "Large", "Extra Large"];
 
+const speechLanguages = [
+  { code: "en-US", label: "English" },
+  { code: "hi-IN", label: "हिन्दी (Hindi)" },
+  { code: "bn-IN", label: "বাংলা (Bengali)" },
+  { code: "ta-IN", label: "தமிழ் (Tamil)" },
+  { code: "te-IN", label: "తెలుగు (Telugu)" },
+  { code: "mr-IN", label: "मराठी (Marathi)" },
+  { code: "gu-IN", label: "ગુજરાતી (Gujarati)" },
+  { code: "kn-IN", label: "ಕನ್ನಡ (Kannada)" },
+  { code: "ml-IN", label: "മലയാളം (Malayalam)" },
+  { code: "pa-IN", label: "ਪੰਜਾਬੀ (Punjabi)" },
+  { code: "ur-IN", label: "اردو (Urdu)" },
+];
+
 type DetectionState = "idle" | "analyzing" | "packaged" | "not_food" | "low_confidence" | "done";
 type InputMode = "camera" | "describe";
 
