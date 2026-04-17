@@ -432,7 +432,9 @@ const LogMeal = () => {
       id: crypto.randomUUID(),
       date: logDate,
       mealType: selectedMeal,
-      name: foodName + (portionSize ? ` (${portionSize}${portionUnit}, ${selectedPortion})` : ` (${selectedPortion})`),
+      name: selectedMeal === "drink"
+        ? foodName
+        : foodName + (portionSize ? ` (${portionSize}${portionUnit}, ${selectedPortion})` : ` (${selectedPortion})`),
       calories: Number(calories) || 0,
       protein: Number(protein) || 0,
       carbs: Number(carbs) || 0,
