@@ -81,6 +81,9 @@ const History = () => {
             );
           })}
         </div>
+        <p className="mt-3 text-xs text-muted-foreground text-center">
+          You can only log meals for the past 7 days.
+        </p>
       </div>
 
       {/* Selected day label */}
