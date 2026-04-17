@@ -272,7 +272,65 @@ const LogMeal = () => {
     }
   };
 
-  const clearListeningTimers = useCallback(() => {
+  const handleDrinkAnalyze = async () => {
+    const volNum = Number(drinkVolume);
+    if (!volNum || volNum <= 0) {
+      toast({ title: "Enter a volume", description: "How much did you drink?", variant: "destructive" });
+      return;
+    }
+    const volMl = drinkUnit === "oz" ? Math.round(volNum * 29.5735) : volNum;
+    const labelName = drinkType === "Water"
+      ? `Water (${volNum}${drinkUnit})`
+      : `${drinkDescription.trim() || drinkType} (${volNum}${drinkUnit})`;
+
+    // Water: skip AI, save zeros directly
+    if (drinkType === "Water") {
+      const entry: MealEntry = {
+        id: crypto.randomUUID(),
+        date: logDate,
+        mealType: "drink",
+        name: labelName,
+        calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, sodium: 0, sugar: 0, satFat: 0,
+        timestamp: Date.now(),
+      };
+      saveMeal(entry);
+      toast({ title: "💧 Hydration logged", description: `+ ${volNum}${drinkUnit} water on ${logDateLabel}` });
+      navigate(isLoggingToday ? "/" : "/history");
+      return;
+    }
+
+    // Caloric drink: estimate via AI
+    if (!drinkDescription.trim() && drinkType === "Other") {
+      toast({ title: "Describe your drink", variant: "destructive" });
+      return;
+    }
+    const composed = `${volMl} ml of ${drinkDescription.trim() || drinkType.toLowerCase()}`;
+    setIsAnalyzingDrink(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("analyze-food-text", {
+        body: { description: composed, language: "en-US" },
+      });
+      if (error) throw error;
+      if (data.error) {
+        toast({ title: "Analysis failed", description: data.error, variant: "destructive" });
+        return;
+      }
+      if (data.foodType === "not_food") {
+        toast({ title: "Not recognized", description: data.message || "Try describing the drink.", variant: "destructive" });
+        return;
+      }
+      autoFillForm({ ...data, name: labelName });
+      setIsApproximate(false);
+      setSelectedMeal("drink");
+      toast({ title: "Drink estimated!", description: labelName });
+    } catch (err) {
+      console.error("Drink analyze error:", err);
+      toast({ title: "Could not estimate drink", description: "Please try again.", variant: "destructive" });
+    } finally {
+      setIsAnalyzingDrink(false);
+    }
+  };
+
     if (silenceTimerRef.current) {
       clearTimeout(silenceTimerRef.current);
       silenceTimerRef.current = null;
