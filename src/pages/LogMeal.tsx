@@ -366,8 +366,8 @@ const LogMeal = () => {
       timestamp: Date.now(),
     };
     saveMeal(entry);
-    toast({ title: "Meal logged!", description: `${foodName} added to ${selectedMeal}` });
-    navigate("/");
+    toast({ title: "Meal logged!", description: `${foodName} added to ${selectedMeal} on ${logDateLabel}` });
+    navigate(isLoggingToday ? "/" : "/history");
   };
 
   return (
