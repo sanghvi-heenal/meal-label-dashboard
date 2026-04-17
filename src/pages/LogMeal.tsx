@@ -491,6 +491,136 @@ const LogMeal = () => {
         ))}
       </div>
 
+      {/* Drink mode form */}
+      {selectedMeal === "drink" && (
+        <div className="space-y-4 card-surface p-4">
+          <div className="flex items-center gap-2">
+            <GlassWater size={18} className="text-primary" />
+            <h2 className="text-sm font-semibold text-foreground">Log a Drink</h2>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-muted-foreground">What did you drink?</label>
+            <div className="flex flex-wrap gap-2">
+              {drinkTypes.map((d) => (
+                <button
+                  key={d}
+                  onClick={() => setDrinkType(d)}
+                  className={`px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors ${
+                    drinkType === d
+                      ? "border-primary text-primary bg-primary/10"
+                      : "border-border text-muted-foreground hover:border-muted-foreground"
+                  }`}
+                >
+                  {d === "Water" && "💧 "}{d}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {drinkType !== "Water" && (
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">
+                Describe it {drinkType === "Other" ? "(required)" : "(optional)"}
+              </label>
+              <input
+                value={drinkDescription}
+                onChange={(e) => setDrinkDescription(e.target.value)}
+                placeholder={
+                  drinkType === "Tea" ? "e.g. masala chai with whole milk and 1 tsp sugar"
+                    : drinkType === "Coffee" ? "e.g. cappuccino with whole milk, no sugar"
+                    : drinkType === "Smoothie" ? "e.g. mango smoothie with yogurt and honey"
+                    : drinkType === "Juice" ? "e.g. fresh orange juice"
+                    : drinkType === "Milk" ? "e.g. whole cow milk"
+                    : "Describe your drink"
+                }
+                className="w-full px-3 py-2.5 rounded-lg bg-secondary border border-border text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+              />
+            </div>
+          )}
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-muted-foreground">How much?</label>
+            <div className="flex gap-2">
+              <input
+                type="number"
+                value={drinkVolume}
+                onChange={(e) => setDrinkVolume(e.target.value)}
+                placeholder="250"
+                className="flex-1 px-3 py-2.5 rounded-lg bg-secondary border border-border text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+              />
+              <div className="flex rounded-lg border border-border overflow-hidden">
+                {(["ml", "oz"] as const).map((u) => (
+                  <button
+                    key={u}
+                    onClick={() => setDrinkUnit(u)}
+                    className={`px-3 text-xs font-medium transition-colors ${
+                      drinkUnit === u
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-secondary text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {u}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {drinkUnit === "ml" && (
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {volumePresets.map((v) => (
+                  <button
+                    key={v}
+                    onClick={() => setDrinkVolume(String(v))}
+                    className="px-2.5 py-1 rounded-md border border-border text-[11px] font-medium text-muted-foreground hover:border-primary hover:text-primary transition-colors"
+                  >
+                    {v} ml
+                  </button>
+                ))}
+              </div>
+            )}
+            <Popover open={sizeHelperOpen} onOpenChange={setSizeHelperOpen}>
+              <PopoverTrigger asChild>
+                <button className="text-[11px] text-primary hover:underline mt-1">
+                  Not sure how much? Pick a typical size →
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-56 p-2" align="start">
+                <div className="space-y-1">
+                  {sizeReferences.map((s) => (
+                    <button
+                      key={s.label}
+                      onClick={() => {
+                        setDrinkVolume(String(s.ml));
+                        setDrinkUnit("ml");
+                        setSizeHelperOpen(false);
+                      }}
+                      className="w-full text-left px-2 py-1.5 rounded-md text-xs hover:bg-accent flex justify-between items-center"
+                    >
+                      <span className="text-foreground">{s.label}</span>
+                      <span className="text-muted-foreground">{s.ml} ml</span>
+                    </button>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
+
+          <button
+            onClick={handleDrinkAnalyze}
+            disabled={isAnalyzingDrink}
+            className="w-full py-2.5 rounded-lg bg-primary text-primary-foreground font-semibold text-sm hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+          >
+            {isAnalyzingDrink ? (
+              <><Loader2 size={16} className="animate-spin" /> Estimating...</>
+            ) : drinkType === "Water" ? (
+              <><Droplets size={16} /> Log Hydration</>
+            ) : (
+              <><Send size={16} /> Estimate & Review</>
+            )}
+          </button>
+        </div>
+      )}
+
       {/* Image upload area */}
       {imagePreview ? (
         <div className="relative rounded-xl overflow-hidden border border-border">
