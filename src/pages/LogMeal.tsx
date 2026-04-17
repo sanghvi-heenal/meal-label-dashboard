@@ -226,7 +226,7 @@ const LogMeal = () => {
     const recognition = new SpeechRecognition();
     recognition.continuous = true;
     recognition.interimResults = true;
-    recognition.lang = "en-US";
+    recognition.lang = speechLang;
     recognitionRef.current = recognition;
 
     let finalTranscript = textDescription;
