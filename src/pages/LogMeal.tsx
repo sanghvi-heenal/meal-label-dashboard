@@ -14,7 +14,7 @@ const SoundWaveIcon = () => (
 );
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { saveMeal, getTodayString, type MealEntry } from "@/lib/nutrition-store";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -78,7 +78,17 @@ const LogMeal = () => {
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const labelScanRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
+
+  // Date this meal will be logged for. Comes from History via navigation state; defaults to today.
+  const logDate: string = (location.state as { date?: string } | null)?.date || getTodayString();
+  const logDateObj = new Date(logDate + "T00:00:00");
+  const todayStr = getTodayString();
+  const isLoggingToday = logDate === todayStr;
+  const logDateLabel = isLoggingToday
+    ? "Today"
+    : logDateObj.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" });
 
   const autoFillForm = useCallback((data: any) => {
     setFoodName(data.name || "");
@@ -342,7 +352,7 @@ const LogMeal = () => {
     }
     const entry: MealEntry = {
       id: crypto.randomUUID(),
-      date: getTodayString(),
+      date: logDate,
       mealType: selectedMeal,
       name: foodName + (portionSize ? ` (${portionSize}${portionUnit}, ${selectedPortion})` : ` (${selectedPortion})`),
       calories: Number(calories) || 0,
@@ -356,8 +366,8 @@ const LogMeal = () => {
       timestamp: Date.now(),
     };
     saveMeal(entry);
-    toast({ title: "Meal logged!", description: `${foodName} added to ${selectedMeal}` });
-    navigate("/");
+    toast({ title: "Meal logged!", description: `${foodName} added to ${selectedMeal} on ${logDateLabel}` });
+    navigate(isLoggingToday ? "/" : "/history");
   };
 
   return (
@@ -365,6 +375,24 @@ const LogMeal = () => {
       <div>
         <h1 className="text-2xl font-bold text-foreground">Log a Meal</h1>
         <p className="text-sm text-muted-foreground mt-1">Take a photo and we'll handle the rest</p>
+        <div
+          className={`mt-3 inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-semibold ${
+            isLoggingToday
+              ? "bg-primary/10 text-primary"
+              : "bg-warning/15 text-warning border border-warning/40"
+          }`}
+        >
+          <span>📅</span>
+          <span>Logging for: {logDateLabel}</span>
+          {!isLoggingToday && (
+            <button
+              onClick={() => navigate("/log", { replace: true, state: null })}
+              className="ml-1 underline underline-offset-2 text-xs font-medium hover:opacity-80"
+            >
+              Switch to Today
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Meal type selector */}

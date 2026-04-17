@@ -103,7 +103,7 @@ const History = () => {
           <p className="font-semibold text-foreground">No meals logged</p>
           <p className="text-sm text-muted-foreground">Add a meal to this date or use the Log tab for today</p>
           <button
-            onClick={() => navigate("/log")}
+            onClick={() => navigate("/log", { state: { date: dateStr } })}
             className="mt-2 flex items-center gap-1.5 px-4 py-2 rounded-lg border border-primary text-primary text-sm font-medium hover:bg-primary/10 transition-colors"
           >
             <Plus size={14} /> Add Meal to This Date
