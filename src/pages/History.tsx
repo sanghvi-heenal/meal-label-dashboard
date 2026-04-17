@@ -19,11 +19,19 @@ const History = () => {
   const dateStr = selectedDate.toISOString().split("T")[0];
   const meals = getMealsByDate(dateStr);
 
+  // Earliest loggable date = 6 days ago (so today + past 6 days = past week)
+  const minLogDate = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 6);
+
   const isToday = (d: number) =>
     d === today.getDate() && month === today.getMonth() && year === today.getFullYear();
 
   const isSelected = (d: number) =>
     d === selectedDate.getDate() && month === selectedDate.getMonth() && year === selectedDate.getFullYear();
+
+  const isDisabled = (d: number) => {
+    const cellDate = new Date(year, month, d);
+    return cellDate < minLogDate || cellDate > today;
+  };
 
   return (
     <div className="px-4 pt-6 pb-24 max-w-md mx-auto space-y-5">
@@ -49,22 +57,33 @@ const History = () => {
           {Array.from({ length: firstDay }).map((_, i) => (
             <div key={`e${i}`} />
           ))}
-          {Array.from({ length: daysInMonth }, (_, i) => i + 1).map((d) => (
-            <button
-              key={d}
-              onClick={() => setSelectedDate(new Date(year, month, d))}
-              className={`py-2 rounded-lg text-sm font-medium transition-colors ${
-                isSelected(d)
-                  ? "bg-primary text-primary-foreground"
-                  : isToday(d)
-                  ? "text-primary"
-                  : "text-foreground hover:bg-secondary"
-              }`}
-            >
-              {d}
-            </button>
-          ))}
+          {Array.from({ length: daysInMonth }, (_, i) => i + 1).map((d) => {
+            const disabled = isDisabled(d);
+            return (
+              <button
+                key={d}
+                onClick={() => !disabled && setSelectedDate(new Date(year, month, d))}
+                disabled={disabled}
+                aria-disabled={disabled}
+                title={disabled ? "Only the past 7 days can be logged" : undefined}
+                className={`py-2 rounded-lg text-sm font-medium transition-colors ${
+                  disabled
+                    ? "text-muted-foreground/40 cursor-not-allowed line-through"
+                    : isSelected(d)
+                    ? "bg-primary text-primary-foreground"
+                    : isToday(d)
+                    ? "text-primary"
+                    : "text-foreground hover:bg-secondary"
+                }`}
+              >
+                {d}
+              </button>
+            );
+          })}
         </div>
+        <p className="mt-3 text-xs text-muted-foreground text-center">
+          You can only log meals for the past 7 days.
+        </p>
       </div>
 
       {/* Selected day label */}
