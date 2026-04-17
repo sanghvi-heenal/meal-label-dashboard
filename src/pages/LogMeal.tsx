@@ -69,6 +69,8 @@ const LogMeal = () => {
   const [isAnalyzingText, setIsAnalyzingText] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [speechLang, setSpeechLang] = useState("en-US");
+  const [isAiFilled, setIsAiFilled] = useState(false);
+  const [isApproximate, setIsApproximate] = useState(false);
   const recognitionRef = useRef<any>(null);
   const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const maxTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
