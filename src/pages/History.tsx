@@ -57,21 +57,29 @@ const History = () => {
           {Array.from({ length: firstDay }).map((_, i) => (
             <div key={`e${i}`} />
           ))}
-          {Array.from({ length: daysInMonth }, (_, i) => i + 1).map((d) => (
-            <button
-              key={d}
-              onClick={() => setSelectedDate(new Date(year, month, d))}
-              className={`py-2 rounded-lg text-sm font-medium transition-colors ${
-                isSelected(d)
-                  ? "bg-primary text-primary-foreground"
-                  : isToday(d)
-                  ? "text-primary"
-                  : "text-foreground hover:bg-secondary"
-              }`}
-            >
-              {d}
-            </button>
-          ))}
+          {Array.from({ length: daysInMonth }, (_, i) => i + 1).map((d) => {
+            const disabled = isDisabled(d);
+            return (
+              <button
+                key={d}
+                onClick={() => !disabled && setSelectedDate(new Date(year, month, d))}
+                disabled={disabled}
+                aria-disabled={disabled}
+                title={disabled ? "Only the past 7 days can be logged" : undefined}
+                className={`py-2 rounded-lg text-sm font-medium transition-colors ${
+                  disabled
+                    ? "text-muted-foreground/40 cursor-not-allowed line-through"
+                    : isSelected(d)
+                    ? "bg-primary text-primary-foreground"
+                    : isToday(d)
+                    ? "text-primary"
+                    : "text-foreground hover:bg-secondary"
+                }`}
+              >
+                {d}
+              </button>
+            );
+          })}
         </div>
       </div>
 
