@@ -153,6 +153,7 @@ const LogMeal = () => {
         case "nutrition_label":
         case "open_meal":
           autoFillForm(data);
+          setIsApproximate(false);
           setDetectionState("done");
           toast({
             title: foodType === "nutrition_label" ? "Label scanned!" : "Meal detected!",
