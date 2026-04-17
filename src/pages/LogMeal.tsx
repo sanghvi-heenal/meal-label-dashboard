@@ -618,13 +618,43 @@ const LogMeal = () => {
         </button>
       ) : (
         <div className="space-y-3">
+          {isAiFilled && (
+            <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-primary/10 border border-primary/30">
+              <div className="flex items-center gap-2 text-xs text-foreground">
+                <Lock size={12} className="text-primary shrink-0" />
+                <span>Auto-filled by AI — values locked</span>
+              </div>
+              <button
+                onClick={clearForm}
+                className="text-xs font-medium text-primary hover:underline shrink-0"
+              >
+                Clear & re-enter
+              </button>
+            </div>
+          )}
+          {isApproximate && isAiFilled && (
+            <div className="rounded-lg bg-warning/10 border border-warning/30 p-3 flex gap-2">
+              <Info size={16} className="text-warning shrink-0 mt-0.5" />
+              <div className="text-xs text-foreground">
+                <span className="font-semibold">Approximate estimate.</span>{" "}
+                <span className="text-muted-foreground">
+                  We assumed standard portions. For accurate numbers, mention quantities (e.g. "2 eggs, 1 avocado") or snap a photo.
+                </span>
+              </div>
+            </div>
+          )}
           <div className="space-y-1">
             <label className="text-xs font-medium text-muted-foreground px-1">Food name</label>
             <input
               placeholder="e.g. Grilled chicken"
               value={foodName}
               onChange={(e) => setFoodName(e.target.value)}
-              className="w-full px-3 py-2.5 rounded-lg bg-secondary border border-border text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+              readOnly={isAiFilled}
+              className={`w-full px-3 py-2.5 rounded-lg border text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary ${
+                isAiFilled
+                  ? "bg-muted border-muted text-muted-foreground cursor-not-allowed"
+                  : "bg-secondary border-border text-foreground"
+              }`}
             />
           </div>
           <div className="grid grid-cols-2 gap-2">
@@ -648,7 +678,12 @@ const LogMeal = () => {
                   value={f.value}
                   onChange={(e) => f.setter(e.target.value)}
                   type="number"
-                  className="w-full px-3 py-2.5 rounded-lg bg-secondary border border-border text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                  readOnly={isAiFilled}
+                  className={`w-full px-3 py-2.5 rounded-lg border text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary ${
+                    isAiFilled
+                      ? "bg-muted border-muted text-muted-foreground cursor-not-allowed"
+                      : "bg-secondary border-border text-foreground"
+                  }`}
                 />
               </div>
             ))}
