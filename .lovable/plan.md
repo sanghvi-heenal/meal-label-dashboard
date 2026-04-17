@@ -1,31 +1,57 @@
 
-## Plan: Lock auto-filled macros + flag approximate estimates
+## Plan: Add a "Drinks & Hydration" logging flow
 
-Building on the previously approved plan (persistent labels + faithful name). Two additions:
+### Goal
+Today the app only handles solid meals via photo/text. Liquids like water, tea, coffee, smoothies, juices need their own flow because:
+- Plain water = 0 kcal but matters for hydration tracking
+- Tea/coffee/smoothies have calories that scale linearly with volume
+- Volume (ml) is the natural unit, not "1 piece"
 
-### Addition 1: Lock macro fields once AI fills them
-After the AI (text or photo) returns nutrition values, the 8 macro inputs + the food-name field become **read-only**. User cannot edit numbers post-generation.
+### What gets added
 
-- Add a state flag `isAiFilled` in `src/pages/LogMeal.tsx`, set to `true` whenever the text or photo analysis successfully populates the form, reset to `false` when user clears/starts a new entry.
-- Apply `readOnly` + a muted visual style (`bg-muted cursor-not-allowed`) to all 8 macro inputs and the name input when `isAiFilled` is true.
-- Manual entry (user types macros from scratch without using AI) stays fully editable — the lock only triggers after an AI fill.
-- Add a small "Clear & re-enter" link/button so the user can wipe the form and start over (manual or new AI attempt) if the values look wrong.
+**1. New "Drink" pill in LogMeal page**
+Top of `src/pages/LogMeal.tsx` currently has Photo / Voice / Text input modes. Add a 4th pill: **Drink** (with a `GlassWater` icon from lucide-react).
 
-### Addition 2: Approximate-estimate banner
-When the user describes a meal **verbally or in text without quantities** (e.g. "avocado with fried egg" — no "1", "2 slices", "100g", "katori", etc.), show a yellow info banner above the macro grid:
+**2. Drink logging form (when Drink pill is active)**
+Replaces the text/photo area with:
 
-> ⚠️ **Approximate estimate.** We assumed standard portions. For accurate numbers, mention quantities (e.g. "2 eggs, 1 avocado") or snap a photo.
+- **Drink type** — quick chips: Water · Tea · Coffee · Smoothie · Juice · Milk · Other
+- **Description** — small text field, only shown for non-water (e.g. "masala chai with whole milk and sugar", "mango smoothie with yogurt")
+- **Volume** — number input + unit toggle (ml / oz). Quick-pick chips: 100, 200, 250, 330, 500 ml
+- **Analyze button** — same look as the existing Analyze button
 
-How we detect "no quantity":
-- In `supabase/functions/analyze-food-text/index.ts`, add a new boolean field `quantitySpecified` to the tool schema. The AI sets it to `false` when the user did not state any explicit quantity/measure, `true` when they did (numbers, "katori", "cup", "slice", "piece", "g", "ml", etc.).
-- Frontend reads `quantitySpecified` from the response and shows the banner when `false`.
-- Photo analysis flow does NOT show this banner (a photo is already concrete evidence of portion).
+**3. Hydration handling (water case)**
+If type = Water:
+- Skip the AI call entirely (no calories to estimate).
+- Save directly with calories=0, all macros=0, and `mealType: "drink"`.
+- Show a small water-drop confirmation: "+ 250 ml hydration logged".
+
+**4. Caloric drinks (tea/coffee/smoothie/etc.)**
+- Call existing `analyze-food-text` edge function with a composed prompt:
+  > "<volume> ml of <description or drink type>"
+  e.g. "250 ml of masala chai with milk and 1 tsp sugar"
+- The edge function already estimates nutrition by quantity, so per-ml scaling works automatically once volume is in the prompt.
+- Returned macros populate the same locked grid as today (re-using the existing `isAiFilled` lock + "Clear & re-enter" mechanism).
+- The approximate-estimate banner does NOT fire here because volume is always specified.
+
+**5. "Don't know the size?" helper**
+Below the volume field, a small link: *"Not sure how much? Pick a typical size →"* opens a tiny popover with reference sizes:
+- Small cup (150 ml) · Mug (250 ml) · Tall glass (350 ml) · Bottle (500 ml) · Large bottle (750 ml)
+Tap one → fills the volume field.
+
+**6. Storage & display**
+- `MealEntry.mealType` in `src/lib/nutrition-store.ts` currently allows `"breakfast" | "lunch" | "dinner" | "snack"`. Extend it with `"drink"`.
+- Drinks save with `name` formatted as e.g. "Masala chai (250 ml)" or "Water (250 ml)" so the volume is always visible in History/Dashboard.
+- No separate hydration counter on the Dashboard in this round (keeps scope tight) — drinks just appear in the meal list with their calories. Can add a hydration ring later.
 
 ### Files touched
-- `src/pages/LogMeal.tsx` — add lock state, readOnly styling, "Clear & re-enter" button, approximate banner.
-- `supabase/functions/analyze-food-text/index.ts` — add `quantitySpecified` field to schema + prompt instruction.
+- `src/pages/LogMeal.tsx` — add Drink pill, drink form, water shortcut, volume helper popover.
+- `src/lib/nutrition-store.ts` — extend `mealType` union to include `"drink"`.
 
 ### Out of scope
-- No changes to photo edge function.
-- No changes to voice/timeout logic.
-- No new dependencies.
+- No dedicated hydration ring/widget on Dashboard yet (deferred — ask if you want it next).
+- No changes to photo flow (drinks via photo would need a separate prompt; not needed now).
+- No changes to the edge function (existing prompt already handles "250 ml of …" correctly).
+
+### Tiny question before I build
+One choice I'd like you to confirm: should plain **Water** also appear in the meal list on Dashboard/History (as a 0-kcal entry), or should it be silently logged for hydration purposes only and hidden from the meal list?
