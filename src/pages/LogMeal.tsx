@@ -522,7 +522,7 @@ const LogMeal = () => {
                   : "bg-primary/20 text-primary hover:bg-primary/30"
               }`}
             >
-              {isListening ? <MicOff size={16} /> : <Mic size={16} />}
+              {isListening ? <SoundWaveIcon /> : <Mic size={16} />}
             </button>
           </div>
           <div className="flex gap-2">
