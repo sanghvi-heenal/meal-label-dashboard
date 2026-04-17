@@ -437,6 +437,18 @@ const LogMeal = () => {
       {/* Describe meal textarea */}
       {describeMode && (
         <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <label className="text-xs font-medium text-muted-foreground">Voice language:</label>
+            <select
+              value={speechLang}
+              onChange={(e) => setSpeechLang(e.target.value)}
+              className="flex-1 px-2 py-1.5 rounded-md bg-secondary border border-border text-foreground text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+            >
+              {speechLanguages.map((l) => (
+                <option key={l.code} value={l.code}>{l.label}</option>
+              ))}
+            </select>
+          </div>
           <div className="relative">
             <textarea
               value={textDescription}
