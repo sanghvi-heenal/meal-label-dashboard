@@ -1,5 +1,17 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Camera, Image, Edit3, Lightbulb, Sun, UtensilsCrossed, Moon, Coffee, X, Loader2, Package, AlertTriangle, RefreshCw, ChevronDown, MessageSquare, Send, Mic, MicOff } from "lucide-react";
+import { Camera, Image, Edit3, Lightbulb, Sun, UtensilsCrossed, Moon, Coffee, X, Loader2, Package, AlertTriangle, RefreshCw, ChevronDown, MessageSquare, Send, Mic } from "lucide-react";
+
+const SoundWaveIcon = () => (
+  <div className="flex items-end justify-center gap-[2px] h-4 w-4" aria-label="Listening">
+    {[0, 1, 2, 3, 4].map((i) => (
+      <span
+        key={i}
+        className="soundwave-bar w-[2px] h-full bg-current rounded-full"
+        style={{ animationDelay: `${i * 0.12}s` }}
+      />
+    ))}
+  </div>
+);
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { saveMeal, getTodayString, type MealEntry } from "@/lib/nutrition-store";
 import { useNavigate } from "react-router-dom";
@@ -58,6 +70,8 @@ const LogMeal = () => {
   const [isListening, setIsListening] = useState(false);
   const [speechLang, setSpeechLang] = useState("en-US");
   const recognitionRef = useRef<any>(null);
+  const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const maxTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const labelScanRef = useRef<HTMLInputElement>(null);
@@ -210,6 +224,32 @@ const LogMeal = () => {
     }
   };
 
+  const clearListeningTimers = useCallback(() => {
+    if (silenceTimerRef.current) {
+      clearTimeout(silenceTimerRef.current);
+      silenceTimerRef.current = null;
+    }
+    if (maxTimerRef.current) {
+      clearTimeout(maxTimerRef.current);
+      maxTimerRef.current = null;
+    }
+  }, []);
+
+  const stopListening = useCallback(() => {
+    clearListeningTimers();
+    if (recognitionRef.current) {
+      try { recognitionRef.current.stop(); } catch { /* noop */ }
+    }
+    setIsListening(false);
+  }, [clearListeningTimers]);
+
+  const resetSilenceTimer = useCallback(() => {
+    if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+    silenceTimerRef.current = setTimeout(() => {
+      stopListening();
+    }, 3000);
+  }, [stopListening]);
+
   const toggleListening = useCallback(() => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
@@ -218,8 +258,7 @@ const LogMeal = () => {
     }
 
     if (isListening && recognitionRef.current) {
-      recognitionRef.current.stop();
-      setIsListening(false);
+      stopListening();
       return;
     }
 
@@ -232,33 +271,50 @@ const LogMeal = () => {
     let finalTranscript = textDescription;
 
     recognition.onresult = (event: any) => {
-      let interim = "";
+      // Got speech — reset silence timer
+      resetSilenceTimer();
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const transcript = event.results[i][0].transcript;
         if (event.results[i].isFinal) {
           finalTranscript += (finalTranscript ? " " : "") + transcript;
           setTextDescription(finalTranscript);
-        } else {
-          interim += transcript;
         }
       }
     };
 
     recognition.onerror = (event: any) => {
       console.error("Speech recognition error:", event.error);
+      clearListeningTimers();
       setIsListening(false);
-      if (event.error !== "aborted") {
+      if (event.error !== "aborted" && event.error !== "no-speech") {
         toast({ title: "Voice input error", description: "Please try again or type instead.", variant: "destructive" });
       }
     };
 
     recognition.onend = () => {
+      clearListeningTimers();
       setIsListening(false);
     };
 
     recognition.start();
     setIsListening(true);
-  }, [isListening, textDescription, toast, speechLang]);
+    // Initial silence timer + 60s hard cap
+    resetSilenceTimer();
+    maxTimerRef.current = setTimeout(() => {
+      stopListening();
+    }, 60000);
+  }, [isListening, textDescription, toast, speechLang, stopListening, resetSilenceTimer, clearListeningTimers]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      clearListeningTimers();
+      if (recognitionRef.current) {
+        try { recognitionRef.current.stop(); } catch { /* noop */ }
+      }
+    };
+  }, [clearListeningTimers]);
+
 
   const handleSave = () => {
     if (!foodName.trim()) {
@@ -466,7 +522,7 @@ const LogMeal = () => {
                   : "bg-primary/20 text-primary hover:bg-primary/30"
               }`}
             >
-              {isListening ? <MicOff size={16} /> : <Mic size={16} />}
+              {isListening ? <SoundWaveIcon /> : <Mic size={16} />}
             </button>
           </div>
           <div className="flex gap-2">
