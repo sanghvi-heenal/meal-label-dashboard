@@ -15,6 +15,20 @@ const mealTypes = [
 
 const portionOptions = ["Small", "Medium", "Large", "Extra Large"];
 
+const speechLanguages = [
+  { code: "en-US", label: "English" },
+  { code: "hi-IN", label: "हिन्दी (Hindi)" },
+  { code: "bn-IN", label: "বাংলা (Bengali)" },
+  { code: "ta-IN", label: "தமிழ் (Tamil)" },
+  { code: "te-IN", label: "తెలుగు (Telugu)" },
+  { code: "mr-IN", label: "मराठी (Marathi)" },
+  { code: "gu-IN", label: "ગુજરાતી (Gujarati)" },
+  { code: "kn-IN", label: "ಕನ್ನಡ (Kannada)" },
+  { code: "ml-IN", label: "മലയാളം (Malayalam)" },
+  { code: "pa-IN", label: "ਪੰਜਾਬੀ (Punjabi)" },
+  { code: "ur-IN", label: "اردو (Urdu)" },
+];
+
 type DetectionState = "idle" | "analyzing" | "packaged" | "not_food" | "low_confidence" | "done";
 type InputMode = "camera" | "describe";
 
@@ -42,6 +56,7 @@ const LogMeal = () => {
   const [textDescription, setTextDescription] = useState("");
   const [isAnalyzingText, setIsAnalyzingText] = useState(false);
   const [isListening, setIsListening] = useState(false);
+  const [speechLang, setSpeechLang] = useState("en-US");
   const recognitionRef = useRef<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -173,7 +188,7 @@ const LogMeal = () => {
     setIsAnalyzingText(true);
     try {
       const { data, error } = await supabase.functions.invoke("analyze-food-text", {
-        body: { description: textDescription.trim() },
+        body: { description: textDescription.trim(), language: speechLang },
       });
       if (error) throw error;
       if (data.error) {
@@ -211,7 +226,7 @@ const LogMeal = () => {
     const recognition = new SpeechRecognition();
     recognition.continuous = true;
     recognition.interimResults = true;
-    recognition.lang = "en-US";
+    recognition.lang = speechLang;
     recognitionRef.current = recognition;
 
     let finalTranscript = textDescription;
@@ -243,7 +258,7 @@ const LogMeal = () => {
 
     recognition.start();
     setIsListening(true);
-  }, [isListening, textDescription, toast]);
+  }, [isListening, textDescription, toast, speechLang]);
 
   const handleSave = () => {
     if (!foodName.trim()) {
@@ -422,6 +437,18 @@ const LogMeal = () => {
       {/* Describe meal textarea */}
       {describeMode && (
         <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <label className="text-xs font-medium text-muted-foreground">Voice language:</label>
+            <select
+              value={speechLang}
+              onChange={(e) => setSpeechLang(e.target.value)}
+              className="flex-1 px-2 py-1.5 rounded-md bg-secondary border border-border text-foreground text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+            >
+              {speechLanguages.map((l) => (
+                <option key={l.code} value={l.code}>{l.label}</option>
+              ))}
+            </select>
+          </div>
           <div className="relative">
             <textarea
               value={textDescription}
