@@ -41,6 +41,11 @@ CRITICAL Rules for the "name" field:
 - Example: if the user says "dal and rice", the name MUST be "Dal and Rice" — do not add ghee, roti, or anything else.
 - Translate non-English descriptions into English, but never invent additional foods.
 
+Quantity detection:
+- Set "quantitySpecified" to true ONLY if the user explicitly mentioned a number, count, or measure (e.g. "2 eggs", "1 cup rice", "100g chicken", "1 katori dal", "a slice of bread", "half avocado", "one piece").
+- Set "quantitySpecified" to false if the user just listed foods without any quantity (e.g. "avocado with fried egg", "dal and rice", "chicken curry").
+- Words like "a", "an", "some" alone do NOT count as quantities. Specific counts like "one", "two", "half" DO count.
+
 Other rules:
 - Always return your best estimate for nutrition — never return 0 unless the item truly has none of that nutrient.
 - Combine all items into a single nutritional total if multiple foods are described.
@@ -92,6 +97,10 @@ Other rules:
                       type: "string",
                       description: "A concise name listing exactly the foods the user mentioned, nothing more. Translate to English if needed but NEVER add foods (like 'toast', 'bread', 'rice') that were not explicitly stated by the user.",
                     },
+                    quantitySpecified: {
+                      type: "boolean",
+                      description: "True if the user explicitly stated a quantity/count/measure for the food (e.g. '2 eggs', '1 cup', '100g', '1 katori', 'half'). False if they just named foods without quantities (e.g. 'avocado with egg').",
+                    },
                     calories: { type: "number", description: "Calories in kcal" },
                     protein: { type: "number", description: "Protein in grams" },
                     carbs: { type: "number", description: "Carbohydrates in grams" },
@@ -101,7 +110,7 @@ Other rules:
                     sugar: { type: "number", description: "Sugar in grams" },
                     satFat: { type: "number", description: "Saturated fat in grams" },
                   },
-                  required: ["foodType", "confidence", "name", "calories", "protein", "carbs", "fat", "fiber", "sodium", "sugar", "satFat"],
+                  required: ["foodType", "confidence", "name", "quantitySpecified", "calories", "protein", "carbs", "fat", "fiber", "sodium", "sugar", "satFat"],
                   additionalProperties: false,
                 },
               },
