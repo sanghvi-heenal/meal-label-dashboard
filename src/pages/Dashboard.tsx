@@ -99,35 +99,98 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Calories Card */}
-      <div className="card-surface space-y-4">
-        <h2 className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
-          Today's Calories
-        </h2>
-        <div className="flex items-baseline gap-1">
-          <span className="text-4xl font-bold text-foreground">{totals.calories}</span>
-          <span className="text-muted-foreground text-sm">/ {profile.calorieTarget} kcal</span>
+      {/* Calories / Drinks toggle + card */}
+      <div className="space-y-3">
+        <div className="grid grid-cols-2 gap-2 p-1 rounded-xl bg-secondary border border-border">
+          <button
+            onClick={() => setStatsTab("calories")}
+            className={`flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-semibold transition-colors ${
+              statsTab === "calories"
+                ? "bg-warning text-warning-foreground shadow"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            🔥 Calories
+          </button>
+          <button
+            onClick={() => setStatsTab("drinks")}
+            className={`flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-semibold transition-colors ${
+              statsTab === "drinks"
+                ? "bg-info text-info-foreground shadow"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            💧 Drinks
+          </button>
         </div>
-        <div className="flex items-center gap-6">
-          <CalorieRing consumed={totals.calories} target={profile.calorieTarget} />
-          <div className="space-y-2 text-sm">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-warning" />
-              <span className="text-muted-foreground">Consumed</span>
-              <span className="ml-auto font-semibold text-warning">{totals.calories} kcal</span>
+
+        {statsTab === "calories" ? (
+          <div className="card-surface space-y-4">
+            <h2 className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
+              Today's Calories
+            </h2>
+            <div className="flex items-baseline gap-1">
+              <span className="text-4xl font-bold text-foreground">{totals.calories}</span>
+              <span className="text-muted-foreground text-sm">/ {profile.calorieTarget} kcal</span>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-muted-foreground" />
-              <span className="text-muted-foreground">Remaining</span>
-              <span className="ml-auto font-semibold text-foreground">{remaining} kcal</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-primary" />
-              <span className="text-muted-foreground">Target</span>
-              <span className="ml-auto font-semibold text-primary">{profile.calorieTarget} kcal</span>
+            <div className="flex items-center gap-6">
+              <CalorieRing consumed={totals.calories} target={profile.calorieTarget} />
+              <div className="space-y-2 text-sm">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-warning" />
+                  <span className="text-muted-foreground">Consumed</span>
+                  <span className="ml-auto font-semibold text-warning">{totals.calories} kcal</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-muted-foreground" />
+                  <span className="text-muted-foreground">Remaining</span>
+                  <span className="ml-auto font-semibold text-foreground">{remaining} kcal</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-primary" />
+                  <span className="text-muted-foreground">Target</span>
+                  <span className="ml-auto font-semibold text-primary">{profile.calorieTarget} kcal</span>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
+        ) : (
+          <div className="card-surface space-y-4">
+            <h2 className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
+              Today's Hydration
+            </h2>
+            <div className="flex items-baseline gap-1">
+              <span className="text-4xl font-bold text-foreground">{hydrationMl}</span>
+              <span className="text-muted-foreground text-sm">/ {profile.hydrationTarget} ml</span>
+            </div>
+            <div className="flex items-center gap-6">
+              <HydrationRing consumed={hydrationMl} target={profile.hydrationTarget} size={120} />
+              <div className="space-y-2 text-sm flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-info" />
+                  <span className="text-muted-foreground">Consumed</span>
+                  <span className="ml-auto font-semibold text-info">{hydrationMl} ml</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-muted-foreground" />
+                  <span className="text-muted-foreground">Remaining</span>
+                  <span className="ml-auto font-semibold text-foreground">{hydrationRemaining} ml</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-primary" />
+                  <span className="text-muted-foreground">Target</span>
+                  <span className="ml-auto font-semibold text-primary">{profile.hydrationTarget} ml</span>
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={() => navigate("/log", { state: { mode: "drink" } })}
+              className="w-full py-2 rounded-lg bg-info/10 hover:bg-info/20 border border-info/30 text-info text-sm font-semibold transition-colors"
+            >
+              + Log a drink
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Macros Card */}
