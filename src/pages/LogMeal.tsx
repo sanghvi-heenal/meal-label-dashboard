@@ -93,6 +93,7 @@ const LogMeal = () => {
   const [isAnalyzingDrink, setIsAnalyzingDrink] = useState(false);
   const [sizeHelperOpen, setSizeHelperOpen] = useState(false);
   const [describeSheetOpen, setDescribeSheetOpen] = useState(false);
+  const [describePreset, setDescribePreset] = useState<string | null>(null);
   const recognitionRef = useRef<any>(null);
   const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const maxTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -653,34 +654,36 @@ const LogMeal = () => {
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-muted-foreground">What did you drink?</label>
             <div className="flex flex-wrap gap-2">
-              {drinkTypes.map((d) => (
-                <button
-                  key={d}
-                  onClick={() => {
-                    if (d === "Other") {
-                      setDescribeSheetOpen(true);
-                      return;
-                    }
-                    setDrinkType(d);
-                  }}
-                  className={`px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors ${
-                    drinkType === d
-                      ? "border-primary text-primary bg-primary/10"
-                      : "border-border text-muted-foreground hover:border-muted-foreground"
-                  }`}
-                >
-                  {d === "Water" && "💧 "}
-                  {d === "Other" && "✨ "}
-                  {d}
-                </button>
-              ))}
+              {drinkTypes.map((d) => {
+                // Water is the only true quick-log; everything else opens the AI describe sheet
+                const usesAI = d !== "Water";
+                return (
+                  <button
+                    key={d}
+                    onClick={() => {
+                      if (usesAI) {
+                        setDescribePreset(d.toLowerCase());
+                        setDescribeSheetOpen(true);
+                        return;
+                      }
+                      setDrinkType(d);
+                    }}
+                    className={`px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors ${
+                      drinkType === d
+                        ? "border-primary text-primary bg-primary/10"
+                        : "border-border text-muted-foreground hover:border-muted-foreground"
+                    }`}
+                  >
+                    {d === "Water" && "💧 "}
+                    {usesAI && "✨ "}
+                    {d}
+                  </button>
+                );
+              })}
             </div>
-            <button
-              onClick={() => setDescribeSheetOpen(true)}
-              className="text-[11px] text-primary hover:underline mt-1 flex items-center gap-1"
-            >
-              ✨ Don't see it? Describe with photo, voice or text →
-            </button>
+            <p className="text-[11px] text-muted-foreground mt-1 flex items-center gap-1">
+              ✨ = AI-described (photo, voice or text). Calories vary, so we ask for details.
+            </p>
           </div>
 
           {drinkType !== "Water" && (
@@ -1124,8 +1127,12 @@ const LogMeal = () => {
 
       <DrinkDescribeSheet
         open={describeSheetOpen}
-        onOpenChange={setDescribeSheetOpen}
+        onOpenChange={(o) => {
+          setDescribeSheetOpen(o);
+          if (!o) setDescribePreset(null);
+        }}
         onConfirm={handleDescribedDrinkConfirm}
+        presetType={describePreset || undefined}
       />
     </div>
   );
