@@ -1,58 +1,54 @@
 
-## Plan: Richer background visuals + more color across the app
+## Plan: Add Photo + Voice + Text input to "Other" drinks
 
-Goal: take the flat dark slate look and add depth, color, and atmosphere — without breaking the current dark theme or readability.
+### What's there now (Log → Drink tab)
+The Drink section in `LogMeal.tsx` likely shows preset chips: Water, Tea, Coffee, Smoothie, Soup, Alcohol, Other. Picking a preset just logs a known item with default volume. "Other" today probably just opens a name field — no picture, no voice.
 
-### 1. Animated gradient background blobs (global)
+### What you want
+When user picks **Other** (or any non-water beverage where nutrition is unknown), unlock all three input methods so they can describe the drink:
+1. **Camera/photo** — snap or upload a picture of the drink (can of juice, glass of lassi, cocktail, energy drink, etc.) → AI estimates volume + nutrition.
+2. **Voice** — speak it ("a glass of fresh sugarcane juice with lemon") → AI parses + estimates.
+3. **Text** — type a description.
 
-Add decorative blurred blobs behind everything, visible on every page:
-- **Top-right blob** — warning/orange-tinted (`bg-warning/20`), `blur-3xl`, ~400px
-- **Bottom-left blob** — info/blue-tinted (`bg-info/20`), `blur-3xl`, ~400px
-- **Center-mid blob** — primary/green-tinted (`bg-primary/15`), `blur-3xl`, ~300px
-- All with a slow `animate-blob-float` keyframe (gentle 12-15s ease-in-out drift) so the background subtly breathes.
-- Implemented as a fixed-position layer in `src/App.tsx` (or a new `BackgroundBlobs` component) sitting behind page content with `z-[-1]` and `pointer-events-none`.
+User can use any one OR combine (e.g. take a photo AND add a voice note for context like "this is a 500ml bottle, with extra sugar").
 
-### 2. Subtle noise/grain overlay (optional polish)
+### Approach
 
-Fixed pointer-events-none div with a CSS noise pattern at ~3% opacity for premium texture (think Linear, Vercel sites).
+**Trigger surface (in `LogMeal.tsx` Drink tab)**
+- Keep existing preset chips (Water/Tea/Coffee/Smoothie/Soup/Alcohol).
+- Replace the plain "Other" chip with a richer **"Describe a drink"** card that expands inline (or opens a sheet) showing 3 input tiles: 📷 Photo · 🎤 Voice · ⌨️ Text.
+- Each tile is independently usable. Selected inputs stack in a small "added inputs" tray above a single **Analyze** button.
 
-### 3. Per-card gradient surfaces
+**Analysis pipeline**
+- **Photo** → reuse existing `analyze-food` edge function (it already handles image → nutrition). It currently classifies as `open_meal` etc. — we'll prompt-tune it to also handle drinks (estimate volume in ml, sugar, caffeine if relevant).
+- **Voice** → use Web Speech API (`SpeechRecognition`) in the browser to transcribe → feed transcript into `analyze-food-text` edge function (already exists, multilingual, handles Indian beverages like lassi/chai/nimbu pani).
+- **Text** → straight to `analyze-food-text`.
+- **Combined inputs** → if user provides both photo + voice/text, send the photo to `analyze-food` and pass the transcript as additional context in a new optional `userContext` field (small edge-function prompt tweak).
 
-Upgrade the flat `card-surface` utility:
-- Add a faint diagonal gradient (`bg-gradient-to-br from-card to-card/60`) so cards feel layered, not flat.
-- Add a 1px gradient border accent (top edge brighter) for depth.
-
-### 4. Section-specific color tints
-
-- **Calories card**: subtle warning/amber inner glow (`shadow-[inset_0_1px_40px_rgba(245,158,11,0.08)]`).
-- **Drinks card**: subtle info/cyan inner glow.
-- **Macros card**: faint primary/green inner glow.
-- Each card gets a tiny colored top-border (1px gradient) matching its theme.
-
-### 5. Gradient text on hero numbers
-
-The big calorie/ml numbers on Dashboard get gradient text:
-- Calories: `from-warning to-warning/50 bg-clip-text text-transparent`
-- Hydration: `from-info to-info/50`
-- Makes the focal numbers pop dramatically.
-
-### 6. Color-tinted page entry
-
-Add a one-time radial gradient flash on page mount (very subtle, ~0.6s fade) — like a soft "wake up" pulse from the active section's color.
+**After analysis**
+- Show an editable preview card: name, estimated volume (ml), calories, sugar, caffeine (if any), with a confidence badge.
+- User confirms → saved as a `drink` MealEntry with the volume embedded in the name (e.g. "Sugarcane juice (300ml)") so existing `getHydrationFromMeals` keeps working.
 
 ### Files touched
 
-- `src/index.css` — add `card-surface` gradient upgrade, noise utility, blob keyframes (`blob-float`)
-- `tailwind.config.ts` — register `blob-float` animation
-- `src/App.tsx` — mount global `<BackgroundBlobs />` layer
-- `src/components/BackgroundBlobs.tsx` (new) — the 3 animated blobs
-- `src/pages/Dashboard.tsx` — gradient text on big numbers, colored card tints/glows
+- `src/pages/LogMeal.tsx` — replace "Other" chip with describe-a-drink expandable section; wire 3 input tiles; show analyze + preview flow
+- `src/components/DrinkDescribeSheet.tsx` (new) — the 3-input UI (camera capture, voice recorder using Web Speech API, textarea), input tray, analyze button, editable result preview
+- `src/hooks/useVoiceTranscription.ts` (new) — small wrapper around `window.SpeechRecognition` / `webkitSpeechRecognition` with start/stop/transcript state, language auto-detect from browser
+- `supabase/functions/analyze-food/index.ts` — extend system prompt to also handle drinks (estimate volume_ml, identify beverage type), accept optional `userContext` string
+- `supabase/functions/analyze-food-text/index.ts` — minor: bias toward beverage parsing when called from drink flow (pass a `mode: "drink"` flag)
 
-### Out of scope (ask if you want these too)
+### UX details
 
-- Full theme swap (Neon Health / Sunrise Warm directions)
-- Light mode
-- Per-page custom backgrounds
-- Animated mesh gradient (heavier, can do as v2)
+- Camera: uses `<input type="file" accept="image/*" capture="environment">` (same pattern as existing meal photo flow if there is one — I'll check `LogMeal.tsx` during implementation).
+- Voice: shows a pulsing red mic button while recording, live transcript below, tap again to stop. Falls back gracefully (hidden on browsers without SpeechRecognition — Safari iOS works, Firefox doesn't).
+- All three inputs visible together so user understands they're combinable, not exclusive.
+- Single primary "Analyze drink" button at the bottom — disabled until at least one input has content.
 
-Pick: **ship all 6**, or tell me which to drop (e.g., "skip noise" or "no gradient text").
+### Out of scope
+- Saving voice audio files (we only keep the transcript).
+- Nutrition database lookup beyond AI estimation.
+- Editing presets (Water/Tea/etc.) — those keep their current quick-log behavior.
+
+### Quick confirm before I build
+1. **"Other" chip behavior** — replace it with the new describe section, OR keep "Other" as-is for quick-naming and add a separate **"Describe a drink"** button/card alongside the chips? (I lean toward replacing — cleaner.)
+2. **Voice language** — auto-detect from browser locale (recommended, supports Hindi/Tamil/etc. for Indian users), or always English?
