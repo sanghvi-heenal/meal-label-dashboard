@@ -27,6 +27,7 @@ const HYDRATION_ONBOARDED_KEY = "nutrilens-hydration-onboarded";
 const Dashboard = () => {
   const navigate = useNavigate();
   const [profile, setProfile] = useState(getProfile());
+  const [statsTab, setStatsTab] = useState<"calories" | "drinks">("calories");
   const todayMeals = getMealsByDate(getTodayString());
 
   // First-run hydration onboarding
