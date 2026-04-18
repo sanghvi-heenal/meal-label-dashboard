@@ -26,6 +26,7 @@ export interface UserProfile {
   sodiumTarget: number;
   sugarTarget: number;
   satFatTarget: number;
+  hydrationTarget: number; // ml per day
   remindersEnabled: boolean;
   reminderTimes: { morning: string; midday: string; evening: string };
 }
@@ -42,6 +43,7 @@ const DEFAULT_PROFILE: UserProfile = {
   sodiumTarget: 2300,
   sugarTarget: 48,
   satFatTarget: 18,
+  hydrationTarget: 2000,
   remindersEnabled: true,
   reminderTimes: { morning: "08:00", midday: "13:00", evening: "19:00" },
 };
@@ -84,4 +86,20 @@ export function getGreeting(): string {
 export function deleteMeal(id: string) {
   const meals = getMeals().filter((m) => m.id !== id);
   localStorage.setItem("nutrilens-meals", JSON.stringify(meals));
+}
+
+/**
+ * Sums hydration (in ml) from drink entries by parsing the volume out of the entry name.
+ * Names are stored like "Water (250ml)" or "Masala chai (330 ml)" — supports both ml and oz.
+ */
+export function getHydrationFromMeals(meals: MealEntry[]): number {
+  return meals
+    .filter((m) => m.mealType === "drink")
+    .reduce((total, m) => {
+      const mlMatch = m.name.match(/(\d+(?:\.\d+)?)\s*ml/i);
+      if (mlMatch) return total + Number(mlMatch[1]);
+      const ozMatch = m.name.match(/(\d+(?:\.\d+)?)\s*oz/i);
+      if (ozMatch) return total + Math.round(Number(ozMatch[1]) * 29.5735);
+      return total;
+    }, 0);
 }
