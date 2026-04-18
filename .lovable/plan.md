@@ -1,81 +1,44 @@
-## Plan: Hydration ring on Dashboard + dedicated Hydration tab in bottom nav + first-time setup
 
-### Part A: Dashboard hydration ring (compact)
+## Plan: Merge Hydration into Log section as "Log a Drink"
 
-**1. Store helpers (`src/lib/nutrition-store.ts`)**
+### The idea
+Right now the bottom nav has **Dashboard · Log · Hydration · History**. The Log page has a "Drink" pill that overlaps confusingly with the separate Hydration tab. Let's collapse them: **one Log section with two clear modes — Log a Meal and Log a Drink** — and retire the standalone Hydration tab.
 
-- Add `hydrationTarget: number` to `UserProfile` (default `2000` ml).
-- Add `getHydrationFromMeals(meals)` — sums ml from drink entries by parsing volume from the name (regex `/(\d+)\s*ml/i`). Only `mealType === "drink"` counts.
+### What changes
 
-**2. New `HydrationRing` component (`src/components/HydrationRing.tsx`)**
+**1. Bottom nav (`src/components/BottomNav.tsx`)**
+- Drop the **Hydration** tab. Back to 4 tabs: Dashboard · Log · History · Settings (Settings comes back to the nav since the slot frees up). 
+  - *Or keep Settings in the profile icon if you prefer — say the word.*
 
-- Clone of `CalorieRing` in info-blue (`hsl(var(--info))`). Same SVG, same size, same percentage label.
+**2. Log page becomes a hub (`src/pages/LogMeal.tsx` → rethink as `/log`)**
+- Top of page: two big mode cards / segmented control:
+  - **🍽 Log a Meal** — current photo + text food flow
+  - **💧 Log a Drink** — everything currently on `/hydration`
+- Selecting "Log a Drink" reveals (inline, same page — no route change):
+  - Hydration ring + "X / Y ml today" summary at top of the drink section
+  - Quick-log chips: **+150ml**, **+250ml**, **+500ml** water
+  - "Log a custom drink" input (tea, coffee, smoothie…) → uses existing drink analysis flow
+  - Today's drinks list
 
-**3. Dashboard tweak (`src/pages/Dashboard.tsx`)**
+**3. Remove standalone Hydration page**
+- Delete `src/pages/Hydration.tsx`.
+- Remove `/hydration` route from `src/App.tsx`.
+- Anywhere that navigates to `/hydration` (Dashboard profile area, etc.) → re-point to `/log` with drink mode pre-selected via `state: { mode: "drink" }` (already supported).
 
-- Insert one new "Today's Hydration" card directly below "Today's Calories", reusing `card-surface` styling and the same internal layout (ring left, big `{ml} / {target} ml` + legend right). No grid changes.
+**4. Remove the drink pie chart / ring from Hydration view**
+- The hydration **ring** stays (it's the goal tracker — useful), but per your note we strip the **pie chart of drink breakdown** if one exists. Looking at current `Hydration.tsx`, there's only the ring + legend (Consumed/Remaining/Target) + drinks list — no pie chart. So nothing to delete there beyond moving the whole block into Log.
+  - *If you meant remove the ring too, tell me and I'll drop it — leaving just the "X ml / Y ml" number + drinks list.*
 
-### Part B: Hydration tab in bottom nav (replaces current 4-tab layout)
-
-Currently bottom nav has: Dashboard · Log · History · Settings (4 tabs).
-
-Two reasonable options — I'll go with **Option 1** unless you prefer otherwise:
-
-**Option 1 (default): 5 tabs** — add Hydration as a 5th tab between Log and History. Bottom nav becomes: Dashboard · Log · **Hydration** · History · Settings. Icons stay the same size; spacing recalculates automatically since `BottomNav.tsx` uses `justify-around`.
-
-**Option 2: Replace one tab** — swap Settings into a header gear icon and use the freed slot for Hydration (keeps it at 4). . opiton 2 is preferable so where will settings go? settings are specific to the profile so move them in the profile icon section
-
-**4. Bottom nav update (`src/components/BottomNav.tsx`)**
-
-- Add `{ path: "/hydration", icon: GlassWater, label: "Hydration" }` to the tabs array.
-
-**5. New Hydration page (`src/pages/Hydration.tsx`)**
-
-- Big hydration ring at top (reuses `HydrationRing`).
-- Today's drink entries listed (filtered `mealType === "drink"`), each showing name + ml + calories.
-- Quick-log row: tap chips for **+250 ml water**, **+500 ml water**, **+1 glass (250 ml)** — instantly saves a water entry without going through LogMeal.
-- "Log a drink" button → routes to `/log` with drink mode preselected (passes `state: { mode: "drink" }`).
-
-**6. Routing (`src/App.tsx`)**
-
-- Register `/hydration` route pointing to the new page.
-
-**7. LogMeal accepts pre-selected mode (`src/pages/LogMeal.tsx`)**
-
-- Read `location.state.mode`; if `"drink"`, default the input mode pill to Drink.
-
-### Part C: First-time hydration setup
-
-No auth exists — onboarding triggers on first app open per device.
-
-**8. First-run modal (`src/pages/Dashboard.tsx`)**
-
-- On mount, check localStorage flag `nutrilens-hydration-onboarded`. If absent, show a `Dialog`:
-  > **How much do you usually hydrate per day?**
-- Inputs: number field + unit dropdown — **Glasses (250 ml)** · **Litres** · **Ounces (fl oz)**.
-- Submit converts to ml (`glasses*250`, `litres*1000`, `oz*29.5735`), saves to `profile.hydrationTarget`, sets the flag.
-- Skip → keeps default 2000 ml + sets flag.
-
-**9. Settings edit (`src/pages/SettingsPage.tsx`)**
-
-- Add a "Daily hydration target" row in the existing nutrition targets card with the same number+unit picker so the user can change it later.
+**5. Dashboard stays clean**
+- No hydration card returns. Dashboard remains meal-focused.
 
 ### Files touched
+- `src/components/BottomNav.tsx` — swap Hydration tab back to Settings (or leave at 4 with Settings in profile icon — confirm)
+- `src/pages/LogMeal.tsx` — add Meal/Drink mode toggle at top, render hydration UI inline when Drink mode is active
+- `src/App.tsx` — remove `/hydration` route
+- `src/pages/Hydration.tsx` — delete
+- `src/pages/Dashboard.tsx` — re-point any hydration links to `/log` with drink state
 
-- `src/lib/nutrition-store.ts`
-- `src/components/HydrationRing.tsx` (new)
-- `src/components/BottomNav.tsx`
-- `src/pages/Dashboard.tsx`
-- `src/pages/Hydration.tsx` (new)
-- `src/pages/LogMeal.tsx` (small: read preselected mode)
-- `src/pages/SettingsPage.tsx`
-- `src/App.tsx` (route registration)
-
-### Out of scope
-
-- No real auth/account system.
-- No changes to History, drink edge function, or photo flow.
-
-### One quick confirm
-
-Going with **5 tabs in the bottom nav** (Dashboard · Log · Hydration · History · Settings). Say the word if you'd rather replace Settings with a header gear icon to keep it at 4.
+### Two quick confirms
+1. **Settings tab**: bring it back into the bottom nav (Dashboard · Log · History · Settings), or keep it tucked behind the profile icon and have only 3 tabs?
+2. **Hydration ring inside Log → Drink**: keep it (recommended — it's the goal tracker), or strip it too and show just a plain "1200 / 2000 ml" number?
