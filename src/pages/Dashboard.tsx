@@ -129,12 +129,14 @@ const Dashboard = () => {
         </div>
 
         {statsTab === "calories" ? (
-          <div className="card-surface space-y-4 animate-fade-in">
+          <div className="card-surface card-tint-warning space-y-4 animate-fade-in">
             <h2 className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
               Today's Calories
             </h2>
             <div className="flex items-baseline gap-1">
-              <span className="text-4xl font-bold text-foreground">{totals.calories}</span>
+              <span className="text-5xl font-bold bg-gradient-to-br from-warning to-warning/40 bg-clip-text text-transparent">
+                {totals.calories}
+              </span>
               <span className="text-muted-foreground text-sm">/ {profile.calorieTarget} kcal</span>
             </div>
             <div className="flex items-center gap-6">
@@ -159,12 +161,14 @@ const Dashboard = () => {
             </div>
           </div>
         ) : (
-          <div className="card-surface space-y-4 animate-fade-in">
+          <div className="card-surface card-tint-info space-y-4 animate-fade-in">
             <h2 className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
               Today's Hydration
             </h2>
             <div className="flex items-baseline gap-1">
-              <span className="text-4xl font-bold text-foreground">{hydrationMl}</span>
+              <span className="text-5xl font-bold bg-gradient-to-br from-info to-info/40 bg-clip-text text-transparent">
+                {hydrationMl}
+              </span>
               <span className="text-muted-foreground text-sm">/ {profile.hydrationTarget} ml</span>
             </div>
             <div className="flex items-center gap-6">
@@ -198,7 +202,7 @@ const Dashboard = () => {
       </div>
 
       {/* Macros Card */}
-      <div className="card-surface space-y-4 animate-fade-in" style={{ animationDelay: "160ms" }}>
+      <div className="card-surface card-tint-primary space-y-4 animate-fade-in" style={{ animationDelay: "160ms" }}>
         <h2 className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
           Macronutrients
         </h2>
