@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { description, language, mode } = await req.json();
+    const { description, language, mode, presetType } = await req.json();
     if (!description || typeof description !== "string" || !description.trim()) {
       return new Response(JSON.stringify({ error: "No description provided" }), {
         status: 400,

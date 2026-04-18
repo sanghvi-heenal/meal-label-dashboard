@@ -214,7 +214,7 @@ const DrinkDescribeSheet = ({ open, onOpenChange, onConfirm, presetType }: Drink
                   setText(e.target.value);
                   setTranscript(e.target.value);
                 }}
-                placeholder="e.g. a glass of fresh sugarcane juice with lemon, about 300ml"
+                placeholder={PRESET_PLACEHOLDERS[presetType || "other"] || PRESET_PLACEHOLDERS.other}
                 rows={3}
                 className="w-full px-3 py-2.5 rounded-lg bg-secondary border border-border text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary resize-none"
               />

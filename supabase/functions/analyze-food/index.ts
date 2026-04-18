@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { imageBase64, userContext, mode } = await req.json();
+    const { imageBase64, userContext, mode, presetType } = await req.json();
     if (!imageBase64) {
       return new Response(JSON.stringify({ error: "No image provided" }), {
         status: 400,
@@ -52,7 +52,7 @@ Rules:
 DRINK MODE INSTRUCTIONS (when applicable):
 - For beverages (juice, soda, lassi, smoothie, cocktail, energy drink, coffee, tea, milk, etc.), classify as "open_meal" and ALWAYS estimate the volume in milliliters via the new "volumeMl" field. Use cues like glass/can/bottle size (a typical can ≈ 330ml, glass ≈ 250ml, mug ≈ 250ml, small bottle ≈ 500ml).
 - Estimate sugar carefully — drinks are often the main sugar source.
-- If a "userContext" is provided (text or voice notes from the user), TRUST it for volume, ingredients, and modifications (e.g. "no sugar", "500ml bottle", "with extra cream"). It overrides visual guesses when they conflict.${userContext ? `\n\nUSER CONTEXT: "${userContext}"` : ""}`;
+- If a "userContext" is provided (text or voice notes from the user), TRUST it for volume, ingredients, and modifications (e.g. "no sugar", "500ml bottle", "with extra cream"). It overrides visual guesses when they conflict.${userContext ? `\n\nUSER CONTEXT: "${userContext}"` : ""}${presetType ? `\n\nPRESET CATEGORY: The user indicated this drink is a "${presetType}". Use that as the primary classification. Reference calorie ranges: black tea/coffee ≈ 2-5 kcal; tea/coffee with sugar+milk ≈ 60-120 kcal; cappuccino/latte ≈ 120-180 kcal/250ml; smoothie ≈ 150-300 kcal/300ml; juice ≈ 100-160 kcal/250ml; whole milk ≈ 150 kcal/250ml; soup ≈ 80-200 kcal/250ml; wine ≈ 120 kcal/150ml; beer ≈ 150 kcal/330ml. If the photo doesn't reveal additions, lean toward a moderate typical preparation.` : ""}`;
 
     const response = await fetch(
       "https://ai.gateway.lovable.dev/v1/chat/completions",
