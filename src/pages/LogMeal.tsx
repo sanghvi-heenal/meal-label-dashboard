@@ -114,15 +114,15 @@ const LogMeal = () => {
   }, []);
 
   // Hydration summary for the Drink mode header (today only)
+  const [hydrationTick, setHydrationTick] = useState(0);
   const profile = useMemo(() => getProfile(), []);
   const todayStrForHydration = getTodayString();
   const todayMealsForHydration = useMemo(
     () => getMealsByDate(todayStrForHydration),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [todayStrForHydration, isAnalyzingDrink]
+    [todayStrForHydration, hydrationTick]
   );
   const hydrationMl = getHydrationFromMeals(todayMealsForHydration);
-  const todaysDrinks = todayMealsForHydration.filter((m) => m.mealType === "drink");
 
   const quickLogWater = useCallback((ml: number) => {
     const entry: MealEntry = {
@@ -135,11 +135,6 @@ const LogMeal = () => {
     };
     saveMeal(entry);
     toast({ title: "💧 Hydration logged", description: `+ ${ml}ml water` });
-    // Force re-render of hydration totals
-    setIsAnalyzingDrink((v) => v);
-    // Trigger a state ping so memoized meals refresh
-    setDrinkVolume((v) => v);
-    // Use a dedicated trigger
     setHydrationTick((n) => n + 1);
   }, [toast]);
   const logDateObj = new Date(logDate + "T00:00:00");
