@@ -1121,6 +1121,12 @@ const LogMeal = () => {
           </div>
         </div>
       )}
+
+      <DrinkDescribeSheet
+        open={describeSheetOpen}
+        onOpenChange={setDescribeSheetOpen}
+        onConfirm={handleDescribedDrinkConfirm}
+      />
     </div>
   );
 };
