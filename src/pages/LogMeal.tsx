@@ -590,14 +590,27 @@ const LogMeal = () => {
           </p>
           <div className="flex gap-2">
             {[150, 250, 500].map((ml) => (
-              <button
-                key={ml}
-                onClick={() => quickLogWater(ml)}
-                className="flex-1 flex flex-col items-center gap-1 py-2.5 rounded-lg bg-info/10 hover:bg-info/20 border border-info/30 text-info font-semibold transition-colors"
-              >
-                <Droplets size={16} />
-                <span className="text-xs">+{ml}ml</span>
-              </button>
+              <div key={ml} className="relative flex-1">
+                <button
+                  onClick={() => quickLogWater(ml)}
+                  className={`relative w-full flex flex-col items-center gap-1 py-2.5 rounded-lg bg-info/10 hover:bg-info/20 border border-info/30 text-info font-semibold transition-all duration-200 active:scale-95 ${
+                    pulsedMl === ml ? "ring-2 ring-info shadow-[0_0_18px_hsl(var(--info)/0.5)]" : ""
+                  }`}
+                >
+                  <Droplets size={16} />
+                  <span className="text-xs">+{ml}ml</span>
+                </button>
+                {/* Floating drop emoji on tap */}
+                {flinging(flyingDrops, ml).map((d) => (
+                  <span
+                    key={d.id}
+                    className="absolute left-1/2 -translate-x-1/2 -top-2 text-xl animate-float-up pointer-events-none select-none"
+                    aria-hidden="true"
+                  >
+                    💧
+                  </span>
+                ))}
+              </div>
             ))}
           </div>
         </div>
