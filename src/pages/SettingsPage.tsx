@@ -17,6 +17,34 @@ const SettingsPage = () => {
     saveProfile(next);
   };
 
+  const MIN_ML = 1000;
+
+  const unitMin: Record<HydrationUnit, number> = {
+    ml: 1000,
+    litres: 1,
+    oz: 34,
+    glasses: 4,
+  };
+  const unitStep: Record<HydrationUnit, number> = {
+    ml: 50,
+    litres: 0.1,
+    oz: 1,
+    glasses: 1,
+  };
+
+  const handleUnitChange = (newUnit: HydrationUnit) => {
+    // Re-convert current input from old unit → ml → new unit so the value stays meaningful
+    const n = Number(hydrationAmount);
+    if (n > 0) {
+      let ml = n;
+      if (hydrationUnit === "glasses") ml = n * 250;
+      else if (hydrationUnit === "litres") ml = n * 1000;
+      else if (hydrationUnit === "oz") ml = n * 29.5735;
+      setHydrationAmount(String(mlToUnit(Math.round(ml), newUnit)));
+    }
+    setHydrationUnit(newUnit);
+  };
+
   const saveHydration = () => {
     const n = Number(hydrationAmount);
     if (!n || n <= 0) {
@@ -28,6 +56,16 @@ const SettingsPage = () => {
     else if (hydrationUnit === "litres") ml = Math.round(n * 1000);
     else if (hydrationUnit === "oz") ml = Math.round(n * 29.5735);
     else ml = Math.round(n);
+
+    if (ml < MIN_ML) {
+      toast({
+        title: "Target too low",
+        description: "Minimum hydration target is 1 L (1000 ml / 4 glasses / 34 fl oz).",
+        variant: "destructive",
+      });
+      return;
+    }
+
     // Persist BOTH the canonical ml target AND the user's preferred display unit
     update({ hydrationTarget: ml, hydrationUnit });
     setEditingHydration(false);
@@ -160,15 +198,15 @@ const SettingsPage = () => {
               <div className="flex gap-2">
                 <input
                   type="number"
-                  min="0"
-                  step="0.1"
+                  min={unitMin[hydrationUnit]}
+                  step={unitStep[hydrationUnit]}
                   value={hydrationAmount}
                   onChange={(e) => setHydrationAmount(e.target.value)}
                   className="flex-1 px-3 py-2 rounded-lg bg-secondary border border-border text-foreground text-sm focus:outline-none focus:ring-1 focus:ring-primary"
                 />
                 <select
                   value={hydrationUnit}
-                  onChange={(e) => setHydrationUnit(e.target.value as HydrationUnit)}
+                  onChange={(e) => handleUnitChange(e.target.value as HydrationUnit)}
                   className="px-3 py-2 rounded-lg bg-secondary border border-border text-foreground text-sm focus:outline-none focus:ring-1 focus:ring-primary"
                 >
                   <option value="ml">ml</option>
@@ -177,6 +215,9 @@ const SettingsPage = () => {
                   <option value="oz">fl oz</option>
                 </select>
               </div>
+              <p className="text-xs text-muted-foreground">
+                Minimum 1 L (1000 ml / 4 glasses / 34 fl oz).
+              </p>
               <button
                 onClick={saveHydration}
                 className="w-full py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold"
