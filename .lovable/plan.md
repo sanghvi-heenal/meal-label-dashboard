@@ -1,57 +1,81 @@
+## Plan: Hydration ring on Dashboard + dedicated Hydration tab in bottom nav + first-time setup
 
-## Plan: Add a "Drinks & Hydration" logging flow
+### Part A: Dashboard hydration ring (compact)
 
-### Goal
-Today the app only handles solid meals via photo/text. Liquids like water, tea, coffee, smoothies, juices need their own flow because:
-- Plain water = 0 kcal but matters for hydration tracking
-- Tea/coffee/smoothies have calories that scale linearly with volume
-- Volume (ml) is the natural unit, not "1 piece"
+**1. Store helpers (`src/lib/nutrition-store.ts`)**
 
-### What gets added
+- Add `hydrationTarget: number` to `UserProfile` (default `2000` ml).
+- Add `getHydrationFromMeals(meals)` — sums ml from drink entries by parsing volume from the name (regex `/(\d+)\s*ml/i`). Only `mealType === "drink"` counts.
 
-**1. New "Drink" pill in LogMeal page**
-Top of `src/pages/LogMeal.tsx` currently has Photo / Voice / Text input modes. Add a 4th pill: **Drink** (with a `GlassWater` icon from lucide-react).
+**2. New `HydrationRing` component (`src/components/HydrationRing.tsx`)**
 
-**2. Drink logging form (when Drink pill is active)**
-Replaces the text/photo area with:
+- Clone of `CalorieRing` in info-blue (`hsl(var(--info))`). Same SVG, same size, same percentage label.
 
-- **Drink type** — quick chips: Water · Tea · Coffee · Smoothie · Juice · Milk · Other
-- **Description** — small text field, only shown for non-water (e.g. "masala chai with whole milk and sugar", "mango smoothie with yogurt")
-- **Volume** — number input + unit toggle (ml / oz). Quick-pick chips: 100, 200, 250, 330, 500 ml
-- **Analyze button** — same look as the existing Analyze button
+**3. Dashboard tweak (`src/pages/Dashboard.tsx`)**
 
-**3. Hydration handling (water case)**
-If type = Water:
-- Skip the AI call entirely (no calories to estimate).
-- Save directly with calories=0, all macros=0, and `mealType: "drink"`.
-- Show a small water-drop confirmation: "+ 250 ml hydration logged".
+- Insert one new "Today's Hydration" card directly below "Today's Calories", reusing `card-surface` styling and the same internal layout (ring left, big `{ml} / {target} ml` + legend right). No grid changes.
 
-**4. Caloric drinks (tea/coffee/smoothie/etc.)**
-- Call existing `analyze-food-text` edge function with a composed prompt:
-  > "<volume> ml of <description or drink type>"
-  e.g. "250 ml of masala chai with milk and 1 tsp sugar"
-- The edge function already estimates nutrition by quantity, so per-ml scaling works automatically once volume is in the prompt.
-- Returned macros populate the same locked grid as today (re-using the existing `isAiFilled` lock + "Clear & re-enter" mechanism).
-- The approximate-estimate banner does NOT fire here because volume is always specified.
+### Part B: Hydration tab in bottom nav (replaces current 4-tab layout)
 
-**5. "Don't know the size?" helper**
-Below the volume field, a small link: *"Not sure how much? Pick a typical size →"* opens a tiny popover with reference sizes:
-- Small cup (150 ml) · Mug (250 ml) · Tall glass (350 ml) · Bottle (500 ml) · Large bottle (750 ml)
-Tap one → fills the volume field.
+Currently bottom nav has: Dashboard · Log · History · Settings (4 tabs).
 
-**6. Storage & display**
-- `MealEntry.mealType` in `src/lib/nutrition-store.ts` currently allows `"breakfast" | "lunch" | "dinner" | "snack"`. Extend it with `"drink"`.
-- Drinks save with `name` formatted as e.g. "Masala chai (250 ml)" or "Water (250 ml)" so the volume is always visible in History/Dashboard.
-- No separate hydration counter on the Dashboard in this round (keeps scope tight) — drinks just appear in the meal list with their calories. Can add a hydration ring later.
+Two reasonable options — I'll go with **Option 1** unless you prefer otherwise:
+
+**Option 1 (default): 5 tabs** — add Hydration as a 5th tab between Log and History. Bottom nav becomes: Dashboard · Log · **Hydration** · History · Settings. Icons stay the same size; spacing recalculates automatically since `BottomNav.tsx` uses `justify-around`.
+
+**Option 2: Replace one tab** — swap Settings into a header gear icon and use the freed slot for Hydration (keeps it at 4). . opiton 2 is preferable so where will settings go? settings are specific to the profile so move them in the profile icon section
+
+**4. Bottom nav update (`src/components/BottomNav.tsx`)**
+
+- Add `{ path: "/hydration", icon: GlassWater, label: "Hydration" }` to the tabs array.
+
+**5. New Hydration page (`src/pages/Hydration.tsx`)**
+
+- Big hydration ring at top (reuses `HydrationRing`).
+- Today's drink entries listed (filtered `mealType === "drink"`), each showing name + ml + calories.
+- Quick-log row: tap chips for **+250 ml water**, **+500 ml water**, **+1 glass (250 ml)** — instantly saves a water entry without going through LogMeal.
+- "Log a drink" button → routes to `/log` with drink mode preselected (passes `state: { mode: "drink" }`).
+
+**6. Routing (`src/App.tsx`)**
+
+- Register `/hydration` route pointing to the new page.
+
+**7. LogMeal accepts pre-selected mode (`src/pages/LogMeal.tsx`)**
+
+- Read `location.state.mode`; if `"drink"`, default the input mode pill to Drink.
+
+### Part C: First-time hydration setup
+
+No auth exists — onboarding triggers on first app open per device.
+
+**8. First-run modal (`src/pages/Dashboard.tsx`)**
+
+- On mount, check localStorage flag `nutrilens-hydration-onboarded`. If absent, show a `Dialog`:
+  > **How much do you usually hydrate per day?**
+- Inputs: number field + unit dropdown — **Glasses (250 ml)** · **Litres** · **Ounces (fl oz)**.
+- Submit converts to ml (`glasses*250`, `litres*1000`, `oz*29.5735`), saves to `profile.hydrationTarget`, sets the flag.
+- Skip → keeps default 2000 ml + sets flag.
+
+**9. Settings edit (`src/pages/SettingsPage.tsx`)**
+
+- Add a "Daily hydration target" row in the existing nutrition targets card with the same number+unit picker so the user can change it later.
 
 ### Files touched
-- `src/pages/LogMeal.tsx` — add Drink pill, drink form, water shortcut, volume helper popover.
-- `src/lib/nutrition-store.ts` — extend `mealType` union to include `"drink"`.
+
+- `src/lib/nutrition-store.ts`
+- `src/components/HydrationRing.tsx` (new)
+- `src/components/BottomNav.tsx`
+- `src/pages/Dashboard.tsx`
+- `src/pages/Hydration.tsx` (new)
+- `src/pages/LogMeal.tsx` (small: read preselected mode)
+- `src/pages/SettingsPage.tsx`
+- `src/App.tsx` (route registration)
 
 ### Out of scope
-- No dedicated hydration ring/widget on Dashboard yet (deferred — ask if you want it next).
-- No changes to photo flow (drinks via photo would need a separate prompt; not needed now).
-- No changes to the edge function (existing prompt already handles "250 ml of …" correctly).
 
-### Tiny question before I build
-One choice I'd like you to confirm: should plain **Water** also appear in the meal list on Dashboard/History (as a 0-kcal entry), or should it be silently logged for hydration purposes only and hidden from the meal list?
+- No real auth/account system.
+- No changes to History, drink edge function, or photo flow.
+
+### One quick confirm
+
+Going with **5 tabs in the bottom nav** (Dashboard · Log · Hydration · History · Settings). Say the word if you'd rather replace Settings with a header gear icon to keep it at 4.
