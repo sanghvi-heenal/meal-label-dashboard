@@ -105,13 +105,43 @@ const LogMeal = () => {
   const navState = location.state as { date?: string; mode?: string } | null;
   const logDate: string = navState?.date || getTodayString();
 
-  // Preselect Drink mode when navigated from Hydration page
+  // Preselect Drink mode when navigated from Hydration page or external links
   useEffect(() => {
     if (navState?.mode === "drink") {
       setSelectedMeal("drink");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Hydration summary for the Drink mode header (today only)
+  const profile = useMemo(() => getProfile(), []);
+  const todayStrForHydration = getTodayString();
+  const todayMealsForHydration = useMemo(
+    () => getMealsByDate(todayStrForHydration),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [todayStrForHydration, isAnalyzingDrink]
+  );
+  const hydrationMl = getHydrationFromMeals(todayMealsForHydration);
+  const todaysDrinks = todayMealsForHydration.filter((m) => m.mealType === "drink");
+
+  const quickLogWater = useCallback((ml: number) => {
+    const entry: MealEntry = {
+      id: crypto.randomUUID(),
+      date: getTodayString(),
+      mealType: "drink",
+      name: `Water (${ml}ml)`,
+      calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, sodium: 0, sugar: 0, satFat: 0,
+      timestamp: Date.now(),
+    };
+    saveMeal(entry);
+    toast({ title: "💧 Hydration logged", description: `+ ${ml}ml water` });
+    // Force re-render of hydration totals
+    setIsAnalyzingDrink((v) => v);
+    // Trigger a state ping so memoized meals refresh
+    setDrinkVolume((v) => v);
+    // Use a dedicated trigger
+    setHydrationTick((n) => n + 1);
+  }, [toast]);
   const logDateObj = new Date(logDate + "T00:00:00");
   const todayStr = getTodayString();
   const isLoggingToday = logDate === todayStr;
