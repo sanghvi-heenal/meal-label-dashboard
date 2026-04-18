@@ -564,37 +564,23 @@ const LogMeal = () => {
         </div>
       )}
 
-      {/* Hydration summary + quick water chips — only in Drink mode */}
+      {/* Quick log water chips — only in Drink mode */}
       {isDrinkMode && (
-        <div className="card-surface p-4 space-y-4">
-          <div className="flex items-center gap-4">
-            <HydrationRing consumed={hydrationMl} target={profile.hydrationTarget} size={88} />
-            <div className="flex-1 min-w-0">
-              <div className="flex items-baseline gap-1">
-                <span className="text-2xl font-bold text-foreground">{hydrationMl}</span>
-                <span className="text-xs text-muted-foreground">/ {profile.hydrationTarget} ml today</span>
-              </div>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {Math.max(profile.hydrationTarget - hydrationMl, 0)} ml to goal
-              </p>
-            </div>
-          </div>
-          <div>
-            <p className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase mb-2">
-              Quick log water
-            </p>
-            <div className="flex gap-2">
-              {[150, 250, 500].map((ml) => (
-                <button
-                  key={ml}
-                  onClick={() => quickLogWater(ml)}
-                  className="flex-1 flex flex-col items-center gap-1 py-2.5 rounded-lg bg-info/10 hover:bg-info/20 border border-info/30 text-info font-semibold transition-colors"
-                >
-                  <Droplets size={16} />
-                  <span className="text-xs">+{ml}ml</span>
-                </button>
-              ))}
-            </div>
+        <div className="card-surface p-4 space-y-2">
+          <p className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
+            Quick log water
+          </p>
+          <div className="flex gap-2">
+            {[150, 250, 500].map((ml) => (
+              <button
+                key={ml}
+                onClick={() => quickLogWater(ml)}
+                className="flex-1 flex flex-col items-center gap-1 py-2.5 rounded-lg bg-info/10 hover:bg-info/20 border border-info/30 text-info font-semibold transition-colors"
+              >
+                <Droplets size={16} />
+                <span className="text-xs">+{ml}ml</span>
+              </button>
+            ))}
           </div>
         </div>
       )}
