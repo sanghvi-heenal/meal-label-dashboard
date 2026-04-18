@@ -101,7 +101,16 @@ const LogMeal = () => {
   const { toast } = useToast();
 
   // Date this meal will be logged for. Comes from History via navigation state; defaults to today.
-  const logDate: string = (location.state as { date?: string } | null)?.date || getTodayString();
+  const navState = location.state as { date?: string; mode?: string } | null;
+  const logDate: string = navState?.date || getTodayString();
+
+  // Preselect Drink mode when navigated from Hydration page
+  useEffect(() => {
+    if (navState?.mode === "drink") {
+      setSelectedMeal("drink");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const logDateObj = new Date(logDate + "T00:00:00");
   const todayStr = getTodayString();
   const isLoggingToday = logDate === todayStr;

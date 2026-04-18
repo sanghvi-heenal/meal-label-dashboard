@@ -1,17 +1,35 @@
 import { useState } from "react";
-import { User, Bell, Target, Info, Pencil } from "lucide-react";
+import { User, Bell, Target, Info, Pencil, Droplets } from "lucide-react";
 import { getProfile, saveProfile, type UserProfile } from "@/lib/nutrition-store";
 import { useToast } from "@/hooks/use-toast";
 
 const SettingsPage = () => {
   const [profile, setProfile] = useState<UserProfile>(getProfile());
   const [editing, setEditing] = useState(false);
+  const [editingHydration, setEditingHydration] = useState(false);
+  const [hydrationAmount, setHydrationAmount] = useState(String(profile.hydrationTarget));
+  const [hydrationUnit, setHydrationUnit] = useState<"ml" | "glasses" | "litres" | "oz">("ml");
   const { toast } = useToast();
 
   const update = (partial: Partial<UserProfile>) => {
     const next = { ...profile, ...partial };
     setProfile(next);
     saveProfile(next);
+  };
+
+  const saveHydration = () => {
+    const n = Number(hydrationAmount);
+    if (!n || n <= 0) {
+      toast({ title: "Enter a valid amount", variant: "destructive" });
+      return;
+    }
+    let ml = n;
+    if (hydrationUnit === "glasses") ml = Math.round(n * 250);
+    else if (hydrationUnit === "litres") ml = Math.round(n * 1000);
+    else if (hydrationUnit === "oz") ml = Math.round(n * 29.5735);
+    update({ hydrationTarget: ml });
+    setEditingHydration(false);
+    toast({ title: "Hydration target updated", description: `${ml} ml / day` });
   };
 
   return (
@@ -113,8 +131,62 @@ const SettingsPage = () => {
           <span className="text-muted-foreground">BMI</span>
           <span className="font-medium text-foreground">{profile.bmi}</span>
         </div>
+
+        {/* Hydration target row */}
+        <div className="pt-2 mt-2 border-t border-border">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Droplets size={14} className="text-info" />
+              <span className="text-sm text-muted-foreground">Daily hydration</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-foreground">{profile.hydrationTarget} ml</span>
+              <button
+                onClick={() => {
+                  setHydrationAmount(String(profile.hydrationTarget));
+                  setHydrationUnit("ml");
+                  setEditingHydration(!editingHydration);
+                }}
+                className="p-1.5 rounded-lg bg-secondary hover:bg-secondary/80"
+              >
+                <Pencil size={12} className="text-muted-foreground" />
+              </button>
+            </div>
+          </div>
+          {editingHydration && (
+            <div className="mt-3 space-y-2">
+              <div className="flex gap-2">
+                <input
+                  type="number"
+                  min="0"
+                  step="0.1"
+                  value={hydrationAmount}
+                  onChange={(e) => setHydrationAmount(e.target.value)}
+                  className="flex-1 px-3 py-2 rounded-lg bg-secondary border border-border text-foreground text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                />
+                <select
+                  value={hydrationUnit}
+                  onChange={(e) => setHydrationUnit(e.target.value as typeof hydrationUnit)}
+                  className="px-3 py-2 rounded-lg bg-secondary border border-border text-foreground text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                >
+                  <option value="ml">ml</option>
+                  <option value="glasses">Glasses (250ml)</option>
+                  <option value="litres">Litres</option>
+                  <option value="oz">fl oz</option>
+                </select>
+              </div>
+              <button
+                onClick={saveHydration}
+                className="w-full py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold"
+              >
+                Save target
+              </button>
+            </div>
+          )}
+        </div>
+
         <p className="text-xs text-muted-foreground pt-1">
-          Your daily targets are automatically calculated based on your age, diet type, and BMI. Update your profile to adjust.
+          Your daily nutrition targets are automatically calculated based on your age, diet type, and BMI. Update your profile to adjust.
         </p>
       </div>
 
