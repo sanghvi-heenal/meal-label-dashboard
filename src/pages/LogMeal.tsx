@@ -496,7 +496,11 @@ const LogMeal = () => {
     };
     saveMeal(entry);
     toast({ title: "Meal logged!", description: `${foodName} added to ${selectedMeal} on ${logDateLabel}` });
-    navigate(isLoggingToday ? "/" : "/history");
+    setShowSuccess(true);
+    setTimeout(() => {
+      setShowSuccess(false);
+      navigate(isLoggingToday ? "/" : "/history");
+    }, 900);
   };
 
   const isDrinkMode = selectedMeal === "drink";
