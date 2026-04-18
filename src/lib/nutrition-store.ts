@@ -14,6 +14,8 @@ export interface MealEntry {
   timestamp: number;
 }
 
+export type HydrationUnit = "ml" | "litres" | "oz" | "glasses";
+
 export interface UserProfile {
   age: number;
   dietType: string;
@@ -26,7 +28,8 @@ export interface UserProfile {
   sodiumTarget: number;
   sugarTarget: number;
   satFatTarget: number;
-  hydrationTarget: number; // ml per day
+  hydrationTarget: number; // ml per day (canonical)
+  hydrationUnit: HydrationUnit; // user's preferred display unit
   remindersEnabled: boolean;
   reminderTimes: { morning: string; midday: string; evening: string };
 }
@@ -44,9 +47,34 @@ const DEFAULT_PROFILE: UserProfile = {
   sugarTarget: 48,
   satFatTarget: 18,
   hydrationTarget: 2000,
+  hydrationUnit: "ml",
   remindersEnabled: true,
   reminderTimes: { morning: "08:00", midday: "13:00", evening: "19:00" },
 };
+
+const ML_PER_GLASS = 250;
+const ML_PER_OZ = 29.5735;
+
+/** Convert ml to user's preferred unit, returning a nicely-rounded number. */
+export function mlToUnit(ml: number, unit: HydrationUnit): number {
+  if (unit === "litres") return Math.round((ml / 1000) * 10) / 10; // 1 decimal
+  if (unit === "oz") return Math.round(ml / ML_PER_OZ);
+  if (unit === "glasses") return Math.round((ml / ML_PER_GLASS) * 10) / 10; // 1 decimal
+  return Math.round(ml);
+}
+
+/** Short label for the unit, e.g. "ml", "L", "fl oz", "glasses". */
+export function unitLabel(unit: HydrationUnit): string {
+  if (unit === "litres") return "L";
+  if (unit === "oz") return "fl oz";
+  if (unit === "glasses") return "glasses";
+  return "ml";
+}
+
+/** Format a ml value in the user's preferred unit, e.g. "1.5 L", "320 ml", "8 glasses". */
+export function formatHydration(ml: number, unit: HydrationUnit): string {
+  return `${mlToUnit(ml, unit)} ${unitLabel(unit)}`;
+}
 
 export function getProfile(): UserProfile {
   const stored = localStorage.getItem("nutrilens-profile");
