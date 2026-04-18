@@ -601,7 +601,7 @@ const LogMeal = () => {
                   <span className="text-xs">+{ml}ml</span>
                 </button>
                 {/* Floating drop emoji on tap */}
-                {flinging(flyingDrops, ml).map((d) => (
+                {flyingDrops.filter((d) => d.ml === ml).map((d) => (
                   <span
                     key={d.id}
                     className="absolute left-1/2 -translate-x-1/2 -top-2 text-xl animate-float-up pointer-events-none select-none"
