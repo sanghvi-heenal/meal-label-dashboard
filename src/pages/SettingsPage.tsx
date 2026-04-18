@@ -1,14 +1,14 @@
 import { useState } from "react";
 import { User, Bell, Target, Info, Pencil, Droplets } from "lucide-react";
-import { getProfile, saveProfile, type UserProfile } from "@/lib/nutrition-store";
+import { formatHydration, getProfile, mlToUnit, saveProfile, type HydrationUnit, type UserProfile } from "@/lib/nutrition-store";
 import { useToast } from "@/hooks/use-toast";
 
 const SettingsPage = () => {
   const [profile, setProfile] = useState<UserProfile>(getProfile());
   const [editing, setEditing] = useState(false);
   const [editingHydration, setEditingHydration] = useState(false);
-  const [hydrationAmount, setHydrationAmount] = useState(String(profile.hydrationTarget));
-  const [hydrationUnit, setHydrationUnit] = useState<"ml" | "glasses" | "litres" | "oz">("ml");
+  const [hydrationAmount, setHydrationAmount] = useState(String(mlToUnit(profile.hydrationTarget, profile.hydrationUnit)));
+  const [hydrationUnit, setHydrationUnit] = useState<HydrationUnit>(profile.hydrationUnit);
   const { toast } = useToast();
 
   const update = (partial: Partial<UserProfile>) => {
@@ -27,9 +27,11 @@ const SettingsPage = () => {
     if (hydrationUnit === "glasses") ml = Math.round(n * 250);
     else if (hydrationUnit === "litres") ml = Math.round(n * 1000);
     else if (hydrationUnit === "oz") ml = Math.round(n * 29.5735);
-    update({ hydrationTarget: ml });
+    else ml = Math.round(n);
+    // Persist BOTH the canonical ml target AND the user's preferred display unit
+    update({ hydrationTarget: ml, hydrationUnit });
     setEditingHydration(false);
-    toast({ title: "Hydration target updated", description: `${ml} ml / day` });
+    toast({ title: "Hydration target updated", description: formatHydration(ml, hydrationUnit) });
   };
 
   return (
@@ -140,11 +142,11 @@ const SettingsPage = () => {
               <span className="text-sm text-muted-foreground">Daily hydration</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-foreground">{profile.hydrationTarget} ml</span>
+              <span className="text-sm font-medium text-foreground">{formatHydration(profile.hydrationTarget, profile.hydrationUnit)}</span>
               <button
                 onClick={() => {
-                  setHydrationAmount(String(profile.hydrationTarget));
-                  setHydrationUnit("ml");
+                  setHydrationAmount(String(mlToUnit(profile.hydrationTarget, profile.hydrationUnit)));
+                  setHydrationUnit(profile.hydrationUnit);
                   setEditingHydration(!editingHydration);
                 }}
                 className="p-1.5 rounded-lg bg-secondary hover:bg-secondary/80"
@@ -166,7 +168,7 @@ const SettingsPage = () => {
                 />
                 <select
                   value={hydrationUnit}
-                  onChange={(e) => setHydrationUnit(e.target.value as typeof hydrationUnit)}
+                  onChange={(e) => setHydrationUnit(e.target.value as HydrationUnit)}
                   className="px-3 py-2 rounded-lg bg-secondary border border-border text-foreground text-sm focus:outline-none focus:ring-1 focus:ring-primary"
                 >
                   <option value="ml">ml</option>
