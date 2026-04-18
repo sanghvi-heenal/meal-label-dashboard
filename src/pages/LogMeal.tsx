@@ -1070,6 +1070,17 @@ const LogMeal = () => {
           </p>
         </div>
       </div>
+
+      {/* Success checkmark overlay on meal save */}
+      {showSuccess && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/40 backdrop-blur-sm pointer-events-none">
+          <div className="w-24 h-24 rounded-full bg-primary/15 border-2 border-primary flex items-center justify-center animate-scale-in shadow-[0_0_40px_hsl(var(--primary)/0.5)]">
+            <svg viewBox="0 0 24 24" fill="none" className="w-12 h-12 text-primary" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
