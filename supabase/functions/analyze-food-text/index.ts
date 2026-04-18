@@ -53,7 +53,19 @@ Other rules:
 - Use reasonable default portions when no quantity is given (e.g. 1 chapati ~ 30g, 1 katori dal ~ 150ml, 1 avocado ~ 150g, 1 egg ~ 50g).
 - All numeric values should be numbers, not strings.${mode === "drink" ? `
 
-DRINK MODE: The user is describing a beverage. Always estimate the total volume in milliliters in the "volumeMl" field (a glass ≈ 250ml, mug ≈ 250ml, can ≈ 330ml, bottle ≈ 500ml, katori/small bowl ≈ 150ml). Pay extra attention to sugar content. If volume is not stated, infer a reasonable serving size from the container described.` : ""}`;
+DRINK MODE: The user is describing a beverage. Always estimate the total volume in milliliters in the "volumeMl" field (a glass ≈ 250ml, mug ≈ 250ml, can ≈ 330ml, bottle ≈ 500ml, katori/small bowl ≈ 150ml). Pay extra attention to sugar content. If volume is not stated, infer a reasonable serving size from the container described.` : ""}${presetType ? `
+
+PRESET CATEGORY: The user indicated this drink is a "${presetType}". Use that as the primary classification and estimate calories accordingly. Reference values:
+- black tea / black coffee ≈ 2-5 kcal per cup
+- tea/coffee with sugar + milk ≈ 60-120 kcal per cup
+- masala chai with whole milk + sugar ≈ 80-120 kcal per 200ml
+- cappuccino / latte (whole milk) ≈ 120-180 kcal per 250ml
+- smoothie ≈ 150-300 kcal per 300ml depending on ingredients
+- fresh juice ≈ 100-160 kcal per 250ml
+- whole milk ≈ 150 kcal per 250ml
+- soup ≈ 80-200 kcal per 250ml depending on cream/ingredients
+- wine ≈ 120 kcal per 150ml; beer ≈ 150 kcal per 330ml
+If the user didn't specify additions like sugar/milk/cream, ASK YOURSELF what's typical for this beverage in their described context, but lean toward a moderate estimate.` : ""}`;
 
     const userPrompt = language && language !== "en-US"
       ? `The user described their meal in ${language}. Estimate the nutritional content of: "${description}"`

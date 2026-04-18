@@ -22,9 +22,21 @@ interface DrinkDescribeSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onConfirm: (result: DrinkAnalysisResult) => void;
+  presetType?: string;
 }
 
-const DrinkDescribeSheet = ({ open, onOpenChange, onConfirm }: DrinkDescribeSheetProps) => {
+const PRESET_PLACEHOLDERS: Record<string, string> = {
+  tea: "e.g. masala chai with whole milk and 1 tsp sugar, ~200ml",
+  coffee: "e.g. cappuccino with whole milk, no sugar, 250ml",
+  smoothie: "e.g. mango smoothie with yogurt and honey, 350ml",
+  juice: "e.g. fresh orange juice, 250ml glass",
+  milk: "e.g. whole cow milk, 200ml",
+  soup: "e.g. tomato soup with cream, 250ml bowl",
+  alcohol: "e.g. red wine, 150ml glass",
+  other: "e.g. a glass of fresh sugarcane juice with lemon, about 300ml",
+};
+
+const DrinkDescribeSheet = ({ open, onOpenChange, onConfirm, presetType }: DrinkDescribeSheetProps) => {
   const [photo, setPhoto] = useState<string | null>(null);
   const [text, setText] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -75,11 +87,11 @@ const DrinkDescribeSheet = ({ open, onOpenChange, onConfirm }: DrinkDescribeShee
 
       if (photo) {
         ({ data, error } = await supabase.functions.invoke("analyze-food", {
-          body: { imageBase64: photo, userContext: description || undefined, mode: "drink" },
+          body: { imageBase64: photo, userContext: description || undefined, mode: "drink", presetType },
         }));
       } else {
         ({ data, error } = await supabase.functions.invoke("analyze-food-text", {
-          body: { description, language: navigator.language || "en-US", mode: "drink" },
+          body: { description, language: navigator.language || "en-US", mode: "drink", presetType },
         }));
       }
 
@@ -131,7 +143,7 @@ const DrinkDescribeSheet = ({ open, onOpenChange, onConfirm }: DrinkDescribeShee
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2">
             <Sparkles size={18} className="text-primary" />
-            Describe your drink
+            {presetType ? `Describe your ${presetType}` : "Describe your drink"}
           </SheetTitle>
         </SheetHeader>
 
