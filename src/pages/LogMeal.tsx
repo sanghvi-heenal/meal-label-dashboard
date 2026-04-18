@@ -20,6 +20,7 @@ import { saveMeal, getTodayString, type MealEntry } from "@/lib/nutrition-store"
 import { useNavigate, useLocation } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import DrinkDescribeSheet, { type DrinkAnalysisResult } from "@/components/DrinkDescribeSheet";
 
 const mealTypes = [
   { value: "breakfast" as const, label: "Breakfast", icon: Sun },
@@ -91,6 +92,7 @@ const LogMeal = () => {
   const [drinkUnit, setDrinkUnit] = useState<"ml" | "oz">("ml");
   const [isAnalyzingDrink, setIsAnalyzingDrink] = useState(false);
   const [sizeHelperOpen, setSizeHelperOpen] = useState(false);
+  const [describeSheetOpen, setDescribeSheetOpen] = useState(false);
   const recognitionRef = useRef<any>(null);
   const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const maxTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
