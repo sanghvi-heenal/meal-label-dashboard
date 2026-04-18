@@ -124,6 +124,11 @@ const LogMeal = () => {
   );
   const hydrationMl = getHydrationFromMeals(todayMealsForHydration);
 
+  // Floating water drops + success checkmark micro-interactions
+  const [flyingDrops, setFlyingDrops] = useState<{ id: string; ml: number }[]>([]);
+  const [pulsedMl, setPulsedMl] = useState<number | null>(null);
+  const [showSuccess, setShowSuccess] = useState(false);
+
   const quickLogWater = useCallback((ml: number) => {
     const entry: MealEntry = {
       id: crypto.randomUUID(),
@@ -136,6 +141,15 @@ const LogMeal = () => {
     saveMeal(entry);
     toast({ title: "💧 Hydration logged", description: `+ ${ml}ml water` });
     setHydrationTick((n) => n + 1);
+
+    // Spawn floating drop
+    const id = crypto.randomUUID();
+    setFlyingDrops((d) => [...d, { id, ml }]);
+    setTimeout(() => setFlyingDrops((d) => d.filter((x) => x.id !== id)), 750);
+
+    // Pulse the tapped button
+    setPulsedMl(ml);
+    setTimeout(() => setPulsedMl((v) => (v === ml ? null : v)), 450);
   }, [toast]);
   const logDateObj = new Date(logDate + "T00:00:00");
   const todayStr = getTodayString();
