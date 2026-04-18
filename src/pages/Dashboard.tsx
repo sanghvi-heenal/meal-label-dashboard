@@ -130,40 +130,6 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Hydration Card */}
-      <button
-        onClick={() => navigate("/hydration")}
-        className="card-surface space-y-4 w-full text-left hover:border-info/40 transition-colors"
-      >
-        <h2 className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
-          Today's Hydration
-        </h2>
-        <div className="flex items-baseline gap-1">
-          <span className="text-4xl font-bold text-foreground">{hydrationMl}</span>
-          <span className="text-muted-foreground text-sm">/ {profile.hydrationTarget} ml</span>
-        </div>
-        <div className="flex items-center gap-6">
-          <HydrationRing consumed={hydrationMl} target={profile.hydrationTarget} />
-          <div className="space-y-2 text-sm">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-info" />
-              <span className="text-muted-foreground">Consumed</span>
-              <span className="ml-auto font-semibold text-info">{hydrationMl} ml</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-muted-foreground" />
-              <span className="text-muted-foreground">Remaining</span>
-              <span className="ml-auto font-semibold text-foreground">{hydrationRemaining} ml</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-primary" />
-              <span className="text-muted-foreground">Target</span>
-              <span className="ml-auto font-semibold text-primary">{profile.hydrationTarget} ml</span>
-            </div>
-          </div>
-        </div>
-      </button>
-
       {/* Macros Card */}
       <div className="card-surface space-y-4">
         <h2 className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
