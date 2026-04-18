@@ -656,17 +656,31 @@ const LogMeal = () => {
               {drinkTypes.map((d) => (
                 <button
                   key={d}
-                  onClick={() => setDrinkType(d)}
+                  onClick={() => {
+                    if (d === "Other") {
+                      setDescribeSheetOpen(true);
+                      return;
+                    }
+                    setDrinkType(d);
+                  }}
                   className={`px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors ${
                     drinkType === d
                       ? "border-primary text-primary bg-primary/10"
                       : "border-border text-muted-foreground hover:border-muted-foreground"
                   }`}
                 >
-                  {d === "Water" && "💧 "}{d}
+                  {d === "Water" && "💧 "}
+                  {d === "Other" && "✨ "}
+                  {d}
                 </button>
               ))}
             </div>
+            <button
+              onClick={() => setDescribeSheetOpen(true)}
+              className="text-[11px] text-primary hover:underline mt-1 flex items-center gap-1"
+            >
+              ✨ Don't see it? Describe with photo, voice or text →
+            </button>
           </div>
 
           {drinkType !== "Water" && (
