@@ -1,54 +1,41 @@
 
-## Plan: Add Photo + Voice + Text input to "Other" drinks
+## Plan: Enable photo + voice + text describe flow for Tea & Coffee
 
-### What's there now (Log → Drink tab)
-The Drink section in `LogMeal.tsx` likely shows preset chips: Water, Tea, Coffee, Smoothie, Soup, Alcohol, Other. Picking a preset just logs a known item with default volume. "Other" today probably just opens a name field — no picture, no voice.
+### Why
+Tea/coffee calories vary wildly (black vs with sugar/milk/cream/syrup). Quick-logging a fixed default misrepresents intake. Let users describe these the same way as "Other" drinks.
 
-### What you want
-When user picks **Other** (or any non-water beverage where nutrition is unknown), unlock all three input methods so they can describe the drink:
-1. **Camera/photo** — snap or upload a picture of the drink (can of juice, glass of lassi, cocktail, energy drink, etc.) → AI estimates volume + nutrition.
-2. **Voice** — speak it ("a glass of fresh sugarcane juice with lemon") → AI parses + estimates.
-3. **Text** — type a description.
+### Change
 
-User can use any one OR combine (e.g. take a photo AND add a voice note for context like "this is a 500ml bottle, with extra sugar").
+In `src/pages/LogMeal.tsx`, the drink presets currently quick-log Tea and Coffee with a fixed volume/calorie default. Update so that tapping **Tea** or **Coffee** opens the existing `DrinkDescribeSheet` (same one used by "Other") — pre-seeded with the drink type as context so the AI knows it's tea/coffee.
 
-### Approach
+Keep **Water** as the only true quick-log (no AI needed — pure hydration). Smoothie, Soup, Alcohol, Juice, Milk, Other → also route to the describe sheet (consistent UX, since all of these have variable nutrition).
 
-**Trigger surface (in `LogMeal.tsx` Drink tab)**
-- Keep existing preset chips (Water/Tea/Coffee/Smoothie/Soup/Alcohol).
-- Replace the plain "Other" chip with a richer **"Describe a drink"** card that expands inline (or opens a sheet) showing 3 input tiles: 📷 Photo · 🎤 Voice · ⌨️ Text.
-- Each tile is independently usable. Selected inputs stack in a small "added inputs" tray above a single **Analyze** button.
+### Implementation
 
-**Analysis pipeline**
-- **Photo** → reuse existing `analyze-food` edge function (it already handles image → nutrition). It currently classifies as `open_meal` etc. — we'll prompt-tune it to also handle drinks (estimate volume in ml, sugar, caffeine if relevant).
-- **Voice** → use Web Speech API (`SpeechRecognition`) in the browser to transcribe → feed transcript into `analyze-food-text` edge function (already exists, multilingual, handles Indian beverages like lassi/chai/nimbu pani).
-- **Text** → straight to `analyze-food-text`.
-- **Combined inputs** → if user provides both photo + voice/text, send the photo to `analyze-food` and pass the transcript as additional context in a new optional `userContext` field (small edge-function prompt tweak).
+**`src/components/DrinkDescribeSheet.tsx`**
+- Add an optional `presetType?: string` prop (e.g. "tea", "coffee", "smoothie").
+- When provided:
+  - Sheet title becomes "Describe your {presetType}".
+  - Pre-fill the text area with a soft hint like `"Tea — "` so the AI gets the category, and update placeholder to a relevant example (e.g. "e.g. masala chai with sugar and milk, ~200ml").
+  - Pass `presetType` to the edge functions so they bias toward that beverage category.
 
-**After analysis**
-- Show an editable preview card: name, estimated volume (ml), calories, sugar, caffeine (if any), with a confidence badge.
-- User confirms → saved as a `drink` MealEntry with the volume embedded in the name (e.g. "Sugarcane juice (300ml)") so existing `getHydrationFromMeals` keeps working.
+**`src/pages/LogMeal.tsx`**
+- Replace the per-preset quick-log handlers for Tea/Coffee/Smoothie/Soup/Alcohol/Juice/Milk/Other with a single handler that opens `DrinkDescribeSheet` with the matching `presetType`.
+- Water keeps current quick-log behavior.
+- Track which preset opened the sheet via state (e.g. `describePreset: string | null`).
+
+**`supabase/functions/analyze-food/index.ts` & `analyze-food-text/index.ts`**
+- Accept optional `presetType` field. Append to the prompt: *"The user indicated this is a {presetType}. Use that as the primary classification and estimate calories accordingly (e.g. black tea ≈ 2 kcal, tea with sugar+milk ≈ 60-90 kcal)."*
+
+### UX detail
+- Tea/Coffee tiles get a small ✨ sparkle icon hint to signal "AI-described, not quick-logged" — so users understand why a tap opens a sheet instead of instant-saving.
 
 ### Files touched
-
-- `src/pages/LogMeal.tsx` — replace "Other" chip with describe-a-drink expandable section; wire 3 input tiles; show analyze + preview flow
-- `src/components/DrinkDescribeSheet.tsx` (new) — the 3-input UI (camera capture, voice recorder using Web Speech API, textarea), input tray, analyze button, editable result preview
-- `src/hooks/useVoiceTranscription.ts` (new) — small wrapper around `window.SpeechRecognition` / `webkitSpeechRecognition` with start/stop/transcript state, language auto-detect from browser
-- `supabase/functions/analyze-food/index.ts` — extend system prompt to also handle drinks (estimate volume_ml, identify beverage type), accept optional `userContext` string
-- `supabase/functions/analyze-food-text/index.ts` — minor: bias toward beverage parsing when called from drink flow (pass a `mode: "drink"` flag)
-
-### UX details
-
-- Camera: uses `<input type="file" accept="image/*" capture="environment">` (same pattern as existing meal photo flow if there is one — I'll check `LogMeal.tsx` during implementation).
-- Voice: shows a pulsing red mic button while recording, live transcript below, tap again to stop. Falls back gracefully (hidden on browsers without SpeechRecognition — Safari iOS works, Firefox doesn't).
-- All three inputs visible together so user understands they're combinable, not exclusive.
-- Single primary "Analyze drink" button at the bottom — disabled until at least one input has content.
+- `src/pages/LogMeal.tsx` — route presets to describe sheet
+- `src/components/DrinkDescribeSheet.tsx` — accept & use `presetType`
+- `supabase/functions/analyze-food/index.ts` — accept `presetType` in prompt
+- `supabase/functions/analyze-food-text/index.ts` — accept `presetType` in prompt
 
 ### Out of scope
-- Saving voice audio files (we only keep the transcript).
-- Nutrition database lookup beyond AI estimation.
-- Editing presets (Water/Tea/etc.) — those keep their current quick-log behavior.
-
-### Quick confirm before I build
-1. **"Other" chip behavior** — replace it with the new describe section, OR keep "Other" as-is for quick-naming and add a separate **"Describe a drink"** button/card alongside the chips? (I lean toward replacing — cleaner.)
-2. **Voice language** — auto-detect from browser locale (recommended, supports Hindi/Tamil/etc. for Indian users), or always English?
+- Changing Water behavior (stays instant quick-log)
+- Saving favorites / "remember my usual coffee" (separate feature)
