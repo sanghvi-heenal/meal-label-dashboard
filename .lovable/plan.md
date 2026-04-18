@@ -1,47 +1,58 @@
 
-## Plan: Apply page-level motion (#3) + micro-interactions (#4)
+## Plan: Richer background visuals + more color across the app
 
-### #3 Page-level motion
+Goal: take the flat dark slate look and add depth, color, and atmosphere — without breaking the current dark theme or readability.
 
-**Dashboard (`src/pages/Dashboard.tsx`)**
-- Wrap top-level sections (header, stats card, macros card, quick stats) in a stagger: each gets `animate-fade-in` with inline `style={{ animationDelay: "Nms" }}` (0ms, 80ms, 160ms, 240ms).
-- Calories/Drinks toggle: add a sliding active background. Use a relative container with an absolute pill (`transition-transform duration-300 ease-out`) that translates between left/right based on `statsTab`. Buttons sit on top with transparent bg.
+### 1. Animated gradient background blobs (global)
 
-**Bottom nav (`src/components/BottomNav.tsx`)**
-- Active tab gets a tiny colored dot (2px) under the icon that fades/scales in.
-- Active icon gets a subtle bounce on tap: add `active:scale-90 transition-transform`.
-- Optional: a thin top accent line (1px gradient) on the nav bar for lift.
+Add decorative blurred blobs behind everything, visible on every page:
+- **Top-right blob** — warning/orange-tinted (`bg-warning/20`), `blur-3xl`, ~400px
+- **Bottom-left blob** — info/blue-tinted (`bg-info/20`), `blur-3xl`, ~400px
+- **Center-mid blob** — primary/green-tinted (`bg-primary/15`), `blur-3xl`, ~300px
+- All with a slow `animate-blob-float` keyframe (gentle 12-15s ease-in-out drift) so the background subtly breathes.
+- Implemented as a fixed-position layer in `src/App.tsx` (or a new `BackgroundBlobs` component) sitting behind page content with `z-[-1]` and `pointer-events-none`.
 
-**Macro bars (`src/components/MacroBar.tsx`)**
-- On mount, animate width from 0 → `pct` using a `useEffect` + `useState` that sets the width after first paint (existing `transition-all duration-500` already handles the tween).
+### 2. Subtle noise/grain overlay (optional polish)
 
-### #4 Micro-interactions
+Fixed pointer-events-none div with a CSS noise pattern at ~3% opacity for premium texture (think Linear, Vercel sites).
 
-**Quick-log water buttons (`src/pages/LogMeal.tsx`)**
-- On tap of +150/+250/+500: spawn a floating water-drop (💧) absolutely positioned over the button that animates upward + fades out (~700ms) then unmounts. Manage via a transient `flyingDrops` state array with unique ids.
-- Add `active:scale-95 transition-transform` to the buttons themselves.
-- After logging, briefly pulse the button (e.g., add a `ring-2 ring-info` class for 400ms).
+### 3. Per-card gradient surfaces
 
-**Meal logging success (`src/pages/LogMeal.tsx`)**
-- When a meal is saved (existing save handler), show a centered checkmark that scales-in + fades-out over ~900ms before navigation. Implement with a `showSuccess` boolean overlay using `animate-scale-in`.
+Upgrade the flat `card-surface` utility:
+- Add a faint diagonal gradient (`bg-gradient-to-br from-card to-card/60`) so cards feel layered, not flat.
+- Add a 1px gradient border accent (top edge brighter) for depth.
 
-**Card hover lift**
-- Add `hover-scale` (already in utilities) to the 3 quick-stat tiles in Dashboard's bottom card so they lift on hover/tap.
+### 4. Section-specific color tints
 
-### New keyframes (`tailwind.config.ts`)
+- **Calories card**: subtle warning/amber inner glow (`shadow-[inset_0_1px_40px_rgba(245,158,11,0.08)]`).
+- **Drinks card**: subtle info/cyan inner glow.
+- **Macros card**: faint primary/green inner glow.
+- Each card gets a tiny colored top-border (1px gradient) matching its theme.
 
-Add:
-- `float-up`: `0% { opacity: 1; transform: translateY(0) scale(1); } 100% { opacity: 0; transform: translateY(-40px) scale(1.3); }` → `animation: "float-up 0.7s ease-out forwards"`
-- `count-pop`: subtle scale bounce for the success check (or reuse `scale-in`).
+### 5. Gradient text on hero numbers
+
+The big calorie/ml numbers on Dashboard get gradient text:
+- Calories: `from-warning to-warning/50 bg-clip-text text-transparent`
+- Hydration: `from-info to-info/50`
+- Makes the focal numbers pop dramatically.
+
+### 6. Color-tinted page entry
+
+Add a one-time radial gradient flash on page mount (very subtle, ~0.6s fade) — like a soft "wake up" pulse from the active section's color.
 
 ### Files touched
-- `tailwind.config.ts` — add `float-up` keyframe + animation
-- `src/pages/Dashboard.tsx` — stagger fades, sliding toggle pill, hover-scale on stat tiles
-- `src/components/BottomNav.tsx` — active dot indicator, tap scale
-- `src/components/MacroBar.tsx` — animated width on mount
-- `src/pages/LogMeal.tsx` — floating water-drop on quick-log, success checkmark overlay
 
-### Out of scope
-- No color/theme changes (that was #1).
-- No ring animations or count-up numbers (that was #2).
-- No FAB / decorative blobs (#5–6).
+- `src/index.css` — add `card-surface` gradient upgrade, noise utility, blob keyframes (`blob-float`)
+- `tailwind.config.ts` — register `blob-float` animation
+- `src/App.tsx` — mount global `<BackgroundBlobs />` layer
+- `src/components/BackgroundBlobs.tsx` (new) — the 3 animated blobs
+- `src/pages/Dashboard.tsx` — gradient text on big numbers, colored card tints/glows
+
+### Out of scope (ask if you want these too)
+
+- Full theme swap (Neon Health / Sunrise Warm directions)
+- Light mode
+- Per-page custom backgrounds
+- Animated mesh gradient (heavier, can do as v2)
+
+Pick: **ship all 6**, or tell me which to drop (e.g., "skip noise" or "no gradient text").
