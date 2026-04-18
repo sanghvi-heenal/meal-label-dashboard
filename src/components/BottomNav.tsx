@@ -1,11 +1,11 @@
-import { Home, Camera, Clock, GlassWater } from "lucide-react";
+import { Home, Camera, Clock, Settings } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 const tabs = [
   { path: "/", icon: Home, label: "Dashboard" },
   { path: "/log", icon: Camera, label: "Log" },
-  { path: "/hydration", icon: GlassWater, label: "Hydration" },
   { path: "/history", icon: Clock, label: "History" },
+  { path: "/settings", icon: Settings, label: "Settings" },
 ];
 
 const BottomNav = () => {

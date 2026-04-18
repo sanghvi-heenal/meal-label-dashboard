@@ -6,7 +6,6 @@ import BottomNav from "@/components/BottomNav";
 import Index from "./pages/Index";
 import LogMeal from "./pages/LogMeal";
 import History from "./pages/History";
-import Hydration from "./pages/Hydration";
 import SettingsPage from "./pages/SettingsPage";
 import NotFound from "./pages/NotFound";
 
@@ -20,7 +19,6 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/log" element={<LogMeal />} />
-          <Route path="/hydration" element={<Hydration />} />
           <Route path="/history" element={<History />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="*" element={<NotFound />} />
