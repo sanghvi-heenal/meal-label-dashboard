@@ -26,7 +26,6 @@ const mealTypes = [
   { value: "lunch" as const, label: "Lunch", icon: UtensilsCrossed },
   { value: "dinner" as const, label: "Dinner", icon: Moon },
   { value: "snack" as const, label: "Snack", icon: Coffee },
-  { value: "drink" as const, label: "Drink", icon: GlassWater },
 ];
 
 const drinkTypes = ["Water", "Tea", "Coffee", "Smoothie", "Juice", "Milk", "Other"] as const;
