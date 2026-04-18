@@ -14,12 +14,16 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import {
+  formatHydration,
   getGreeting,
   getHydrationFromMeals,
   getMealsByDate,
   getProfile,
   getTodayString,
+  mlToUnit,
   saveProfile,
+  unitLabel,
+  type HydrationUnit,
 } from "@/lib/nutrition-store";
 
 const HYDRATION_ONBOARDED_KEY = "nutrilens-hydration-onboarded";
@@ -33,7 +37,7 @@ const Dashboard = () => {
   // First-run hydration onboarding
   const [showHydrationModal, setShowHydrationModal] = useState(false);
   const [hydrationAmount, setHydrationAmount] = useState("8");
-  const [hydrationUnit, setHydrationUnit] = useState<"glasses" | "litres" | "oz">("glasses");
+  const [hydrationUnit, setHydrationUnit] = useState<HydrationUnit>("glasses");
 
   useEffect(() => {
     const onboarded = localStorage.getItem(HYDRATION_ONBOARDED_KEY);
@@ -46,9 +50,11 @@ const Dashboard = () => {
     if (n > 0) {
       if (hydrationUnit === "glasses") ml = Math.round(n * 250);
       else if (hydrationUnit === "litres") ml = Math.round(n * 1000);
-      else ml = Math.round(n * 29.5735);
+      else if (hydrationUnit === "oz") ml = Math.round(n * 29.5735);
+      else ml = Math.round(n);
     }
-    const next = { ...profile, hydrationTarget: ml };
+    // Remember the unit they used so all displays match their preference
+    const next = { ...profile, hydrationTarget: ml, hydrationUnit };
     saveProfile(next);
     setProfile(next);
     localStorage.setItem(HYDRATION_ONBOARDED_KEY, "1");
@@ -167,9 +173,11 @@ const Dashboard = () => {
             </h2>
             <div className="flex items-baseline gap-1">
               <span className="text-5xl font-bold bg-gradient-to-br from-info to-info/40 bg-clip-text text-transparent">
-                {hydrationMl}
+                {mlToUnit(hydrationMl, profile.hydrationUnit)}
               </span>
-              <span className="text-muted-foreground text-sm">/ {profile.hydrationTarget} ml</span>
+              <span className="text-muted-foreground text-sm">
+                / {mlToUnit(profile.hydrationTarget, profile.hydrationUnit)} {unitLabel(profile.hydrationUnit)}
+              </span>
             </div>
             <div className="flex items-center gap-6">
               <HydrationRing consumed={hydrationMl} target={profile.hydrationTarget} size={120} />
@@ -177,17 +185,17 @@ const Dashboard = () => {
                 <div className="flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-info" />
                   <span className="text-muted-foreground">Consumed</span>
-                  <span className="ml-auto font-semibold text-info">{hydrationMl} ml</span>
+                  <span className="ml-auto font-semibold text-info">{formatHydration(hydrationMl, profile.hydrationUnit)}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-muted-foreground" />
                   <span className="text-muted-foreground">Remaining</span>
-                  <span className="ml-auto font-semibold text-foreground">{hydrationRemaining} ml</span>
+                  <span className="ml-auto font-semibold text-foreground">{formatHydration(hydrationRemaining, profile.hydrationUnit)}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-primary" />
                   <span className="text-muted-foreground">Target</span>
-                  <span className="ml-auto font-semibold text-primary">{profile.hydrationTarget} ml</span>
+                  <span className="ml-auto font-semibold text-primary">{formatHydration(profile.hydrationTarget, profile.hydrationUnit)}</span>
                 </div>
               </div>
             </div>
@@ -253,11 +261,12 @@ const Dashboard = () => {
             />
             <select
               value={hydrationUnit}
-              onChange={(e) => setHydrationUnit(e.target.value as typeof hydrationUnit)}
+              onChange={(e) => setHydrationUnit(e.target.value as HydrationUnit)}
               className="px-3 py-2 rounded-md bg-secondary border border-border text-foreground text-sm focus:outline-none focus:ring-1 focus:ring-primary"
             >
               <option value="glasses">Glasses (250 ml)</option>
               <option value="litres">Litres</option>
+              <option value="ml">Millilitres</option>
               <option value="oz">Ounces (fl oz)</option>
             </select>
           </div>
@@ -267,7 +276,8 @@ const Dashboard = () => {
               if (!n) return "0 ml";
               if (hydrationUnit === "glasses") return `${Math.round(n * 250)} ml`;
               if (hydrationUnit === "litres") return `${Math.round(n * 1000)} ml`;
-              return `${Math.round(n * 29.5735)} ml`;
+              if (hydrationUnit === "oz") return `${Math.round(n * 29.5735)} ml`;
+              return `${Math.round(n)} ml`;
             })()}
           </p>
           <DialogFooter>
