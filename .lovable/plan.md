@@ -1,41 +1,27 @@
 
-## Plan: Enable photo + voice + text describe flow for Tea & Coffee
+## Plan: Auto-dismiss toasts after a few seconds
 
-### Why
-Tea/coffee calories vary wildly (black vs with sugar/milk/cream/syrup). Quick-logging a fixed default misrepresents intake. Let users describe these the same way as "Other" drinks.
+### Problem
+`TOAST_REMOVE_DELAY = 1000000` ms in `src/hooks/use-toast.ts` means toasts never auto-close. They only disappear when the user taps the X.
 
-### Change
+### Fix
+1. In `src/hooks/use-toast.ts`:
+   - Set `TOAST_REMOVE_DELAY = 400` (time between "dismiss" and DOM removal — for the slide-out animation).
+   - In the `toast()` function, schedule an **auto-dismiss** after a default visible duration (e.g. 4000 ms), so toasts disappear on their own.
+   - Allow callers to override per-toast via a `duration` option (e.g. `toast({ title: "...", duration: 6000 })`).
+   - Raise `TOAST_LIMIT` from 1 → 3 so a quick second action doesn't instantly kill the previous toast.
 
-In `src/pages/LogMeal.tsx`, the drink presets currently quick-log Tea and Coffee with a fixed volume/calorie default. Update so that tapping **Tea** or **Coffee** opens the existing `DrinkDescribeSheet` (same one used by "Other") — pre-seeded with the drink type as context so the AI knows it's tea/coffee.
+2. Durations by variant (sensible defaults):
+   - `success` / `default`: **3500 ms**
+   - `warning`: **5000 ms**
+   - `destructive`: **6000 ms** (errors deserve more reading time)
+   - Hovering the toast pauses the timer (Radix Toast does this automatically once a `duration` is set on the Root).
 
-Keep **Water** as the only true quick-log (no AI needed — pure hydration). Smoothie, Soup, Alcohol, Juice, Milk, Other → also route to the describe sheet (consistent UX, since all of these have variable nutrition).
-
-### Implementation
-
-**`src/components/DrinkDescribeSheet.tsx`**
-- Add an optional `presetType?: string` prop (e.g. "tea", "coffee", "smoothie").
-- When provided:
-  - Sheet title becomes "Describe your {presetType}".
-  - Pre-fill the text area with a soft hint like `"Tea — "` so the AI gets the category, and update placeholder to a relevant example (e.g. "e.g. masala chai with sugar and milk, ~200ml").
-  - Pass `presetType` to the edge functions so they bias toward that beverage category.
-
-**`src/pages/LogMeal.tsx`**
-- Replace the per-preset quick-log handlers for Tea/Coffee/Smoothie/Soup/Alcohol/Juice/Milk/Other with a single handler that opens `DrinkDescribeSheet` with the matching `presetType`.
-- Water keeps current quick-log behavior.
-- Track which preset opened the sheet via state (e.g. `describePreset: string | null`).
-
-**`supabase/functions/analyze-food/index.ts` & `analyze-food-text/index.ts`**
-- Accept optional `presetType` field. Append to the prompt: *"The user indicated this is a {presetType}. Use that as the primary classification and estimate calories accordingly (e.g. black tea ≈ 2 kcal, tea with sugar+milk ≈ 60-90 kcal)."*
-
-### UX detail
-- Tea/Coffee tiles get a small ✨ sparkle icon hint to signal "AI-described, not quick-logged" — so users understand why a tap opens a sheet instead of instant-saving.
+3. No UI redesign — keeps the icon + colored border look you just approved.
 
 ### Files touched
-- `src/pages/LogMeal.tsx` — route presets to describe sheet
-- `src/components/DrinkDescribeSheet.tsx` — accept & use `presetType`
-- `supabase/functions/analyze-food/index.ts` — accept `presetType` in prompt
-- `supabase/functions/analyze-food-text/index.ts` — accept `presetType` in prompt
+- `src/hooks/use-toast.ts` — auto-dismiss timer, per-variant defaults, raise limit, support `duration` override
 
 ### Out of scope
-- Changing Water behavior (stays instant quick-log)
-- Saving favorites / "remember my usual coffee" (separate feature)
+- Migrating the app to `sonner` (separate cleanup)
+- Changing toast visuals
