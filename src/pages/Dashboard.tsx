@@ -81,7 +81,7 @@ const Dashboard = () => {
   return (
     <div className="px-4 pt-6 pb-24 max-w-md mx-auto space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between animate-fade-in" style={{ animationDelay: "0ms" }}>
         <div>
           <h1 className="text-2xl font-bold text-foreground">{getGreeting()}</h1>
           <p className="text-sm text-muted-foreground">Today</p>
@@ -101,24 +101,27 @@ const Dashboard = () => {
       </div>
 
       {/* Calories / Drinks toggle + card */}
-      <div className="space-y-3">
-        <div className="grid grid-cols-2 gap-2 p-1 rounded-xl bg-secondary border border-border">
+      <div className="space-y-3 animate-fade-in" style={{ animationDelay: "80ms" }}>
+        <div className="relative grid grid-cols-2 gap-2 p-1 rounded-xl bg-secondary border border-border">
+          {/* Sliding active pill */}
+          <div
+            className={`absolute top-1 bottom-1 left-1 w-[calc(50%-0.25rem)] rounded-lg shadow transition-transform duration-300 ease-out ${
+              statsTab === "calories" ? "bg-warning translate-x-0" : "bg-info translate-x-[calc(100%+0.5rem)]"
+            }`}
+            aria-hidden="true"
+          />
           <button
             onClick={() => setStatsTab("calories")}
-            className={`flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-semibold transition-colors ${
-              statsTab === "calories"
-                ? "bg-warning text-warning-foreground shadow"
-                : "text-muted-foreground hover:text-foreground"
+            className={`relative z-10 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-semibold transition-colors ${
+              statsTab === "calories" ? "text-warning-foreground" : "text-muted-foreground hover:text-foreground"
             }`}
           >
             🔥 Calories
           </button>
           <button
             onClick={() => setStatsTab("drinks")}
-            className={`flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-semibold transition-colors ${
-              statsTab === "drinks"
-                ? "bg-info text-info-foreground shadow"
-                : "text-muted-foreground hover:text-foreground"
+            className={`relative z-10 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-semibold transition-colors ${
+              statsTab === "drinks" ? "text-info-foreground" : "text-muted-foreground hover:text-foreground"
             }`}
           >
             💧 Drinks
@@ -126,7 +129,7 @@ const Dashboard = () => {
         </div>
 
         {statsTab === "calories" ? (
-          <div className="card-surface space-y-4">
+          <div className="card-surface space-y-4 animate-fade-in">
             <h2 className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
               Today's Calories
             </h2>
@@ -156,7 +159,7 @@ const Dashboard = () => {
             </div>
           </div>
         ) : (
-          <div className="card-surface space-y-4">
+          <div className="card-surface space-y-4 animate-fade-in">
             <h2 className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
               Today's Hydration
             </h2>
@@ -186,7 +189,7 @@ const Dashboard = () => {
             </div>
             <button
               onClick={() => navigate("/log", { state: { mode: "drink" } })}
-              className="w-full py-2 rounded-lg bg-info/10 hover:bg-info/20 border border-info/30 text-info text-sm font-semibold transition-colors"
+              className="w-full py-2 rounded-lg bg-info/10 hover:bg-info/20 border border-info/30 text-info text-sm font-semibold transition-colors active:scale-95"
             >
               + Log a drink
             </button>
@@ -195,7 +198,7 @@ const Dashboard = () => {
       </div>
 
       {/* Macros Card */}
-      <div className="card-surface space-y-4">
+      <div className="card-surface space-y-4 animate-fade-in" style={{ animationDelay: "160ms" }}>
         <h2 className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
           Macronutrients
         </h2>
@@ -206,19 +209,19 @@ const Dashboard = () => {
       </div>
 
       {/* Quick Stats */}
-      <div className="card-surface">
+      <div className="card-surface animate-fade-in" style={{ animationDelay: "240ms" }}>
         <div className="grid grid-cols-3 divide-x divide-border">
-          <div className="text-center py-2">
+          <div className="text-center py-2 hover-scale cursor-default">
             <p className="text-lg font-bold text-nutrient-protein">{totals.sodium}mg</p>
             <p className="text-xs text-muted-foreground">Sodium</p>
             <p className="text-[10px] text-muted-foreground">/ {profile.sodiumTarget}</p>
           </div>
-          <div className="text-center py-2">
+          <div className="text-center py-2 hover-scale cursor-default">
             <p className="text-lg font-bold text-nutrient-carbs">{totals.sugar.toFixed(1)}g</p>
             <p className="text-xs text-muted-foreground">Sugar</p>
             <p className="text-[10px] text-muted-foreground">/ {profile.sugarTarget}</p>
           </div>
-          <div className="text-center py-2">
+          <div className="text-center py-2 hover-scale cursor-default">
             <p className="text-lg font-bold text-nutrient-fat">{totals.satFat.toFixed(1)}g</p>
             <p className="text-xs text-muted-foreground">Sat Fat</p>
             <p className="text-[10px] text-muted-foreground">/ {profile.satFatTarget}</p>
