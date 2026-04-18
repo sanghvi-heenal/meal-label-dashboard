@@ -323,6 +323,30 @@ const LogMeal = () => {
     }
   };
 
+  const handleDescribedDrinkConfirm = useCallback((res: DrinkAnalysisResult) => {
+    const labelName = `${res.name} (${res.volumeMl}ml)`;
+    const entry: MealEntry = {
+      id: crypto.randomUUID(),
+      date: logDate,
+      mealType: "drink",
+      name: labelName,
+      calories: res.calories,
+      protein: res.protein,
+      carbs: res.carbs,
+      fat: res.fat,
+      fiber: res.fiber,
+      sodium: res.sodium,
+      sugar: res.sugar,
+      satFat: res.satFat,
+      timestamp: Date.now(),
+    };
+    saveMeal(entry);
+    setDescribeSheetOpen(false);
+    toast({ title: "Drink logged!", description: `${labelName} on ${logDateLabel}` });
+    setHydrationTick((n) => n + 1);
+    setTimeout(() => navigate(isLoggingToday ? "/" : "/history"), 300);
+  }, [logDate, logDateLabel, isLoggingToday, navigate, toast]);
+
   const handleDrinkAnalyze = async () => {
     const volNum = Number(drinkVolume);
     if (!volNum || volNum <= 0) {
