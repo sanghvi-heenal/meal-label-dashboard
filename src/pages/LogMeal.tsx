@@ -124,6 +124,11 @@ const LogMeal = () => {
   );
   const hydrationMl = getHydrationFromMeals(todayMealsForHydration);
 
+  // Floating water drops + success checkmark micro-interactions
+  const [flyingDrops, setFlyingDrops] = useState<{ id: string; ml: number }[]>([]);
+  const [pulsedMl, setPulsedMl] = useState<number | null>(null);
+  const [showSuccess, setShowSuccess] = useState(false);
+
   const quickLogWater = useCallback((ml: number) => {
     const entry: MealEntry = {
       id: crypto.randomUUID(),
@@ -136,6 +141,15 @@ const LogMeal = () => {
     saveMeal(entry);
     toast({ title: "💧 Hydration logged", description: `+ ${ml}ml water` });
     setHydrationTick((n) => n + 1);
+
+    // Spawn floating drop
+    const id = crypto.randomUUID();
+    setFlyingDrops((d) => [...d, { id, ml }]);
+    setTimeout(() => setFlyingDrops((d) => d.filter((x) => x.id !== id)), 750);
+
+    // Pulse the tapped button
+    setPulsedMl(ml);
+    setTimeout(() => setPulsedMl((v) => (v === ml ? null : v)), 450);
   }, [toast]);
   const logDateObj = new Date(logDate + "T00:00:00");
   const todayStr = getTodayString();
@@ -482,7 +496,11 @@ const LogMeal = () => {
     };
     saveMeal(entry);
     toast({ title: "Meal logged!", description: `${foodName} added to ${selectedMeal} on ${logDateLabel}` });
-    navigate(isLoggingToday ? "/" : "/history");
+    setShowSuccess(true);
+    setTimeout(() => {
+      setShowSuccess(false);
+      navigate(isLoggingToday ? "/" : "/history");
+    }, 900);
   };
 
   const isDrinkMode = selectedMeal === "drink";
@@ -572,14 +590,27 @@ const LogMeal = () => {
           </p>
           <div className="flex gap-2">
             {[150, 250, 500].map((ml) => (
-              <button
-                key={ml}
-                onClick={() => quickLogWater(ml)}
-                className="flex-1 flex flex-col items-center gap-1 py-2.5 rounded-lg bg-info/10 hover:bg-info/20 border border-info/30 text-info font-semibold transition-colors"
-              >
-                <Droplets size={16} />
-                <span className="text-xs">+{ml}ml</span>
-              </button>
+              <div key={ml} className="relative flex-1">
+                <button
+                  onClick={() => quickLogWater(ml)}
+                  className={`relative w-full flex flex-col items-center gap-1 py-2.5 rounded-lg bg-info/10 hover:bg-info/20 border border-info/30 text-info font-semibold transition-all duration-200 active:scale-95 ${
+                    pulsedMl === ml ? "ring-2 ring-info shadow-[0_0_18px_hsl(var(--info)/0.5)]" : ""
+                  }`}
+                >
+                  <Droplets size={16} />
+                  <span className="text-xs">+{ml}ml</span>
+                </button>
+                {/* Floating drop emoji on tap */}
+                {flyingDrops.filter((d) => d.ml === ml).map((d) => (
+                  <span
+                    key={d.id}
+                    className="absolute left-1/2 -translate-x-1/2 -top-2 text-xl animate-float-up pointer-events-none select-none"
+                    aria-hidden="true"
+                  >
+                    💧
+                  </span>
+                ))}
+              </div>
             ))}
           </div>
         </div>
@@ -1039,6 +1070,17 @@ const LogMeal = () => {
           </p>
         </div>
       </div>
+
+      {/* Success checkmark overlay on meal save */}
+      {showSuccess && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/40 backdrop-blur-sm pointer-events-none">
+          <div className="w-24 h-24 rounded-full bg-primary/15 border-2 border-primary flex items-center justify-center animate-scale-in shadow-[0_0_40px_hsl(var(--primary)/0.5)]">
+            <svg viewBox="0 0 24 24" fill="none" className="w-12 h-12 text-primary" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
