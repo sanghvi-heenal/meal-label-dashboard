@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { description, language } = await req.json();
+    const { description, language, mode } = await req.json();
     if (!description || typeof description !== "string" || !description.trim()) {
       return new Response(JSON.stringify({ error: "No description provided" }), {
         status: 400,
@@ -51,7 +51,9 @@ Other rules:
 - Combine all items into a single nutritional total if multiple foods are described.
 - If the description is not food-related, classify as "not_food".
 - Use reasonable default portions when no quantity is given (e.g. 1 chapati ~ 30g, 1 katori dal ~ 150ml, 1 avocado ~ 150g, 1 egg ~ 50g).
-- All numeric values should be numbers, not strings.`;
+- All numeric values should be numbers, not strings.${mode === "drink" ? `
+
+DRINK MODE: The user is describing a beverage. Always estimate the total volume in milliliters in the "volumeMl" field (a glass ≈ 250ml, mug ≈ 250ml, can ≈ 330ml, bottle ≈ 500ml, katori/small bowl ≈ 150ml). Pay extra attention to sugar content. If volume is not stated, infer a reasonable serving size from the container described.` : ""}`;
 
     const userPrompt = language && language !== "en-US"
       ? `The user described their meal in ${language}. Estimate the nutritional content of: "${description}"`
@@ -109,6 +111,7 @@ Other rules:
                     sodium: { type: "number", description: "Sodium in milligrams" },
                     sugar: { type: "number", description: "Sugar in grams" },
                     satFat: { type: "number", description: "Saturated fat in grams" },
+                    volumeMl: { type: "number", description: "Estimated drink volume in milliliters (only for drink mode; 0 otherwise)." },
                   },
                   required: ["foodType", "confidence", "name", "quantitySpecified", "calories", "protein", "carbs", "fat", "fiber", "sodium", "sugar", "satFat"],
                   additionalProperties: false,
