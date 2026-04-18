@@ -2,8 +2,15 @@ import * as React from "react";
 
 import type { ToastActionElement, ToastProps } from "@/components/ui/toast";
 
-const TOAST_LIMIT = 1;
-const TOAST_REMOVE_DELAY = 1000000;
+const TOAST_LIMIT = 3;
+const TOAST_REMOVE_DELAY = 400;
+
+const DEFAULT_DURATIONS: Record<string, number> = {
+  default: 3500,
+  success: 3500,
+  warning: 5000,
+  destructive: 6000,
+};
 
 type ToasterToast = ToastProps & {
   id: string;
@@ -144,12 +151,19 @@ function toast({ ...props }: Toast) {
     });
   const dismiss = () => dispatch({ type: "DISMISS_TOAST", toastId: id });
 
+  const variantKey = (props as { variant?: string }).variant ?? "default";
+  const duration =
+    typeof props.duration === "number"
+      ? props.duration
+      : DEFAULT_DURATIONS[variantKey] ?? DEFAULT_DURATIONS.default;
+
   dispatch({
     type: "ADD_TOAST",
     toast: {
       ...props,
       id,
       open: true,
+      duration,
       onOpenChange: (open) => {
         if (!open) dismiss();
       },
