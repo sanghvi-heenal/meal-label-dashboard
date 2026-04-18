@@ -1,10 +1,63 @@
+import { useEffect, useState } from "react";
+import { User } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import CalorieRing from "@/components/CalorieRing";
+import HydrationRing from "@/components/HydrationRing";
 import MacroBar from "@/components/MacroBar";
-import { getGreeting, getMealsByDate, getProfile, getTodayString } from "@/lib/nutrition-store";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import {
+  getGreeting,
+  getHydrationFromMeals,
+  getMealsByDate,
+  getProfile,
+  getTodayString,
+  saveProfile,
+} from "@/lib/nutrition-store";
+
+const HYDRATION_ONBOARDED_KEY = "nutrilens-hydration-onboarded";
 
 const Dashboard = () => {
-  const profile = getProfile();
+  const navigate = useNavigate();
+  const [profile, setProfile] = useState(getProfile());
   const todayMeals = getMealsByDate(getTodayString());
+
+  // First-run hydration onboarding
+  const [showHydrationModal, setShowHydrationModal] = useState(false);
+  const [hydrationAmount, setHydrationAmount] = useState("8");
+  const [hydrationUnit, setHydrationUnit] = useState<"glasses" | "litres" | "oz">("glasses");
+
+  useEffect(() => {
+    const onboarded = localStorage.getItem(HYDRATION_ONBOARDED_KEY);
+    if (!onboarded) setShowHydrationModal(true);
+  }, []);
+
+  const saveHydrationTarget = () => {
+    const n = Number(hydrationAmount);
+    let ml = profile.hydrationTarget;
+    if (n > 0) {
+      if (hydrationUnit === "glasses") ml = Math.round(n * 250);
+      else if (hydrationUnit === "litres") ml = Math.round(n * 1000);
+      else ml = Math.round(n * 29.5735);
+    }
+    const next = { ...profile, hydrationTarget: ml };
+    saveProfile(next);
+    setProfile(next);
+    localStorage.setItem(HYDRATION_ONBOARDED_KEY, "1");
+    setShowHydrationModal(false);
+  };
+
+  const skipHydrationSetup = () => {
+    localStorage.setItem(HYDRATION_ONBOARDED_KEY, "1");
+    setShowHydrationModal(false);
+  };
 
   const totals = todayMeals.reduce(
     (acc, m) => ({
@@ -21,6 +74,8 @@ const Dashboard = () => {
   );
 
   const remaining = Math.max(profile.calorieTarget - totals.calories, 0);
+  const hydrationMl = getHydrationFromMeals(todayMeals);
+  const hydrationRemaining = Math.max(profile.hydrationTarget - hydrationMl, 0);
 
   return (
     <div className="px-4 pt-6 pb-24 max-w-md mx-auto space-y-4">
@@ -30,9 +85,18 @@ const Dashboard = () => {
           <h1 className="text-2xl font-bold text-foreground">{getGreeting()}</h1>
           <p className="text-sm text-muted-foreground">Today</p>
         </div>
-        <span className="text-xs font-medium px-3 py-1.5 rounded-full bg-info/20 text-info">
-          ⚖ BMI {profile.bmi}
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-medium px-3 py-1.5 rounded-full bg-info/20 text-info">
+            ⚖ BMI {profile.bmi}
+          </span>
+          <button
+            onClick={() => navigate("/settings")}
+            className="w-10 h-10 rounded-full bg-secondary hover:bg-secondary/80 flex items-center justify-center transition-colors"
+            aria-label="Profile and settings"
+          >
+            <User size={20} className="text-foreground" />
+          </button>
+        </div>
       </div>
 
       {/* Calories Card */}
@@ -66,6 +130,40 @@ const Dashboard = () => {
         </div>
       </div>
 
+      {/* Hydration Card */}
+      <button
+        onClick={() => navigate("/hydration")}
+        className="card-surface space-y-4 w-full text-left hover:border-info/40 transition-colors"
+      >
+        <h2 className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
+          Today's Hydration
+        </h2>
+        <div className="flex items-baseline gap-1">
+          <span className="text-4xl font-bold text-foreground">{hydrationMl}</span>
+          <span className="text-muted-foreground text-sm">/ {profile.hydrationTarget} ml</span>
+        </div>
+        <div className="flex items-center gap-6">
+          <HydrationRing consumed={hydrationMl} target={profile.hydrationTarget} />
+          <div className="space-y-2 text-sm">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-info" />
+              <span className="text-muted-foreground">Consumed</span>
+              <span className="ml-auto font-semibold text-info">{hydrationMl} ml</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-muted-foreground" />
+              <span className="text-muted-foreground">Remaining</span>
+              <span className="ml-auto font-semibold text-foreground">{hydrationRemaining} ml</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-primary" />
+              <span className="text-muted-foreground">Target</span>
+              <span className="ml-auto font-semibold text-primary">{profile.hydrationTarget} ml</span>
+            </div>
+          </div>
+        </div>
+      </button>
+
       {/* Macros Card */}
       <div className="card-surface space-y-4">
         <h2 className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
@@ -97,6 +195,60 @@ const Dashboard = () => {
           </div>
         </div>
       </div>
+
+      {/* First-run hydration onboarding */}
+      <Dialog open={showHydrationModal} onOpenChange={(open) => !open && skipHydrationSetup()}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>How much do you usually hydrate per day?</DialogTitle>
+            <DialogDescription>
+              Enter your typical daily intake. We'll use this as your hydration target — you can change it later in Settings.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex gap-2 items-center">
+            <Input
+              type="number"
+              min="0"
+              step="0.1"
+              value={hydrationAmount}
+              onChange={(e) => setHydrationAmount(e.target.value)}
+              className="flex-1"
+            />
+            <select
+              value={hydrationUnit}
+              onChange={(e) => setHydrationUnit(e.target.value as typeof hydrationUnit)}
+              className="px-3 py-2 rounded-md bg-secondary border border-border text-foreground text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+            >
+              <option value="glasses">Glasses (250 ml)</option>
+              <option value="litres">Litres</option>
+              <option value="oz">Ounces (fl oz)</option>
+            </select>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            ≈ {(() => {
+              const n = Number(hydrationAmount);
+              if (!n) return "0 ml";
+              if (hydrationUnit === "glasses") return `${Math.round(n * 250)} ml`;
+              if (hydrationUnit === "litres") return `${Math.round(n * 1000)} ml`;
+              return `${Math.round(n * 29.5735)} ml`;
+            })()}
+          </p>
+          <DialogFooter>
+            <button
+              onClick={skipHydrationSetup}
+              className="px-4 py-2 rounded-lg bg-secondary text-foreground text-sm font-medium hover:bg-secondary/80"
+            >
+              Skip
+            </button>
+            <button
+              onClick={saveHydrationTarget}
+              className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold"
+            >
+              Save target
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
