@@ -1,44 +1,47 @@
 
-## Plan: Merge Hydration into Log section as "Log a Drink"
+## Plan: Apply page-level motion (#3) + micro-interactions (#4)
 
-### The idea
-Right now the bottom nav has **Dashboard · Log · Hydration · History**. The Log page has a "Drink" pill that overlaps confusingly with the separate Hydration tab. Let's collapse them: **one Log section with two clear modes — Log a Meal and Log a Drink** — and retire the standalone Hydration tab.
+### #3 Page-level motion
 
-### What changes
+**Dashboard (`src/pages/Dashboard.tsx`)**
+- Wrap top-level sections (header, stats card, macros card, quick stats) in a stagger: each gets `animate-fade-in` with inline `style={{ animationDelay: "Nms" }}` (0ms, 80ms, 160ms, 240ms).
+- Calories/Drinks toggle: add a sliding active background. Use a relative container with an absolute pill (`transition-transform duration-300 ease-out`) that translates between left/right based on `statsTab`. Buttons sit on top with transparent bg.
 
-**1. Bottom nav (`src/components/BottomNav.tsx`)**
-- Drop the **Hydration** tab. Back to 4 tabs: Dashboard · Log · History · Settings (Settings comes back to the nav since the slot frees up). 
-  - *Or keep Settings in the profile icon if you prefer — say the word.*
+**Bottom nav (`src/components/BottomNav.tsx`)**
+- Active tab gets a tiny colored dot (2px) under the icon that fades/scales in.
+- Active icon gets a subtle bounce on tap: add `active:scale-90 transition-transform`.
+- Optional: a thin top accent line (1px gradient) on the nav bar for lift.
 
-**2. Log page becomes a hub (`src/pages/LogMeal.tsx` → rethink as `/log`)**
-- Top of page: two big mode cards / segmented control:
-  - **🍽 Log a Meal** — current photo + text food flow
-  - **💧 Log a Drink** — everything currently on `/hydration`
-- Selecting "Log a Drink" reveals (inline, same page — no route change):
-  - Hydration ring + "X / Y ml today" summary at top of the drink section
-  - Quick-log chips: **+150ml**, **+250ml**, **+500ml** water
-  - "Log a custom drink" input (tea, coffee, smoothie…) → uses existing drink analysis flow
-  - Today's drinks list
+**Macro bars (`src/components/MacroBar.tsx`)**
+- On mount, animate width from 0 → `pct` using a `useEffect` + `useState` that sets the width after first paint (existing `transition-all duration-500` already handles the tween).
 
-**3. Remove standalone Hydration page**
-- Delete `src/pages/Hydration.tsx`.
-- Remove `/hydration` route from `src/App.tsx`.
-- Anywhere that navigates to `/hydration` (Dashboard profile area, etc.) → re-point to `/log` with drink mode pre-selected via `state: { mode: "drink" }` (already supported).
+### #4 Micro-interactions
 
-**4. Remove the drink pie chart / ring from Hydration view**
-- The hydration **ring** stays (it's the goal tracker — useful), but per your note we strip the **pie chart of drink breakdown** if one exists. Looking at current `Hydration.tsx`, there's only the ring + legend (Consumed/Remaining/Target) + drinks list — no pie chart. So nothing to delete there beyond moving the whole block into Log.
-  - *If you meant remove the ring too, tell me and I'll drop it — leaving just the "X ml / Y ml" number + drinks list.*
+**Quick-log water buttons (`src/pages/LogMeal.tsx`)**
+- On tap of +150/+250/+500: spawn a floating water-drop (💧) absolutely positioned over the button that animates upward + fades out (~700ms) then unmounts. Manage via a transient `flyingDrops` state array with unique ids.
+- Add `active:scale-95 transition-transform` to the buttons themselves.
+- After logging, briefly pulse the button (e.g., add a `ring-2 ring-info` class for 400ms).
 
-**5. Dashboard stays clean**
-- No hydration card returns. Dashboard remains meal-focused.
+**Meal logging success (`src/pages/LogMeal.tsx`)**
+- When a meal is saved (existing save handler), show a centered checkmark that scales-in + fades-out over ~900ms before navigation. Implement with a `showSuccess` boolean overlay using `animate-scale-in`.
+
+**Card hover lift**
+- Add `hover-scale` (already in utilities) to the 3 quick-stat tiles in Dashboard's bottom card so they lift on hover/tap.
+
+### New keyframes (`tailwind.config.ts`)
+
+Add:
+- `float-up`: `0% { opacity: 1; transform: translateY(0) scale(1); } 100% { opacity: 0; transform: translateY(-40px) scale(1.3); }` → `animation: "float-up 0.7s ease-out forwards"`
+- `count-pop`: subtle scale bounce for the success check (or reuse `scale-in`).
 
 ### Files touched
-- `src/components/BottomNav.tsx` — swap Hydration tab back to Settings (or leave at 4 with Settings in profile icon — confirm)
-- `src/pages/LogMeal.tsx` — add Meal/Drink mode toggle at top, render hydration UI inline when Drink mode is active
-- `src/App.tsx` — remove `/hydration` route
-- `src/pages/Hydration.tsx` — delete
-- `src/pages/Dashboard.tsx` — re-point any hydration links to `/log` with drink state
+- `tailwind.config.ts` — add `float-up` keyframe + animation
+- `src/pages/Dashboard.tsx` — stagger fades, sliding toggle pill, hover-scale on stat tiles
+- `src/components/BottomNav.tsx` — active dot indicator, tap scale
+- `src/components/MacroBar.tsx` — animated width on mount
+- `src/pages/LogMeal.tsx` — floating water-drop on quick-log, success checkmark overlay
 
-### Two quick confirms
-1. **Settings tab**: bring it back into the bottom nav (Dashboard · Log · History · Settings), or keep it tucked behind the profile icon and have only 3 tabs?
-2. **Hydration ring inside Log → Drink**: keep it (recommended — it's the goal tracker), or strip it too and show just a plain "1200 / 2000 ml" number?
+### Out of scope
+- No color/theme changes (that was #1).
+- No ring animations or count-up numbers (that was #2).
+- No FAB / decorative blobs (#5–6).
