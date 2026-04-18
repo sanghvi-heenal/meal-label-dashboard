@@ -1,6 +1,8 @@
-import { useState, useRef, useEffect, useCallback } from "react";
-import { Camera, Image, Edit3, Lightbulb, Sun, UtensilsCrossed, Moon, Coffee, X, Loader2, Package, AlertTriangle, RefreshCw, ChevronDown, MessageSquare, Send, Mic, Lock, Info, GlassWater, Droplets } from "lucide-react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import { Camera, Image, Edit3, Lightbulb, Sun, UtensilsCrossed, Moon, Coffee, X, Loader2, Package, AlertTriangle, RefreshCw, ChevronDown, MessageSquare, Send, Mic, Lock, Info, GlassWater, Droplets, Utensils } from "lucide-react";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import HydrationRing from "@/components/HydrationRing";
+import { getHydrationFromMeals, getMealsByDate, getProfile } from "@/lib/nutrition-store";
 
 const SoundWaveIcon = () => (
   <div className="flex items-end justify-center gap-[2px] h-4 w-4" aria-label="Listening">
