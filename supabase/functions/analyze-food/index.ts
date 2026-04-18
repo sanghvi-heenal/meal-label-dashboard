@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { imageBase64 } = await req.json();
+    const { imageBase64, userContext, mode } = await req.json();
     if (!imageBase64) {
       return new Response(JSON.stringify({ error: "No image provided" }), {
         status: 400,
@@ -25,7 +25,8 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    const systemPrompt = `You are a food recognition and nutrition expert. Given an image, you must:
+    const isDrinkMode = mode === "drink";
+    const systemPrompt = `You are a food and beverage recognition + nutrition expert. Given an image${isDrinkMode ? " of a DRINK" : ""}, you must:
 
 1. CLASSIFY the image into one of these categories:
    - "nutrition_label" — a nutritional facts panel is clearly visible (for FOOD products only)
@@ -46,7 +47,12 @@ Rules:
 - Use per-serving values when available.
 - If you cannot determine a value, use 0.
 - For packaged_food, identify the product name but do NOT estimate nutrition — the user will scan the label next.
-- Supplements, vitamins, protein powders, and medicines with visible nutrition/supplement facts labels should be classified as "nutrition_label" and their values extracted. Only non-ingestible products (cosmetics, cleaning supplies, electronics) should be "not_food".`;
+- Supplements, vitamins, protein powders, and medicines with visible nutrition/supplement facts labels should be classified as "nutrition_label" and their values extracted. Only non-ingestible products (cosmetics, cleaning supplies, electronics) should be "not_food".
+
+DRINK MODE INSTRUCTIONS (when applicable):
+- For beverages (juice, soda, lassi, smoothie, cocktail, energy drink, coffee, tea, milk, etc.), classify as "open_meal" and ALWAYS estimate the volume in milliliters via the new "volumeMl" field. Use cues like glass/can/bottle size (a typical can ≈ 330ml, glass ≈ 250ml, mug ≈ 250ml, small bottle ≈ 500ml).
+- Estimate sugar carefully — drinks are often the main sugar source.
+- If a "userContext" is provided (text or voice notes from the user), TRUST it for volume, ingredients, and modifications (e.g. "no sugar", "500ml bottle", "with extra cream"). It overrides visual guesses when they conflict.${userContext ? `\n\nUSER CONTEXT: "${userContext}"` : ""}`;
 
     const response = await fetch(
       "https://ai.gateway.lovable.dev/v1/chat/completions",
@@ -132,6 +138,10 @@ Rules:
                     satFat: {
                       type: "number",
                       description: "Saturated fat in grams",
+                    },
+                    volumeMl: {
+                      type: "number",
+                      description: "Estimated drink volume in milliliters (only for beverages; 0 for non-drinks).",
                     },
                   },
                   required: [

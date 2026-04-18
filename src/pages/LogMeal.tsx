@@ -20,6 +20,7 @@ import { saveMeal, getTodayString, type MealEntry } from "@/lib/nutrition-store"
 import { useNavigate, useLocation } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import DrinkDescribeSheet, { type DrinkAnalysisResult } from "@/components/DrinkDescribeSheet";
 
 const mealTypes = [
   { value: "breakfast" as const, label: "Breakfast", icon: Sun },
@@ -91,6 +92,7 @@ const LogMeal = () => {
   const [drinkUnit, setDrinkUnit] = useState<"ml" | "oz">("ml");
   const [isAnalyzingDrink, setIsAnalyzingDrink] = useState(false);
   const [sizeHelperOpen, setSizeHelperOpen] = useState(false);
+  const [describeSheetOpen, setDescribeSheetOpen] = useState(false);
   const recognitionRef = useRef<any>(null);
   const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const maxTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -320,6 +322,30 @@ const LogMeal = () => {
       setIsAnalyzingText(false);
     }
   };
+
+  const handleDescribedDrinkConfirm = useCallback((res: DrinkAnalysisResult) => {
+    const labelName = `${res.name} (${res.volumeMl}ml)`;
+    const entry: MealEntry = {
+      id: crypto.randomUUID(),
+      date: logDate,
+      mealType: "drink",
+      name: labelName,
+      calories: res.calories,
+      protein: res.protein,
+      carbs: res.carbs,
+      fat: res.fat,
+      fiber: res.fiber,
+      sodium: res.sodium,
+      sugar: res.sugar,
+      satFat: res.satFat,
+      timestamp: Date.now(),
+    };
+    saveMeal(entry);
+    setDescribeSheetOpen(false);
+    toast({ title: "Drink logged!", description: `${labelName} on ${logDateLabel}` });
+    setHydrationTick((n) => n + 1);
+    setTimeout(() => navigate(isLoggingToday ? "/" : "/history"), 300);
+  }, [logDate, logDateLabel, isLoggingToday, navigate, toast]);
 
   const handleDrinkAnalyze = async () => {
     const volNum = Number(drinkVolume);
@@ -630,17 +656,31 @@ const LogMeal = () => {
               {drinkTypes.map((d) => (
                 <button
                   key={d}
-                  onClick={() => setDrinkType(d)}
+                  onClick={() => {
+                    if (d === "Other") {
+                      setDescribeSheetOpen(true);
+                      return;
+                    }
+                    setDrinkType(d);
+                  }}
                   className={`px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors ${
                     drinkType === d
                       ? "border-primary text-primary bg-primary/10"
                       : "border-border text-muted-foreground hover:border-muted-foreground"
                   }`}
                 >
-                  {d === "Water" && "💧 "}{d}
+                  {d === "Water" && "💧 "}
+                  {d === "Other" && "✨ "}
+                  {d}
                 </button>
               ))}
             </div>
+            <button
+              onClick={() => setDescribeSheetOpen(true)}
+              className="text-[11px] text-primary hover:underline mt-1 flex items-center gap-1"
+            >
+              ✨ Don't see it? Describe with photo, voice or text →
+            </button>
           </div>
 
           {drinkType !== "Water" && (
@@ -1081,6 +1121,12 @@ const LogMeal = () => {
           </div>
         </div>
       )}
+
+      <DrinkDescribeSheet
+        open={describeSheetOpen}
+        onOpenChange={setDescribeSheetOpen}
+        onConfirm={handleDescribedDrinkConfirm}
+      />
     </div>
   );
 };
