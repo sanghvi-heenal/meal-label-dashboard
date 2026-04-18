@@ -485,11 +485,19 @@ const LogMeal = () => {
     navigate(isLoggingToday ? "/" : "/history");
   };
 
+  const isDrinkMode = selectedMeal === "drink";
+
   return (
     <div className="px-4 pt-6 pb-24 max-w-md mx-auto space-y-5">
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Log a Meal</h1>
-        <p className="text-sm text-muted-foreground mt-1">Take a photo and we'll handle the rest</p>
+        <h1 className="text-2xl font-bold text-foreground">
+          {isDrinkMode ? "Log a Drink" : "Log a Meal"}
+        </h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          {isDrinkMode
+            ? "Track water and other drinks toward your hydration goal"
+            : "Take a photo and we'll handle the rest"}
+        </p>
         <div
           className={`mt-3 inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-semibold ${
             isLoggingToday
@@ -510,30 +518,93 @@ const LogMeal = () => {
         </div>
       </div>
 
-      {/* Meal type selector */}
-      <div className="flex flex-wrap gap-2">
-        {mealTypes.map(({ value, label, icon: Icon }) => (
-          <button
-            key={value}
-            onClick={() => setSelectedMeal(value)}
-            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${
-              selectedMeal === value
-                ? "border-primary text-primary bg-primary/10"
-                : "border-border text-muted-foreground hover:border-muted-foreground"
-            }`}
-          >
-            <Icon size={14} />
-            {label}
-          </button>
-        ))}
+      {/* Meal vs Drink mode toggle */}
+      <div className="grid grid-cols-2 gap-2 p-1 rounded-xl bg-secondary border border-border">
+        <button
+          onClick={() => setSelectedMeal("lunch")}
+          className={`flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-colors ${
+            !isDrinkMode
+              ? "bg-primary text-primary-foreground shadow"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <Utensils size={16} />
+          Log a Meal
+        </button>
+        <button
+          onClick={() => setSelectedMeal("drink")}
+          className={`flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-colors ${
+            isDrinkMode
+              ? "bg-info text-info-foreground shadow"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <GlassWater size={16} />
+          Log a Drink
+        </button>
       </div>
+
+      {/* Meal type selector — only in Meal mode */}
+      {!isDrinkMode && (
+        <div className="flex flex-wrap gap-2">
+          {mealTypes.map(({ value, label, icon: Icon }) => (
+            <button
+              key={value}
+              onClick={() => setSelectedMeal(value)}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${
+                selectedMeal === value
+                  ? "border-primary text-primary bg-primary/10"
+                  : "border-border text-muted-foreground hover:border-muted-foreground"
+              }`}
+            >
+              <Icon size={14} />
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Hydration summary + quick water chips — only in Drink mode */}
+      {isDrinkMode && (
+        <div className="card-surface p-4 space-y-4">
+          <div className="flex items-center gap-4">
+            <HydrationRing consumed={hydrationMl} target={profile.hydrationTarget} size={88} />
+            <div className="flex-1 min-w-0">
+              <div className="flex items-baseline gap-1">
+                <span className="text-2xl font-bold text-foreground">{hydrationMl}</span>
+                <span className="text-xs text-muted-foreground">/ {profile.hydrationTarget} ml today</span>
+              </div>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {Math.max(profile.hydrationTarget - hydrationMl, 0)} ml to goal
+              </p>
+            </div>
+          </div>
+          <div>
+            <p className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase mb-2">
+              Quick log water
+            </p>
+            <div className="flex gap-2">
+              {[150, 250, 500].map((ml) => (
+                <button
+                  key={ml}
+                  onClick={() => quickLogWater(ml)}
+                  className="flex-1 flex flex-col items-center gap-1 py-2.5 rounded-lg bg-info/10 hover:bg-info/20 border border-info/30 text-info font-semibold transition-colors"
+                >
+                  <Droplets size={16} />
+                  <span className="text-xs">+{ml}ml</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Drink mode form */}
       {selectedMeal === "drink" && (
         <div className="space-y-4 card-surface p-4">
           <div className="flex items-center gap-2">
             <GlassWater size={18} className="text-primary" />
-            <h2 className="text-sm font-semibold text-foreground">Log a Drink</h2>
+            <h2 className="text-sm font-semibold text-foreground">Log a custom drink</h2>
           </div>
 
           <div className="space-y-1.5">
