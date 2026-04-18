@@ -3,6 +3,7 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import BottomNav from "@/components/BottomNav";
+import BackgroundBlobs from "@/components/BackgroundBlobs";
 import Index from "./pages/Index";
 import LogMeal from "./pages/LogMeal";
 import History from "./pages/History";
@@ -15,6 +16,7 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
+      <BackgroundBlobs />
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
