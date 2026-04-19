@@ -5,7 +5,6 @@ import CalorieRing from "@/components/CalorieRing";
 import HydrationRing from "@/components/HydrationRing";
 import MacroBar from "@/components/MacroBar";
 import SummaryCard from "@/components/dashboard/SummaryCard";
-import StatsToggleCard from "@/components/dashboard/StatsToggleCard";
 import RiskCard from "@/components/dashboard/RiskCard";
 import {
   Dialog,
