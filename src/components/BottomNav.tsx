@@ -1,20 +1,21 @@
 import { Home, Camera, Clock, Settings } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
-
-const tabs = [
-  { path: "/", icon: Home, label: "Dashboard" },
-  { path: "/log", icon: Camera, label: "Log" },
-  { path: "/history", icon: Clock, label: "History" },
-  { path: "/settings", icon: Settings, label: "Settings" },
-];
+import { useTranslation } from "react-i18next";
 
 const BottomNav = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { t } = useTranslation();
+
+  const tabs = [
+    { path: "/", icon: Home, label: t("nav.dashboard") },
+    { path: "/log", icon: Camera, label: t("nav.log") },
+    { path: "/history", icon: Clock, label: t("nav.history") },
+    { path: "/settings", icon: Settings, label: t("nav.settings") },
+  ];
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border px-2 pb-safe">
-      {/* Thin gradient accent line for lift */}
       <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
       <div className="flex justify-around items-center h-16 max-w-md mx-auto">
         {tabs.map(({ path, icon: Icon, label }) => {
