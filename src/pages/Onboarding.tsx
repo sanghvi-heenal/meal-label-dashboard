@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, ArrowRight, Sparkles } from "lucide-react";
 import StepCard, { type ChoiceOption } from "@/components/onboarding/StepCard";
+import GoalPicker from "@/components/onboarding/GoalPicker";
 import {
   getProfile,
   saveProfile,
@@ -125,16 +126,25 @@ const Onboarding = () => {
 
       <div className="flex-1 animate-fade-in" key={step}>
         {step === 0 && (
-          <StepCard
-            step={1}
-            total={total}
-            title="What do you want help with most?"
-            subtitle={`Pick what matters most (up to ${GOAL_CAP}). You can change this later in Settings.`}
-            options={goals}
-            selected={selectedGoals}
-            onToggle={toggleGoal}
-            multi
-          />
+          <div className="space-y-6">
+            <div>
+              <p className="text-xs font-medium text-muted-foreground mb-2">
+                Step 1 of {total}
+              </p>
+              <h2 className="text-2xl font-bold text-foreground leading-tight">
+                What do you want help with most?
+              </h2>
+              <p className="text-sm text-muted-foreground mt-2">
+                Pick what matters most. You can change this later in Settings.
+              </p>
+            </div>
+            <GoalPicker
+              options={goals}
+              selected={selectedGoals}
+              onToggle={toggleGoal}
+              cap={GOAL_CAP}
+            />
+          </div>
         )}
         {step === 1 && (
           <StepCard
