@@ -12,10 +12,14 @@ import {
 } from "@/lib/nutrition-store";
 
 const goals: ChoiceOption<Goal>[] = [
-  { value: "weight", label: "Lose weight", emoji: "⚖️", hint: "Track calories and portions sensibly." },
-  { value: "diabetes", label: "Eat better for diabetes / prediabetes", emoji: "🩺", hint: "Watch carbs, sugar, and pair with protein." },
-  { value: "menopause", label: "Menopause support", emoji: "🌸", hint: "Focus on protein, fiber, and bone-friendly foods." },
-  { value: "general", label: "General healthy eating", emoji: "🥗", hint: "Balanced meals, no obsessing over numbers." },
+  { value: "lose_weight", label: "Lose weight", emoji: "⚖️", hint: "Track calories and portions sensibly." },
+  { value: "gain_muscle", label: "Gain muscle / strength", emoji: "💪", hint: "Hit protein targets, fuel workouts." },
+  { value: "gain_weight", label: "Gain weight (healthy)", emoji: "🍚", hint: "Eat enough, calorie-dense whole foods." },
+  { value: "glucose", label: "Monitor glucose / diabetes", emoji: "🩺", hint: "Watch carbs, sugar, and pair with protein." },
+  { value: "heart", label: "Heart & cholesterol health", emoji: "❤️", hint: "Lower sodium and saturated fat." },
+  { value: "menopause", label: "Menopause support", emoji: "🌸", hint: "Protein, fiber, and bone-friendly foods." },
+  { value: "energy_mood", label: "More energy & better mood", emoji: "⚡", hint: "Steady blood sugar, stay hydrated." },
+  { value: "eat_healthy", label: "Generally eat healthier", emoji: "🥗", hint: "Balanced meals, no obsessing." },
 ];
 
 const logPrefs: ChoiceOption<LogPref>[] = [
