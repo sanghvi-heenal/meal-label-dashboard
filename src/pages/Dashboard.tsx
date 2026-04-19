@@ -230,7 +230,7 @@ const Dashboard = () => {
             </div>
           </div>
         </div>
-      )}
+
 
       {/* First-run hydration onboarding */}
       <Dialog open={showHydrationModal} onOpenChange={(open) => !open && skipHydrationSetup()}>
