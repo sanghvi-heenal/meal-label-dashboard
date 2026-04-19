@@ -109,20 +109,8 @@ const Dashboard = () => {
         <RiskCard risk={risk} />
       </div>
 
-      {/* See details — full rings & breakdown */}
-      <button
-        onClick={() => setShowDetails((v) => !v)}
-        className="w-full flex items-center justify-center gap-1.5 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors"
-        aria-expanded={showDetails}
-      >
-        {showDetails ? "Hide details" : "See details"}
-        <ChevronDown
-          size={14}
-          className={`transition-transform ${showDetails ? "rotate-180" : ""}`}
-        />
-      </button>
-
-      {showDetails && (
+      {/* Full rings & breakdown — always visible */}
+      {true && (
         <div className="space-y-4 animate-fade-in">
           {/* Calories | Hydration toggle */}
           <div className="grid grid-cols-2 gap-1 p-1 rounded-full bg-secondary/60 border border-border">
