@@ -103,7 +103,7 @@ const GoalPicker = <T extends string>({
       <p
         className={cn(
           "text-xs transition-colors",
-          capFlash ? "text-amber-500 font-medium" : "text-muted-foreground"
+          capFlash ? "text-destructive font-medium" : "text-muted-foreground"
         )}
       >
         Pick up to {cap} — we'll focus on these.
