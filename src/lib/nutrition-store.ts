@@ -16,6 +16,11 @@ export interface MealEntry {
 
 export type HydrationUnit = "ml" | "litres" | "oz" | "glasses";
 
+export type Goal = "weight" | "diabetes" | "menopause" | "general";
+export type LogPref = "photo" | "voice" | "text";
+export type PainPoint = "portions" | "sugar" | "carbs" | "protein" | "drinks";
+export type AppJob = "track" | "teach" | "warn" | "choose";
+
 export interface UserProfile {
   age: number;
   dietType: string;
@@ -32,6 +37,12 @@ export interface UserProfile {
   hydrationUnit: HydrationUnit; // user's preferred display unit
   remindersEnabled: boolean;
   reminderTimes: { morning: string; midday: string; evening: string };
+  // Onboarding answers — drive personalization across dashboard, log, and meal verdict.
+  goal: Goal;
+  logPrefs: LogPref[];
+  painPoints: PainPoint[];
+  appJobs: AppJob[];
+  onboardedAt: string | null;
 }
 
 const DEFAULT_PROFILE: UserProfile = {
@@ -50,7 +61,16 @@ const DEFAULT_PROFILE: UserProfile = {
   hydrationUnit: "ml",
   remindersEnabled: true,
   reminderTimes: { morning: "08:00", midday: "13:00", evening: "19:00" },
+  goal: "general",
+  logPrefs: ["photo", "voice", "text"],
+  painPoints: [],
+  appJobs: ["track"],
+  onboardedAt: null,
 };
+
+export function isOnboarded(): boolean {
+  return Boolean(getProfile().onboardedAt);
+}
 
 const ML_PER_GLASS = 250;
 const ML_PER_OZ = 29.5735;
