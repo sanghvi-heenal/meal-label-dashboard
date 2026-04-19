@@ -1,4 +1,5 @@
 import { Check } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export interface ChoiceOption<T extends string> {
   value: T;
@@ -28,11 +29,12 @@ const StepCard = <T extends string>({
   onToggle,
   multi = false,
 }: StepCardProps<T>) => {
+  const { t } = useTranslation();
   return (
     <div className="space-y-5">
       <div className="space-y-2">
         <p className="text-xs font-semibold tracking-wider text-primary uppercase">
-          Step {step} of {total}
+          {t("onboarding.stepOf", { step, total })}
         </p>
         <h2 className="text-2xl font-bold text-foreground leading-tight">{title}</h2>
         {subtitle && <p className="text-sm text-muted-foreground">{subtitle}</p>}
@@ -77,7 +79,7 @@ const StepCard = <T extends string>({
       </div>
 
       {multi && (
-        <p className="text-xs text-muted-foreground text-center">Pick as many as apply.</p>
+        <p className="text-xs text-muted-foreground text-center">{t("onboarding.pickAsMany")}</p>
       )}
     </div>
   );
