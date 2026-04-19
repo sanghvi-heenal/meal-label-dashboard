@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ChevronDown, User } from "lucide-react";
+import { User } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import CalorieRing from "@/components/CalorieRing";
 import HydrationRing from "@/components/HydrationRing";
