@@ -110,10 +110,16 @@ const LogMeal = () => {
   const navState = location.state as { date?: string; mode?: string } | null;
   const logDate: string = navState?.date || getTodayString();
 
-  // Preselect Drink mode when navigated from Hydration page or external links
+  // Preselect Drink mode when navigated from Hydration page or external links.
+  // Also honor the user's preferred logging method from onboarding (voice/text → describe mode).
   useEffect(() => {
     if (navState?.mode === "drink") {
       setSelectedMeal("drink");
+      return;
+    }
+    const firstPref = getProfile().logPrefs?.[0];
+    if (firstPref === "voice" || firstPref === "text") {
+      setDescribeMode(true);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
