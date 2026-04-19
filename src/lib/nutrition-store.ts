@@ -27,6 +27,7 @@ export type Goal =
 export type LogPref = "photo" | "voice" | "text";
 export type PainPoint = "portions" | "sugar" | "carbs" | "protein" | "drinks";
 export type AppJob = "track" | "teach" | "warn" | "choose";
+export type Language = "en" | "hi";
 
 export interface UserProfile {
   age: number;
@@ -49,6 +50,7 @@ export interface UserProfile {
   logPrefs: LogPref[];
   painPoints: PainPoint[];
   appJobs: AppJob[];
+  language: Language;
   onboardedAt: string | null;
 }
 
@@ -72,6 +74,7 @@ const DEFAULT_PROFILE: UserProfile = {
   logPrefs: ["photo", "voice", "text"],
   painPoints: [],
   appJobs: ["track"],
+  language: "en",
   onboardedAt: null,
 };
 
