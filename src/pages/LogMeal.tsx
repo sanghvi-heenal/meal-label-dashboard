@@ -21,6 +21,8 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import DrinkDescribeSheet, { type DrinkAnalysisResult } from "@/components/DrinkDescribeSheet";
+import VerdictCard from "@/components/meal/VerdictCard";
+import { verdictFor } from "@/lib/insights";
 
 const mealTypes = [
   { value: "breakfast" as const, label: "Breakfast", icon: Sun },
@@ -108,10 +110,16 @@ const LogMeal = () => {
   const navState = location.state as { date?: string; mode?: string } | null;
   const logDate: string = navState?.date || getTodayString();
 
-  // Preselect Drink mode when navigated from Hydration page or external links
+  // Preselect Drink mode when navigated from Hydration page or external links.
+  // Also honor the user's preferred logging method from onboarding (voice/text → describe mode).
   useEffect(() => {
     if (navState?.mode === "drink") {
       setSelectedMeal("drink");
+      return;
+    }
+    const firstPref = getProfile().logPrefs?.[0];
+    if (firstPref === "voice" || firstPref === "text") {
+      setDescribeMode(true);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -1024,6 +1032,24 @@ const LogMeal = () => {
         </button>
       ) : (
         <div className="space-y-3">
+          {isAiFilled && (() => {
+            const verdict = verdictFor(
+              {
+                name: foodName,
+                calories: Number(calories) || 0,
+                protein: Number(protein) || 0,
+                carbs: Number(carbs) || 0,
+                fat: Number(fat) || 0,
+                fiber: Number(fiber) || 0,
+                sodium: Number(sodium) || 0,
+                sugar: Number(sugar) || 0,
+                satFat: Number(satFat) || 0,
+                mealType: selectedMeal,
+              },
+              profile,
+            );
+            return <VerdictCard verdict={verdict} />;
+          })()}
           {isAiFilled && (
             <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-primary/10 border border-primary/30">
               <div className="flex items-center gap-2 text-xs text-foreground">
