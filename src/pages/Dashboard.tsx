@@ -1,9 +1,13 @@
 import { useEffect, useState } from "react";
-import { User } from "lucide-react";
+import { ChevronDown, User } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import CalorieRing from "@/components/CalorieRing";
 import HydrationRing from "@/components/HydrationRing";
 import MacroBar from "@/components/MacroBar";
+import SummaryCard from "@/components/dashboard/SummaryCard";
+import RiskCard from "@/components/dashboard/RiskCard";
+import ProgressRow from "@/components/dashboard/ProgressRow";
+import NextActionCard from "@/components/dashboard/NextActionCard";
 import {
   Dialog,
   DialogContent,
@@ -25,16 +29,17 @@ import {
   unitLabel,
   type HydrationUnit,
 } from "@/lib/nutrition-store";
+import { buildNextAction, buildRisk, buildSummary, sumTotals } from "@/lib/insights";
 
 const HYDRATION_ONBOARDED_KEY = "nutrilens-hydration-onboarded";
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const [profile, setProfile] = useState(getProfile());
-  const [statsTab, setStatsTab] = useState<"calories" | "drinks">("calories");
+  const [showDetails, setShowDetails] = useState(false);
   const todayMeals = getMealsByDate(getTodayString());
 
-  // First-run hydration onboarding
+  // First-run hydration onboarding (kept; only shows after main onboarding completes)
   const [showHydrationModal, setShowHydrationModal] = useState(false);
   const [hydrationAmount, setHydrationAmount] = useState("8");
   const [hydrationUnit, setHydrationUnit] = useState<HydrationUnit>("glasses");
@@ -53,7 +58,6 @@ const Dashboard = () => {
       else if (hydrationUnit === "oz") ml = Math.round(n * 29.5735);
       else ml = Math.round(n);
     }
-    // Remember the unit they used so all displays match their preference
     const next = { ...profile, hydrationTarget: ml, hydrationUnit };
     saveProfile(next);
     setProfile(next);
@@ -66,28 +70,19 @@ const Dashboard = () => {
     setShowHydrationModal(false);
   };
 
-  const totals = todayMeals.reduce(
-    (acc, m) => ({
-      calories: acc.calories + m.calories,
-      protein: acc.protein + m.protein,
-      carbs: acc.carbs + m.carbs,
-      fat: acc.fat + m.fat,
-      fiber: acc.fiber + m.fiber,
-      sodium: acc.sodium + m.sodium,
-      sugar: acc.sugar + m.sugar,
-      satFat: acc.satFat + m.satFat,
-    }),
-    { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, sodium: 0, sugar: 0, satFat: 0 }
-  );
-
-  const remaining = Math.max(profile.calorieTarget - totals.calories, 0);
+  const totals = sumTotals(todayMeals);
   const hydrationMl = getHydrationFromMeals(todayMeals);
+  const remaining = Math.max(profile.calorieTarget - totals.calories, 0);
   const hydrationRemaining = Math.max(profile.hydrationTarget - hydrationMl, 0);
+
+  const summary = buildSummary(totals, profile, hydrationMl);
+  const risk = buildRisk(totals, profile, todayMeals);
+  const nextAction = buildNextAction(totals, profile, hydrationMl);
 
   return (
     <div className="px-4 pt-6 pb-24 max-w-md mx-auto space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between animate-fade-in" style={{ animationDelay: "0ms" }}>
+      <div className="flex items-center justify-between animate-fade-in">
         <div>
           <h1 className="text-2xl font-bold text-foreground">{getGreeting()}</h1>
           <p className="text-sm text-muted-foreground">Today</p>
@@ -106,38 +101,58 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Calories / Drinks toggle + card */}
-      <div className="space-y-3 animate-fade-in" style={{ animationDelay: "80ms" }}>
-        <div className="relative grid grid-cols-2 gap-2 p-1 rounded-xl bg-secondary border border-border">
-          {/* Sliding active pill */}
-          <div
-            className={`absolute top-1 bottom-1 left-1 w-[calc(50%-0.25rem)] rounded-lg shadow transition-transform duration-300 ease-out ${
-              statsTab === "calories" ? "bg-warning translate-x-0" : "bg-info translate-x-[calc(100%+0.5rem)]"
-            }`}
-            aria-hidden="true"
-          />
-          <button
-            onClick={() => setStatsTab("calories")}
-            className={`relative z-10 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-semibold transition-colors ${
-              statsTab === "calories" ? "text-warning-foreground" : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            🔥 Calories
-          </button>
-          <button
-            onClick={() => setStatsTab("drinks")}
-            className={`relative z-10 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-semibold transition-colors ${
-              statsTab === "drinks" ? "text-info-foreground" : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            💧 Drinks
-          </button>
-        </div>
+      {/* 1. Today's summary */}
+      <div className="animate-fade-in" style={{ animationDelay: "60ms" }}>
+        <SummaryCard headline={summary.headline} sub={summary.sub} />
+      </div>
 
-        {statsTab === "calories" ? (
-          <div className="card-surface card-tint-warning space-y-4 animate-fade-in">
+      {/* 2. Main risk today */}
+      <div className="animate-fade-in" style={{ animationDelay: "120ms" }}>
+        <RiskCard risk={risk} />
+      </div>
+
+      {/* 3. Goal progress */}
+      <div className="animate-fade-in" style={{ animationDelay: "180ms" }}>
+        <ProgressRow
+          calories={totals.calories}
+          calorieTarget={profile.calorieTarget}
+          protein={totals.protein}
+          proteinTarget={profile.proteinTarget}
+          fiber={totals.fiber}
+          fiberTarget={profile.fiberTarget}
+          hydrationMl={hydrationMl}
+          hydrationTarget={profile.hydrationTarget}
+          hydrationUnit={profile.hydrationUnit}
+          showCarbs={profile.goal === "diabetes"}
+          carbs={totals.carbs}
+          carbsTarget={profile.carbsTarget}
+        />
+      </div>
+
+      {/* 4. Next action */}
+      <div className="animate-fade-in" style={{ animationDelay: "240ms" }}>
+        <NextActionCard action={nextAction} onLog={() => navigate("/log")} />
+      </div>
+
+      {/* See details — full rings & breakdown */}
+      <button
+        onClick={() => setShowDetails((v) => !v)}
+        className="w-full flex items-center justify-center gap-1.5 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors"
+        aria-expanded={showDetails}
+      >
+        {showDetails ? "Hide details" : "See details"}
+        <ChevronDown
+          size={14}
+          className={`transition-transform ${showDetails ? "rotate-180" : ""}`}
+        />
+      </button>
+
+      {showDetails && (
+        <div className="space-y-4 animate-fade-in">
+          {/* Calories ring detail */}
+          <div className="card-surface card-tint-warning space-y-4">
             <h2 className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
-              Today's Calories
+              Today's calories
             </h2>
             <div className="flex items-baseline gap-1">
               <span className="text-5xl font-bold bg-gradient-to-br from-warning to-warning/40 bg-clip-text text-transparent">
@@ -158,18 +173,14 @@ const Dashboard = () => {
                   <span className="text-muted-foreground">Remaining</span>
                   <span className="ml-auto font-semibold text-foreground">{remaining} kcal</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-primary" />
-                  <span className="text-muted-foreground">Target</span>
-                  <span className="ml-auto font-semibold text-primary">{profile.calorieTarget} kcal</span>
-                </div>
               </div>
             </div>
           </div>
-        ) : (
-          <div className="card-surface card-tint-info space-y-4 animate-fade-in">
+
+          {/* Hydration ring detail */}
+          <div className="card-surface card-tint-info space-y-4">
             <h2 className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
-              Today's Hydration
+              Today's hydration
             </h2>
             <div className="flex items-baseline gap-1">
               <span className="text-5xl font-bold bg-gradient-to-br from-info to-info/40 bg-clip-text text-transparent">
@@ -192,11 +203,6 @@ const Dashboard = () => {
                   <span className="text-muted-foreground">Remaining</span>
                   <span className="ml-auto font-semibold text-foreground">{formatHydration(hydrationRemaining, profile.hydrationUnit)}</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-primary" />
-                  <span className="text-muted-foreground">Target</span>
-                  <span className="ml-auto font-semibold text-primary">{formatHydration(profile.hydrationTarget, profile.hydrationUnit)}</span>
-                </div>
               </div>
             </div>
             <button
@@ -206,40 +212,40 @@ const Dashboard = () => {
               + Log a drink
             </button>
           </div>
-        )}
-      </div>
 
-      {/* Macros Card */}
-      <div className="card-surface card-tint-primary space-y-4 animate-fade-in" style={{ animationDelay: "160ms" }}>
-        <h2 className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
-          Macronutrients
-        </h2>
-        <MacroBar label="Protein" current={totals.protein} goal={profile.proteinTarget} unit="g" colorClass="text-nutrient-protein" bgClass="bg-nutrient-protein" />
-        <MacroBar label="Carbs" current={totals.carbs} goal={profile.carbsTarget} unit="g" colorClass="text-nutrient-carbs" bgClass="bg-nutrient-carbs" />
-        <MacroBar label="Fat" current={totals.fat} goal={profile.fatTarget} unit="g" colorClass="text-nutrient-fat" bgClass="bg-nutrient-fat" />
-        <MacroBar label="Fiber" current={totals.fiber} goal={profile.fiberTarget} unit="g" colorClass="text-nutrient-fiber" bgClass="bg-nutrient-fiber" />
-      </div>
+          {/* Macros */}
+          <div className="card-surface card-tint-primary space-y-4">
+            <h2 className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
+              Macronutrients
+            </h2>
+            <MacroBar label="Protein" current={totals.protein} goal={profile.proteinTarget} unit="g" colorClass="text-nutrient-protein" bgClass="bg-nutrient-protein" />
+            <MacroBar label="Carbs" current={totals.carbs} goal={profile.carbsTarget} unit="g" colorClass="text-nutrient-carbs" bgClass="bg-nutrient-carbs" />
+            <MacroBar label="Fat" current={totals.fat} goal={profile.fatTarget} unit="g" colorClass="text-nutrient-fat" bgClass="bg-nutrient-fat" />
+            <MacroBar label="Fiber" current={totals.fiber} goal={profile.fiberTarget} unit="g" colorClass="text-nutrient-fiber" bgClass="bg-nutrient-fiber" />
+          </div>
 
-      {/* Quick Stats */}
-      <div className="card-surface animate-fade-in" style={{ animationDelay: "240ms" }}>
-        <div className="grid grid-cols-3 divide-x divide-border">
-          <div className="text-center py-2 hover-scale cursor-default">
-            <p className="text-lg font-bold text-nutrient-protein">{totals.sodium}mg</p>
-            <p className="text-xs text-muted-foreground">Sodium</p>
-            <p className="text-[10px] text-muted-foreground">/ {profile.sodiumTarget}</p>
-          </div>
-          <div className="text-center py-2 hover-scale cursor-default">
-            <p className="text-lg font-bold text-nutrient-carbs">{totals.sugar.toFixed(1)}g</p>
-            <p className="text-xs text-muted-foreground">Sugar</p>
-            <p className="text-[10px] text-muted-foreground">/ {profile.sugarTarget}</p>
-          </div>
-          <div className="text-center py-2 hover-scale cursor-default">
-            <p className="text-lg font-bold text-nutrient-fat">{totals.satFat.toFixed(1)}g</p>
-            <p className="text-xs text-muted-foreground">Sat Fat</p>
-            <p className="text-[10px] text-muted-foreground">/ {profile.satFatTarget}</p>
+          {/* Quick stats */}
+          <div className="card-surface">
+            <div className="grid grid-cols-3 divide-x divide-border">
+              <div className="text-center py-2">
+                <p className="text-lg font-bold text-nutrient-protein">{totals.sodium}mg</p>
+                <p className="text-xs text-muted-foreground">Sodium</p>
+                <p className="text-[10px] text-muted-foreground">/ {profile.sodiumTarget}</p>
+              </div>
+              <div className="text-center py-2">
+                <p className="text-lg font-bold text-nutrient-carbs">{totals.sugar.toFixed(1)}g</p>
+                <p className="text-xs text-muted-foreground">Sugar</p>
+                <p className="text-[10px] text-muted-foreground">/ {profile.sugarTarget}</p>
+              </div>
+              <div className="text-center py-2">
+                <p className="text-lg font-bold text-nutrient-fat">{totals.satFat.toFixed(1)}g</p>
+                <p className="text-xs text-muted-foreground">Sat Fat</p>
+                <p className="text-[10px] text-muted-foreground">/ {profile.satFatTarget}</p>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* First-run hydration onboarding */}
       <Dialog open={showHydrationModal} onOpenChange={(open) => !open && skipHydrationSetup()}>
