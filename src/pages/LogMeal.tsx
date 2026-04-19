@@ -617,39 +617,6 @@ const LogMeal = () => {
         </div>
       )}
 
-      {/* Quick log water chips — only in Drink mode */}
-      {isDrinkMode && (
-        <div className="card-surface p-4 space-y-2">
-          <p className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
-            Quick log water
-          </p>
-          <div className="flex gap-2">
-            {[150, 250, 500].map((ml) => (
-              <div key={ml} className="relative flex-1">
-                <button
-                  onClick={() => quickLogWater(ml)}
-                  className={`relative w-full flex flex-col items-center gap-1 py-2.5 rounded-lg bg-info/10 hover:bg-info/20 border border-info/30 text-info font-semibold transition-all duration-200 active:scale-95 ${
-                    pulsedMl === ml ? "ring-2 ring-info shadow-[0_0_18px_hsl(var(--info)/0.5)]" : ""
-                  }`}
-                >
-                  <Droplets size={16} />
-                  <span className="text-xs">+{ml}ml</span>
-                </button>
-                {/* Floating drop emoji on tap */}
-                {flyingDrops.filter((d) => d.ml === ml).map((d) => (
-                  <span
-                    key={d.id}
-                    className="absolute left-1/2 -translate-x-1/2 -top-2 text-xl animate-float-up pointer-events-none select-none"
-                    aria-hidden="true"
-                  >
-                    💧
-                  </span>
-                ))}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Drink mode form */}
       {selectedMeal === "drink" && (

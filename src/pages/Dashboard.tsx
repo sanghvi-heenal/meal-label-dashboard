@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ChevronDown, User } from "lucide-react";
+import { User } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import CalorieRing from "@/components/CalorieRing";
 import HydrationRing from "@/components/HydrationRing";
@@ -34,7 +34,6 @@ const HYDRATION_ONBOARDED_KEY = "nutrilens-hydration-onboarded";
 const Dashboard = () => {
   const navigate = useNavigate();
   const [profile, setProfile] = useState(getProfile());
-  const [showDetails, setShowDetails] = useState(false);
   const [detailView, setDetailView] = useState<"calories" | "hydration">("calories");
   const todayMeals = getMealsByDate(getTodayString());
 
@@ -109,22 +108,9 @@ const Dashboard = () => {
         <RiskCard risk={risk} />
       </div>
 
-      {/* See details — full rings & breakdown */}
-      <button
-        onClick={() => setShowDetails((v) => !v)}
-        className="w-full flex items-center justify-center gap-1.5 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors"
-        aria-expanded={showDetails}
-      >
-        {showDetails ? "Hide details" : "See details"}
-        <ChevronDown
-          size={14}
-          className={`transition-transform ${showDetails ? "rotate-180" : ""}`}
-        />
-      </button>
-
-      {showDetails && (
-        <div className="space-y-4 animate-fade-in">
-          {/* Calories | Hydration toggle */}
+      {/* Full rings & breakdown — always visible */}
+      <div className="space-y-4 animate-fade-in">
+        {/* Calories | Hydration toggle */}
           <div className="grid grid-cols-2 gap-1 p-1 rounded-full bg-secondary/60 border border-border">
             <button
               onClick={() => setDetailView("calories")}
@@ -244,7 +230,7 @@ const Dashboard = () => {
             </div>
           </div>
         </div>
-      )}
+
 
       {/* First-run hydration onboarding */}
       <Dialog open={showHydrationModal} onOpenChange={(open) => !open && skipHydrationSetup()}>
