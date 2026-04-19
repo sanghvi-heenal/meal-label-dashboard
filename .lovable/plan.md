@@ -1,39 +1,68 @@
 
-## Plan: Enforce minimum hydration target (1 L equivalent)
+The user dropped a sizable feature wishlist. This is a planning task, not a single quick edit. I'll group the work into shippable phases so we don't try to land everything at once (and so each phase is reviewable).
 
-### Problem
-In Settings → hydration, switching unit from Litres (2 L) to ml keeps the **number** (2) but reinterprets it as 2 ml — a nonsense target. There's no minimum guard.
+I have enough context from prior conversation about the codebase (Dashboard, LogMeal, SettingsPage, nutrition-store, analyze-food edge functions, local-first storage, no auth). One genuine ambiguity: where onboarding should live (separate route vs first-run modal), since the app is local-first with no auth. I'll propose a sensible default and call it out.
 
-### Fix
-Enforce a hard minimum of **1000 ml** (1 L) on the canonical target, expressed naturally per unit:
+Keeping the plan tight per instructions.
 
-| Unit | Minimum input |
-|---|---|
-| ml | 1000 |
-| litres | 1 |
-| oz | 34 (≈1000 ml) |
-| glasses | 4 (4 × 250 ml = 1000 ml) |
+---
 
-### Changes — `src/pages/SettingsPage.tsx`
+## Plan: Goal-first onboarding, meaningful dashboard, educational meal results
 
-1. **`saveHydration()`**: after converting input → ml, if `ml < 1000`, show a destructive toast like *"Minimum hydration target is 1 L (1000 ml / 4 glasses / 34 fl oz)"* and abort save.
+Three phases. Approve all three or just phase 1 to start — I'd recommend shipping in order.
 
-2. **Unit dropdown change**: when user switches unit while editor is open, **re-convert** the current ml-equivalent into the new unit instead of leaving the raw number untouched. So 2 L → switch to ml → field shows `2000`, not `2`. This prevents the bug entirely.
+### Phase 1 — Goal-first onboarding
 
-3. **Input `min` attribute**: set dynamically per selected unit (`1000` / `1` / `34` / `4`) so mobile number keypads + browser validation help too. Also set `step` sensibly (`50` for ml, `0.1` for litres, `1` for oz/glasses).
+**New route**: `/onboarding` (full-screen, 4 steps, swipeable). First visit redirects here from `/`; completion writes to localStorage and to `profile` so it never shows again.
 
-4. **Helper text**: small muted line under the input: *"Minimum 1 L (1000 ml / 4 glasses / 34 fl oz)"* so the rule is visible before the user hits save.
+Four questions, all multi-choice (chips/cards, tap to select):
 
-### Files touched
-- `src/pages/SettingsPage.tsx` — minimum validation, unit-switch reconversion, min/step attrs, helper text
+1. **What do you want help with most?** — lose weight · eat better for diabetes/prediabetes · menopause support · general healthy eating
+2. **How do you prefer logging?** — photo · voice · typing (multi-select; reorders LogMeal tabs accordingly)
+3. **What confuses you most?** — portions · sugar · carbs · protein · drinks (multi-select; drives which "explainers" surface)
+4. **What do you want the app to do?** — keep me on track · teach me · warn me about problem meals · help me choose drinks/snacks (multi-select; drives tone of dashboard messages)
 
-### Out of scope
-- Maximum cap (could add ~6 L sanity limit later if needed)
-- Changing how hydration shows on Dashboard / History
-- Auto-suggesting a target from body weight
+**Storage** (extend `profile` in `nutrition-store.ts`):
+```ts
+goal: 'weight' | 'diabetes' | 'menopause' | 'general'
+logPrefs: Array<'photo'|'voice'|'text'>
+painPoints: Array<'portions'|'sugar'|'carbs'|'protein'|'drinks'>
+appJobs: Array<'track'|'teach'|'warn'|'choose'>
+onboardedAt: string
+```
 
-<lov-actions>
-<lov-suggestion message="Test it on mobile: open Settings → hydration, try entering 2 ml, then switch units back and forth (L ↔ ml ↔ glasses ↔ oz) and confirm the value reconverts correctly and the 1L minimum is enforced.">Verify that it works</lov-suggestion>
-<lov-suggestion message="Also add a sensible maximum hydration cap (e.g. 6 L) with a warning toast, since extreme values are likely typos.">Add maximum cap too</lov-suggestion>
-<lov-suggestion message="Auto-suggest a hydration target based on the user's body weight (≈35 ml per kg) with a 'Use suggested' button in Settings.">Suggest target from weight</lov-suggestion>
-</lov-actions>
+**Files**: new `src/pages/Onboarding.tsx`, new `src/components/onboarding/StepCard.tsx`, edits to `App.tsx` (route + redirect guard), `nutrition-store.ts` (new fields + defaults), `LogMeal.tsx` (respect `logPrefs` ordering).
+
+### Phase 2 — Daily Health Dashboard
+
+Replace the current top of `Dashboard.tsx` with 4 meaning-first cards (keeps existing rings/macros below as a "Details" accordion, so we don't lose data for power users).
+
+1. **Today's summary** — single sentence generated from totals + profile. Pure rules engine in a new `src/lib/insights.ts` (no AI call, runs instantly). E.g. *"Good start. Protein is low so far, and hydration is behind."*
+2. **Main risk today** — picks the strongest signal: drink calories > 30% of total, sodium > 75% target, sugar spike, very low fiber, etc. One sentence + tiny icon.
+3. **Goal progress** — compact row: calories · hydration · protein · fiber · (carb balance if `goal === 'diabetes'`). Mini bars, not full rings.
+4. **Next action** — one concrete suggestion tied to time of day + gaps (e.g. *"At lunch, add one protein food and one vegetable."*).
+
+Tone of cards adapts to `appJobs` (warn-leaning vs teach-leaning vs cheerlead).
+
+**Files**: new `src/lib/insights.ts` (pure functions, unit-testable), new `src/components/dashboard/SummaryCard.tsx`, `RiskCard.tsx`, `ProgressRow.tsx`, `NextActionCard.tsx`. Refactor `src/pages/Index.tsx` (or whichever is the dashboard) to use them; existing rings/macros move into a collapsed "See details" section.
+
+### Phase 3 — Educational meal result screen
+
+After AI analysis in `LogMeal.tsx`, show a **verdict card** before the macro numbers:
+
+- **Verdict tag** (one of): balanced · carb-heavy · low-protein · high-sugar drink · salty/processed · good hydration · good fiber. Computed by rules in `insights.ts` from the AI's nutrition output (no extra AI call needed).
+- **One-line "why"** under the tag (e.g. *"Sugar from this drink ≈ 6 tsp — most of your day's allowance."*).
+- **Tip** tied to the user's `painPoints` (e.g. if "portions" is a pain point and calories are high, suggest a portion adjustment).
+
+Numbers + macro breakdown stay, but rendered below the verdict.
+
+**Files**: `LogMeal.tsx` (render verdict above existing result), reuse `insights.ts`, new `src/components/meal/VerdictCard.tsx`.
+
+### Out of scope for these 3 phases
+- Saving onboarding answers to backend (still local-first).
+- Re-running onboarding from Settings (easy follow-up).
+- Trend insights across days/weeks.
+- Push notifications based on risks.
+
+### Open question I'm defaulting on
+Onboarding as a **dedicated `/onboarding` route** (cleaner UX, easier to revisit later from Settings) rather than a stacked modal on the dashboard. Say the word if you'd rather have a modal.
