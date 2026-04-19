@@ -108,17 +108,6 @@ const Dashboard = () => {
         <RiskCard risk={risk} />
       </div>
 
-      {/* 3. Stats with Calories | Hydration toggle */}
-      <div className="animate-fade-in" style={{ animationDelay: "180ms" }}>
-        <StatsToggleCard
-          calories={totals.calories}
-          calorieTarget={profile.calorieTarget}
-          hydrationMl={hydrationMl}
-          hydrationTarget={profile.hydrationTarget}
-          hydrationUnit={profile.hydrationUnit}
-        />
-      </div>
-
       {/* See details — full rings & breakdown */}
       <button
         onClick={() => setShowDetails((v) => !v)}
