@@ -1,14 +1,16 @@
 
-Change the soft cap on goal selection from 3 to allow 2–3 picks. Interpreting: minimum 2, maximum 3 selections required to continue.
+## Plan: Remove "AI estimates the rest" hint from Photo option
 
-### Changes
-- `src/pages/Onboarding.tsx`:
-  - Keep `GOAL_CAP = 3` (max).
-  - Add `GOAL_MIN = 2`.
-  - Update `stepValid()` for step 0: `selectedGoals.length >= GOAL_MIN`.
-  - Pass `min={2}` to `GoalPicker` so the helper text reads "Pick 2–3".
-- `src/components/onboarding/GoalPicker.tsx`:
-  - Add optional `min` prop (default undefined).
-  - Update helper text: when `min` is set, show "Pick {min}–{cap} — we'll focus on these." otherwise current text.
+The user is right — AI runs behind the scenes for all three logging methods (photo, voice, text), so calling it out only on Photo is misleading and implies the other two are "manual."
 
-No other files affected.
+### Change
+In `src/pages/Onboarding.tsx`, update the `logPrefs` array — change the Photo option's `hint` from `"Snap a picture, AI estimates the rest."` to something neutral that just describes the action, e.g. `"Snap a picture of your meal."`.
+
+Voice and Text hints stay as-is (they already just describe the action without mentioning AI).
+
+### Files touched
+- `src/pages/Onboarding.tsx` — one-line copy change inside the `logPrefs` array.
+
+### Out of scope
+- No component, type, or logic changes.
+- Not adding "AI-powered" badging anywhere else (the user's point is that AI is implicit, not something to advertise per-option).
