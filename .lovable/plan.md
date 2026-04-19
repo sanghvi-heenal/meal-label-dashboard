@@ -1,34 +1,37 @@
 
-## Plan: Simplify Dashboard back to calories + hydration with toggle
+## Plan: Restructure Dashboard — empty hero, risk card, then toggleable stats below
 
-### Current state
-Dashboard shows: greeting → SummaryCard → RiskCard → ProgressRow (goal progress bars) → NextActionCard → recent meals.
+### What's wrong now
+The toggle (Calories | Hydration) lives inside the SummaryCard *together with* the "Nothing logged yet — let's start your day" copy. That couples a friendly empty-state greeting with a stats UI, which feels muddled — see screenshot.
 
-### New state
-Dashboard shows: greeting → SummaryCard (with calories/hydration toggle) → RiskCard → recent meals.
+### New layout (top → bottom)
+1. **Greeting header** (unchanged) — "Good evening / Today" + BMI chip + profile button.
+2. **Hero card — "Nothing logged yet. Let's start your day."**
+   Just headline + sub. No ring, no numbers, no toggle. Pure empty-state copy.
+   When the user *has* logged something, the headline naturally updates (via `buildSummary`) to reflect today's intake — still no ring/toggle here.
+3. **Risk card** — "No red flags today" (unchanged).
+4. **Stats card with Calories | Hydration toggle** — new card lower down. This is where the ring + numbers + remaining live. Toggle stays here. Default = Calories.
+5. **See details** accordion (unchanged) — full breakdown.
 
-Remove: `ProgressRow` and `NextActionCard` from the dashboard render.
+### Component changes
 
-### Calories ↔ Hydration toggle
-`SummaryCard` currently shows calories ring + macro bars. Add a small segmented toggle at the top of the card with two options: **Calories** | **Hydration**.
-- Calories view (default): existing CalorieRing + MacroBar (unchanged).
-- Hydration view: HydrationRing component + a short label ("X / Y ml today"). HydrationRing already exists in the codebase.
+**`src/components/dashboard/SummaryCard.tsx`** — strip it back down to just headline + sub + sun icon. Remove the toggle, both ring blocks, all numeric props. Props become just `{ headline, sub }`.
 
-Toggle state lives in `Dashboard.tsx` (or `SummaryCard` — leaning toward `SummaryCard` to keep Dashboard clean, passing hydration data in as props).
+**`src/components/dashboard/StatsToggleCard.tsx`** *(new)* — owns the Calories | Hydration toggle and renders the appropriate ring + numbers + remaining text. Self-contained, takes calories/hydration props.
 
-### Empty state
-First-time users (no meals logged today) already see "Nothing logged yet" copy in SummaryCard and "No red flags today" in RiskCard — both stay as-is. Just confirming these survive.
+**`src/pages/Dashboard.tsx`** — render order:
+```text
+SummaryCard (just copy)
+RiskCard
+StatsToggleCard  ← new, sits between RiskCard and the "See details" button
+See details accordion
+```
 
 ### Files touched
-- `src/pages/Dashboard.tsx` — remove `ProgressRow` and `NextActionCard` imports + render. Pass hydration totals to `SummaryCard`.
-- `src/components/dashboard/SummaryCard.tsx` — add internal toggle (Calories | Hydration), accept hydration props, render HydrationRing when toggled.
-
-### Files NOT deleted (kept on disk for now, just unused)
-- `src/components/dashboard/ProgressRow.tsx`
-- `src/components/dashboard/NextActionCard.tsx`
-
-Easy to restore if you change your mind. I can delete them in a follow-up if you want a clean tree.
+- `src/components/dashboard/SummaryCard.tsx` — slim down, drop toggle/rings/numeric props.
+- `src/components/dashboard/StatsToggleCard.tsx` — new file, lifted from current SummaryCard's toggle/ring code.
+- `src/pages/Dashboard.tsx` — slimmer SummaryCard call, add StatsToggleCard between RiskCard and the details accordion.
 
 ### Out of scope
-- No changes to RiskCard, History, LogMeal, Settings.
-- No changes to nutrition-store data shape.
+- No changes to RiskCard, the details accordion, History, LogMeal, Settings, or the data layer.
+- Toggle state is component-local (not persisted) — same as current behavior.
