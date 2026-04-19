@@ -144,6 +144,12 @@ export function saveProfile(profile: UserProfile) {
   localStorage.setItem("nutrilens-profile", JSON.stringify(profile));
 }
 
+/** Clears the onboarding flag so the user is sent back to /onboarding. Keeps language + other prefs. */
+export function resetOnboarding() {
+  const profile = getProfile();
+  saveProfile({ ...profile, onboardedAt: null });
+}
+
 export function getMeals(): MealEntry[] {
   const stored = localStorage.getItem("nutrilens-meals");
   return stored ? JSON.parse(stored) : [];
