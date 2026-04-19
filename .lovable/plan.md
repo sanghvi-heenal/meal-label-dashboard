@@ -1,25 +1,25 @@
 
-## Plan: Replace goal checkboxes with a dropdown picker
+## Plan: Remove "Gain muscle" and reorder goals
 
-### Current
-Step 1 of onboarding shows 8 goal cards with checkboxes (multi-select, cap of 3). At 390px width this fills the screen and feels heavy.
-
-### New UX
-Replace the checkbox list with a **multi-select dropdown** using the existing shadcn `Popover` + `Command` primitives (same pattern as a combobox):
-
-- Trigger: a single full-width button showing either *"Select your goals…"* or the chosen goals as small chips with × to remove inline.
-- Opens a popover with the 8 goal options (emoji + label + hint), tap to toggle, ✓ on selected.
-- Soft cap of 3 enforced inside the popover (4th tap is ignored, helper text *"Pick up to 3"* turns amber briefly — same logic that already exists in `Onboarding.tsx`).
-- Continue stays disabled until ≥1 goal is selected.
-
-Steps 2, 3, 4 (log prefs, pain points, app jobs) **stay as the current `StepCard` checkbox list** — they're shorter lists where chips work fine and multi-select is the obvious affordance. Only step 1 changes.
+### Changes
+1. **Drop** `gain_muscle` from the goal list entirely.
+2. **Reorder** the remaining 7 goals in `src/pages/Onboarding.tsx` (the `goals` array) to:
+   1. 🥗 Generally eat healthier (`eat_healthy`)
+   2. ⚡ More energy & better mood (`energy_mood`)
+   3. ⚖️ Lose weight (`lose_weight`)
+   4. 🍚 Gain weight (healthy) (`gain_weight`)
+   5. 🩺 Monitor glucose / diabetes (`glucose`)
+   6. ❤️ Heart & cholesterol health (`heart`)
+   7. 🌸 Menopause support (`menopause`)
 
 ### Files touched
-- `src/pages/Onboarding.tsx` — replace the `<StepCard>` render for `step === 0` with a new inline dropdown block (chips + Popover/Command). Keep `toggleGoal` and `selectedGoals` state as-is.
-- `src/components/onboarding/GoalPicker.tsx` *(new)* — small self-contained component wrapping Popover + Command + chips, props: `options`, `selected`, `onToggle`, `cap`.
+- `src/pages/Onboarding.tsx` — remove the `gain_muscle` entry from the `goals` array and reorder the rest.
+- `src/lib/nutrition-store.ts` — remove `"gain_muscle"` from the `Goal` union type.
+- `src/lib/insights.ts` — remove the `gain_muscle` branch (protein-deficit rule). Other goals keep their existing rules in current order.
 
-No changes to `nutrition-store.ts`, `insights.ts`, or other steps. shadcn `popover`, `command`, and `badge` are already installed.
+### Migration
+Anyone who had `gain_muscle` selected from earlier testing: on next profile read, filter it out of `goals[]`. If that empties the array, fall back to `["eat_healthy"]`. Tiny shim added to `getProfile()`.
 
 ### Out of scope
-- Converting steps 2–4 to dropdowns (they read better as cards).
-- Search/filter inside the dropdown (only 8 items — not needed).
+- No UI/component changes to `GoalPicker` — it just renders whatever order the array provides.
+- No copy changes elsewhere.
