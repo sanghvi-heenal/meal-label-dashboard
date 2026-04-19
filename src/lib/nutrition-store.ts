@@ -16,7 +16,15 @@ export interface MealEntry {
 
 export type HydrationUnit = "ml" | "litres" | "oz" | "glasses";
 
-export type Goal = "weight" | "diabetes" | "menopause" | "general";
+export type Goal =
+  | "lose_weight"
+  | "gain_muscle"
+  | "gain_weight"
+  | "glucose"
+  | "heart"
+  | "menopause"
+  | "energy_mood"
+  | "eat_healthy";
 export type LogPref = "photo" | "voice" | "text";
 export type PainPoint = "portions" | "sugar" | "carbs" | "protein" | "drinks";
 export type AppJob = "track" | "teach" | "warn" | "choose";
