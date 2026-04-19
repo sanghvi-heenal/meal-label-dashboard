@@ -77,7 +77,9 @@
       "dinner": "Dinner",
       "snack": "Snack",
       "drink": "Drink"
-    }
+    },
+    "logMeal": "Log a Meal",
+    "logDrink": "Log a Drink"
   },
   "settings": {
     "title": "Settings",

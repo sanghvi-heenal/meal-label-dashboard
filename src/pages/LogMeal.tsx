@@ -18,17 +18,18 @@ const SoundWaveIcon = () => (
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { saveMeal, getTodayString, type MealEntry } from "@/lib/nutrition-store";
 import { useNavigate, useLocation } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import DrinkDescribeSheet, { type DrinkAnalysisResult } from "@/components/DrinkDescribeSheet";
 import VerdictCard from "@/components/meal/VerdictCard";
 import { verdictFor } from "@/lib/insights";
 
-const mealTypes = [
-  { value: "breakfast" as const, label: "Breakfast", icon: Sun },
-  { value: "lunch" as const, label: "Lunch", icon: UtensilsCrossed },
-  { value: "dinner" as const, label: "Dinner", icon: Moon },
-  { value: "snack" as const, label: "Snack", icon: Coffee },
+const mealTypeBase = [
+  { value: "breakfast" as const, key: "breakfast", icon: Sun },
+  { value: "lunch" as const, key: "lunch", icon: UtensilsCrossed },
+  { value: "dinner" as const, key: "dinner", icon: Moon },
+  { value: "snack" as const, key: "snack", icon: Coffee },
 ];
 
 const drinkTypes = ["Water", "Tea", "Coffee", "Smoothie", "Juice", "Milk", "Other"] as const;
@@ -62,6 +63,8 @@ type DetectionState = "idle" | "analyzing" | "packaged" | "not_food" | "low_conf
 type InputMode = "camera" | "describe";
 
 const LogMeal = () => {
+  const { t } = useTranslation();
+  const mealTypes = mealTypeBase.map((m) => ({ ...m, label: t(`log.tabs.${m.key}`) }));
   const [selectedMeal, setSelectedMeal] = useState<MealEntry["mealType"]>("lunch");
   const [showManual, setShowManual] = useState(false);
   const [foodName, setFoodName] = useState("");
@@ -582,7 +585,7 @@ const LogMeal = () => {
           }`}
         >
           <Utensils size={16} />
-          Log a Meal
+          {t("log.logMeal")}
         </button>
         <button
           onClick={() => setSelectedMeal("drink")}
@@ -593,7 +596,7 @@ const LogMeal = () => {
           }`}
         >
           <GlassWater size={16} />
-          Log a Drink
+          {t("log.logDrink")}
         </button>
       </div>
 
