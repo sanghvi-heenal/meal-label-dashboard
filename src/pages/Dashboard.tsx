@@ -6,8 +6,6 @@ import HydrationRing from "@/components/HydrationRing";
 import MacroBar from "@/components/MacroBar";
 import SummaryCard from "@/components/dashboard/SummaryCard";
 import RiskCard from "@/components/dashboard/RiskCard";
-import ProgressRow from "@/components/dashboard/ProgressRow";
-import NextActionCard from "@/components/dashboard/NextActionCard";
 import {
   Dialog,
   DialogContent,
@@ -29,7 +27,7 @@ import {
   unitLabel,
   type HydrationUnit,
 } from "@/lib/nutrition-store";
-import { buildNextAction, buildRisk, buildSummary, sumTotals } from "@/lib/insights";
+import { buildRisk, buildSummary, sumTotals } from "@/lib/insights";
 
 const HYDRATION_ONBOARDED_KEY = "nutrilens-hydration-onboarded";
 
@@ -77,7 +75,6 @@ const Dashboard = () => {
 
   const summary = buildSummary(totals, profile, hydrationMl);
   const risk = buildRisk(totals, profile, todayMeals);
-  const nextAction = buildNextAction(totals, profile, hydrationMl);
 
   return (
     <div className="px-4 pt-6 pb-24 max-w-md mx-auto space-y-4">
@@ -101,37 +98,22 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* 1. Today's summary */}
+      {/* 1. Today's summary with Calories | Hydration toggle */}
       <div className="animate-fade-in" style={{ animationDelay: "60ms" }}>
-        <SummaryCard headline={summary.headline} sub={summary.sub} />
+        <SummaryCard
+          headline={summary.headline}
+          sub={summary.sub}
+          calories={totals.calories}
+          calorieTarget={profile.calorieTarget}
+          hydrationMl={hydrationMl}
+          hydrationTarget={profile.hydrationTarget}
+          hydrationUnit={profile.hydrationUnit}
+        />
       </div>
 
       {/* 2. Main risk today */}
       <div className="animate-fade-in" style={{ animationDelay: "120ms" }}>
         <RiskCard risk={risk} />
-      </div>
-
-      {/* 3. Goal progress */}
-      <div className="animate-fade-in" style={{ animationDelay: "180ms" }}>
-        <ProgressRow
-          calories={totals.calories}
-          calorieTarget={profile.calorieTarget}
-          protein={totals.protein}
-          proteinTarget={profile.proteinTarget}
-          fiber={totals.fiber}
-          fiberTarget={profile.fiberTarget}
-          hydrationMl={hydrationMl}
-          hydrationTarget={profile.hydrationTarget}
-          hydrationUnit={profile.hydrationUnit}
-          showCarbs={(profile.goals || []).includes("glucose")}
-          carbs={totals.carbs}
-          carbsTarget={profile.carbsTarget}
-        />
-      </div>
-
-      {/* 4. Next action */}
-      <div className="animate-fade-in" style={{ animationDelay: "240ms" }}>
-        <NextActionCard action={nextAction} onLog={() => navigate("/log")} />
       </div>
 
       {/* See details — full rings & breakdown */}
