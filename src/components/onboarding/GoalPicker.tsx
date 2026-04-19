@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Check, ChevronDown, X } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Command,
@@ -26,12 +27,14 @@ const GoalPicker = <T extends string>({
   onToggle,
   cap = 3,
   min,
-  placeholder = "Select your goals…",
+  placeholder,
 }: GoalPickerProps<T>) => {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [capFlash, setCapFlash] = useState(false);
 
   const atCap = selected.length >= cap;
+  const ph = placeholder ?? t("onboarding.selectGoals");
 
   const handleToggle = (value: T) => {
     if (!selected.includes(value) && atCap) {
@@ -52,8 +55,8 @@ const GoalPicker = <T extends string>({
           >
             <span className={cn("truncate", !selected.length && "text-muted-foreground")}>
               {selected.length
-                ? `${selected.length} goal${selected.length > 1 ? "s" : ""} selected`
-                : placeholder}
+                ? t("onboarding.goalsSelected", { count: selected.length })
+                : ph}
             </span>
             <ChevronDown size={16} className="text-muted-foreground shrink-0" />
           </button>
@@ -64,7 +67,7 @@ const GoalPicker = <T extends string>({
         >
           <Command>
             <CommandList>
-              <CommandEmpty>No options.</CommandEmpty>
+              <CommandEmpty>{t("onboarding.noOptions")}</CommandEmpty>
               <CommandGroup>
                 {options.map((opt) => {
                   const isSelected = selected.includes(opt.value);
@@ -108,7 +111,7 @@ const GoalPicker = <T extends string>({
           capFlash ? "text-destructive font-medium" : "text-muted-foreground"
         )}
       >
-        {min ? `Pick ${min}–${cap} — we'll focus on these.` : `Pick up to ${cap} — we'll focus on these.`}
+        {min ? t("onboarding.pickRange", { min, cap }) : t("onboarding.pickUpTo", { cap })}
       </p>
 
       {selected.length > 0 && (

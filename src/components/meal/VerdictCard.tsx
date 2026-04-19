@@ -1,4 +1,5 @@
 import { CheckCircle2, AlertTriangle, Info } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import type { MealVerdict } from "@/lib/insights";
 
 const toneStyle = {
@@ -12,6 +13,7 @@ interface VerdictCardProps {
 }
 
 const VerdictCard = ({ verdict }: VerdictCardProps) => {
+  const { t } = useTranslation();
   const s = toneStyle[verdict.tone];
   const Icon = s.icon;
   return (
@@ -26,7 +28,7 @@ const VerdictCard = ({ verdict }: VerdictCardProps) => {
       {verdict.tip && (
         <div className="pl-6 pt-1 border-t border-border/40">
           <p className="text-xs text-muted-foreground mt-2">
-            <span className="font-semibold text-foreground">Tip: </span>
+            <span className="font-semibold text-foreground">{t("verdict.tip")} </span>
             {verdict.tip}
           </p>
         </div>

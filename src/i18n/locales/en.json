@@ -1,0 +1,175 @@
+{
+  "common": {
+    "save": "Save",
+    "skip": "Skip",
+    "back": "Back",
+    "continue": "Continue",
+    "finish": "Finish",
+    "cancel": "Cancel",
+    "today": "Today",
+    "remove": "Remove",
+    "loading": "Loading…"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "log": "Log",
+    "history": "History",
+    "settings": "Settings"
+  },
+  "greeting": {
+    "morning": "Good morning",
+    "afternoon": "Good afternoon",
+    "evening": "Good evening"
+  },
+  "dashboard": {
+    "today": "Today",
+    "bmi": "BMI",
+    "profileAria": "Profile and settings",
+    "calories": "Calories",
+    "hydration": "Hydration",
+    "todaysCalories": "Today's calories",
+    "todaysHydration": "Today's hydration",
+    "consumed": "Consumed",
+    "remaining": "Remaining",
+    "kcal": "kcal",
+    "logDrink": "+ Log a drink",
+    "macros": "Macronutrients",
+    "protein": "Protein",
+    "carbs": "Carbs",
+    "fat": "Fat",
+    "fiber": "Fiber",
+    "sodium": "Sodium",
+    "sugar": "Sugar",
+    "satFat": "Sat Fat",
+    "hydrationModal": {
+      "title": "How much do you usually hydrate per day?",
+      "description": "Enter your typical daily intake. We'll use this as your hydration target — you can change it later in Settings.",
+      "glasses": "Glasses (250 ml)",
+      "litres": "Litres",
+      "ml": "Millilitres",
+      "oz": "Ounces (fl oz)",
+      "save": "Save target"
+    }
+  },
+  "summary": {
+    "nothingLogged": "Nothing logged yet — let's start your day.",
+    "nothingLoggedSub": "Snap a photo, speak it, or type your first meal to see your numbers light up."
+  },
+  "risk": {
+    "noFlags": "No red flags today",
+    "noFlagsSub": "Your meals look reasonable so far."
+  },
+  "verdict": {
+    "tip": "Tip:"
+  },
+  "history": {
+    "title": "Food History",
+    "noMeals": "No meals logged",
+    "addToDate": "Add a meal to this date or use the Log tab for today",
+    "addMealCta": "Add Meal to This Date",
+    "weekLimit": "You can only log meals for the past 7 days.",
+    "onlyPastWeek": "Only the past 7 days can be logged"
+  },
+  "log": {
+    "tabs": {
+      "breakfast": "Breakfast",
+      "lunch": "Lunch",
+      "dinner": "Dinner",
+      "snack": "Snack",
+      "drink": "Drink"
+    },
+    "logMeal": "Log a Meal",
+    "logDrink": "Log a Drink"
+  },
+  "settings": {
+    "title": "Settings",
+    "language": "Language",
+    "languageHint": "Choose the language for the app interface.",
+    "profile": "Your Profile",
+    "edit": "Edit",
+    "age": "Age",
+    "bmi": "BMI",
+    "dietType": "Diet Type",
+    "diet": {
+      "balanced": "Balanced",
+      "vegetarian": "Vegetarian (no meat)",
+      "vegan": "Vegan",
+      "keto": "Keto",
+      "paleo": "Paleo"
+    },
+    "saveProfile": "Save",
+    "profileSaved": "Profile saved!",
+    "reminders": "Meal Reminders",
+    "dailyReminders": "Daily Reminders",
+    "remindersSub": "Get notified 3 times a day to log meals",
+    "morning": "morning",
+    "midday": "midday",
+    "evening": "evening",
+    "targets": "Daily Nutrition Targets",
+    "dailyHydration": "Daily hydration",
+    "minHydration": "Minimum 1 L (1000 ml / 4 glasses / 34 fl oz).",
+    "saveTarget": "Save target",
+    "targetUpdated": "Hydration target updated",
+    "targetTooLow": "Target too low",
+    "targetTooLowDesc": "Minimum hydration target is 1 L (1000 ml / 4 glasses / 34 fl oz).",
+    "validAmount": "Enter a valid amount",
+    "targetsHint": "Your daily nutrition targets are automatically calculated based on your age, diet type, and BMI. Update your profile to adjust.",
+    "about": "About NutriLens",
+    "aboutSub": "NutriLens helps you track your meals and understand your nutrition. All data is stored locally on your device."
+  },
+  "onboarding": {
+    "welcome": "Welcome",
+    "stepOf": "Step {{step}} of {{total}}",
+    "languageTitle": "Choose your language",
+    "languageSub": "You can change this later in Settings.",
+    "english": "English",
+    "hindi": "हिन्दी (Hindi)",
+    "goalsTitle": "What do you want help with most?",
+    "goalsSub": "Pick what matters most. You can change this later in Settings.",
+    "logPrefsTitle": "How do you prefer logging?",
+    "logPrefsSub": "We'll put your favorite method first.",
+    "painsTitle": "What confuses you most?",
+    "painsSub": "We'll explain these in plain English when they show up in your meals.",
+    "jobsTitle": "What do you want the app to do?",
+    "jobsSub": "This shapes the tone of your daily summary.",
+    "pickAsMany": "Pick as many as apply.",
+    "pickRange": "Pick {{min}}–{{cap}} — we'll focus on these.",
+    "pickUpTo": "Pick up to {{cap}} — we'll focus on these.",
+    "selectGoals": "Select your goals…",
+    "goalsSelected_one": "{{count}} goal selected",
+    "goalsSelected_other": "{{count}} goals selected",
+    "noOptions": "No options."
+  },
+  "goals": {
+    "eat_healthy": { "label": "Generally eat healthier", "hint": "Balanced meals, no obsessing." },
+    "energy_mood": { "label": "More energy & better mood", "hint": "Steady blood sugar, stay hydrated." },
+    "lose_weight": { "label": "Lose weight", "hint": "Track calories and portions sensibly." },
+    "gain_weight": { "label": "Gain weight (healthy)", "hint": "Eat enough, calorie-dense whole foods." },
+    "glucose": { "label": "Monitor glucose / diabetes", "hint": "Watch carbs, sugar, and pair with protein." },
+    "heart": { "label": "Heart & cholesterol health", "hint": "Lower sodium and saturated fat." },
+    "menopause": { "label": "Menopause support", "hint": "Protein, fiber, and bone-friendly foods." }
+  },
+  "logPrefs": {
+    "photo": { "label": "Photo", "hint": "Snap a picture of your meal." },
+    "voice": { "label": "Voice", "hint": "Just say what you ate." },
+    "text": { "label": "Typing", "hint": "Type a quick description." }
+  },
+  "pains": {
+    "portions": { "label": "Portion sizes" },
+    "sugar": { "label": "Sugar" },
+    "carbs": { "label": "Carbs" },
+    "protein": { "label": "Protein" },
+    "drinks": { "label": "Drinks" }
+  },
+  "jobs": {
+    "track": { "label": "Keep me on track" },
+    "teach": { "label": "Teach me what foods are better" },
+    "warn": { "label": "Warn me about problem meals" },
+    "choose": { "label": "Help me choose drinks/snacks" }
+  },
+  "notFound": {
+    "title": "404",
+    "message": "Oops! Page not found",
+    "home": "Return to Home"
+  }
+}

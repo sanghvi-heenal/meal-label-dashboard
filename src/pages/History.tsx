@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { ChevronLeft, ChevronRight, UtensilsCrossed, Plus } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { getMealsByDate } from "@/lib/nutrition-store";
 import { useNavigate } from "react-router-dom";
 
 const DAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 
 const History = () => {
+  const { t } = useTranslation();
   const [viewDate, setViewDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
   const navigate = useNavigate();
@@ -35,7 +37,7 @@ const History = () => {
 
   return (
     <div className="px-4 pt-6 pb-24 max-w-md mx-auto space-y-5">
-      <h1 className="text-2xl font-bold text-foreground">Food History</h1>
+      <h1 className="text-2xl font-bold text-foreground">{t("history.title")}</h1>
 
       {/* Calendar */}
       <div className="card-surface">
@@ -65,7 +67,7 @@ const History = () => {
                 onClick={() => !disabled && setSelectedDate(new Date(year, month, d))}
                 disabled={disabled}
                 aria-disabled={disabled}
-                title={disabled ? "Only the past 7 days can be logged" : undefined}
+                title={disabled ? t("history.onlyPastWeek") : undefined}
                 className={`py-2 rounded-lg text-sm font-medium transition-colors ${
                   disabled
                     ? "text-muted-foreground/40 cursor-not-allowed line-through"
@@ -82,7 +84,7 @@ const History = () => {
           })}
         </div>
         <p className="mt-3 text-xs text-muted-foreground text-center">
-          You can only log meals for the past 7 days.
+          {t("history.weekLimit")}
         </p>
       </div>
 
@@ -91,7 +93,7 @@ const History = () => {
         <span className="text-sm">📅</span>
         <span className="font-semibold text-sm">
           {isToday(selectedDate.getDate()) && month === selectedDate.getMonth() && year === selectedDate.getFullYear()
-            ? "Today"
+            ? t("common.today")
             : selectedDate.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })}
         </span>
       </div>
@@ -100,13 +102,13 @@ const History = () => {
       {meals.length === 0 ? (
         <div className="flex flex-col items-center gap-3 py-10 text-center">
           <UtensilsCrossed size={40} className="text-muted-foreground" />
-          <p className="font-semibold text-foreground">No meals logged</p>
-          <p className="text-sm text-muted-foreground">Add a meal to this date or use the Log tab for today</p>
+          <p className="font-semibold text-foreground">{t("history.noMeals")}</p>
+          <p className="text-sm text-muted-foreground">{t("history.addToDate")}</p>
           <button
             onClick={() => navigate("/log", { state: { date: dateStr } })}
             className="mt-2 flex items-center gap-1.5 px-4 py-2 rounded-lg border border-primary text-primary text-sm font-medium hover:bg-primary/10 transition-colors"
           >
-            <Plus size={14} /> Add Meal to This Date
+            <Plus size={14} /> {t("history.addMealCta")}
           </button>
         </div>
       ) : (

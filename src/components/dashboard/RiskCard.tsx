@@ -1,10 +1,12 @@
 import { AlertTriangle, ShieldCheck } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 interface RiskCardProps {
   risk: { label: string; detail: string; severity: "ok" | "watch" | "high" } | null;
 }
 
 const RiskCard = ({ risk }: RiskCardProps) => {
+  const { t } = useTranslation();
   if (!risk) {
     return (
       <div className="card-surface flex items-start gap-3">
@@ -12,10 +14,8 @@ const RiskCard = ({ risk }: RiskCardProps) => {
           <ShieldCheck size={18} className="text-primary" />
         </div>
         <div className="flex-1">
-          <p className="text-sm font-semibold text-foreground">No red flags today</p>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Your meals look reasonable so far.
-          </p>
+          <p className="text-sm font-semibold text-foreground">{t("risk.noFlags")}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">{t("risk.noFlagsSub")}</p>
         </div>
       </div>
     );

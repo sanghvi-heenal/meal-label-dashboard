@@ -1,9 +1,12 @@
 import { useState } from "react";
-import { User, Bell, Target, Info, Pencil, Droplets } from "lucide-react";
-import { formatHydration, getProfile, mlToUnit, saveProfile, type HydrationUnit, type UserProfile } from "@/lib/nutrition-store";
+import { User, Bell, Target, Info, Pencil, Droplets, Languages } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import { formatHydration, getProfile, mlToUnit, saveProfile, type HydrationUnit, type Language, type UserProfile } from "@/lib/nutrition-store";
 import { useToast } from "@/hooks/use-toast";
+import i18n from "@/i18n";
 
 const SettingsPage = () => {
+  const { t } = useTranslation();
   const [profile, setProfile] = useState<UserProfile>(getProfile());
   const [editing, setEditing] = useState(false);
   const [editingHydration, setEditingHydration] = useState(false);
@@ -15,6 +18,11 @@ const SettingsPage = () => {
     const next = { ...profile, ...partial };
     setProfile(next);
     saveProfile(next);
+  };
+
+  const handleLanguageChange = (lang: Language) => {
+    i18n.changeLanguage(lang);
+    update({ language: lang });
   };
 
   const MIN_ML = 1000;
@@ -33,7 +41,6 @@ const SettingsPage = () => {
   };
 
   const handleUnitChange = (newUnit: HydrationUnit) => {
-    // Re-convert current input from old unit → ml → new unit so the value stays meaningful
     const n = Number(hydrationAmount);
     if (n > 0) {
       let ml = n;
@@ -48,7 +55,7 @@ const SettingsPage = () => {
   const saveHydration = () => {
     const n = Number(hydrationAmount);
     if (!n || n <= 0) {
-      toast({ title: "Enter a valid amount", variant: "destructive" });
+      toast({ title: t("settings.validAmount"), variant: "destructive" });
       return;
     }
     let ml = n;
@@ -59,22 +66,52 @@ const SettingsPage = () => {
 
     if (ml < MIN_ML) {
       toast({
-        title: "Target too low",
-        description: "Minimum hydration target is 1 L (1000 ml / 4 glasses / 34 fl oz).",
+        title: t("settings.targetTooLow"),
+        description: t("settings.targetTooLowDesc"),
         variant: "destructive",
       });
       return;
     }
 
-    // Persist BOTH the canonical ml target AND the user's preferred display unit
     update({ hydrationTarget: ml, hydrationUnit });
     setEditingHydration(false);
-    toast({ title: "Hydration target updated", description: formatHydration(ml, hydrationUnit) });
+    toast({ title: t("settings.targetUpdated"), description: formatHydration(ml, hydrationUnit) });
   };
+
+  const lang = profile.language || "en";
 
   return (
     <div className="px-4 pt-6 pb-24 max-w-md mx-auto space-y-4">
-      <h1 className="text-2xl font-bold text-foreground">Settings</h1>
+      <h1 className="text-2xl font-bold text-foreground">{t("settings.title")}</h1>
+
+      {/* Language */}
+      <div className="card-surface space-y-3">
+        <div className="flex items-center gap-2">
+          <Languages size={18} className="text-primary" />
+          <h2 className="font-semibold text-foreground">{t("settings.language")}</h2>
+        </div>
+        <p className="text-xs text-muted-foreground">{t("settings.languageHint")}</p>
+        <div className="grid grid-cols-2 gap-1 p-1 rounded-full bg-secondary/60 border border-border">
+          <button
+            onClick={() => handleLanguageChange("en")}
+            className={`text-xs font-semibold py-2 rounded-full transition-colors ${
+              lang === "en" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"
+            }`}
+            aria-pressed={lang === "en"}
+          >
+            English
+          </button>
+          <button
+            onClick={() => handleLanguageChange("hi")}
+            className={`text-xs font-semibold py-2 rounded-full transition-colors ${
+              lang === "hi" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"
+            }`}
+            aria-pressed={lang === "hi"}
+          >
+            हिन्दी
+          </button>
+        </div>
+      </div>
 
       {/* Profile Card */}
       <div className="card-surface flex items-center gap-3">
@@ -82,9 +119,9 @@ const SettingsPage = () => {
           <User size={24} className="text-primary" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="font-semibold text-foreground">Your Profile</p>
+          <p className="font-semibold text-foreground">{t("settings.profile")}</p>
           <p className="text-xs text-muted-foreground truncate">
-            Age {profile.age} · {profile.dietType} · BMI {profile.bmi}
+            {t("settings.age")} {profile.age} · {profile.dietType} · {t("settings.bmi")} {profile.bmi}
           </p>
         </div>
         <button
@@ -99,26 +136,26 @@ const SettingsPage = () => {
         <div className="card-surface space-y-3">
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="text-xs text-muted-foreground">Age</label>
+              <label className="text-xs text-muted-foreground">{t("settings.age")}</label>
               <input type="number" value={profile.age} onChange={(e) => update({ age: Number(e.target.value) })} className="w-full mt-1 px-3 py-2 rounded-lg bg-secondary border border-border text-foreground text-sm focus:outline-none focus:ring-1 focus:ring-primary" />
             </div>
             <div>
-              <label className="text-xs text-muted-foreground">BMI</label>
+              <label className="text-xs text-muted-foreground">{t("settings.bmi")}</label>
               <input type="number" value={profile.bmi} onChange={(e) => update({ bmi: Number(e.target.value) })} className="w-full mt-1 px-3 py-2 rounded-lg bg-secondary border border-border text-foreground text-sm focus:outline-none focus:ring-1 focus:ring-primary" />
             </div>
           </div>
           <div>
-            <label className="text-xs text-muted-foreground">Diet Type</label>
+            <label className="text-xs text-muted-foreground">{t("settings.dietType")}</label>
             <select value={profile.dietType} onChange={(e) => update({ dietType: e.target.value })} className="w-full mt-1 px-3 py-2 rounded-lg bg-secondary border border-border text-foreground text-sm focus:outline-none focus:ring-1 focus:ring-primary">
-              <option>Balanced</option>
-              <option>Vegetarian (no meat)</option>
-              <option>Vegan</option>
-              <option>Keto</option>
-              <option>Paleo</option>
+              <option value="Balanced">{t("settings.diet.balanced")}</option>
+              <option value="Vegetarian (no meat)">{t("settings.diet.vegetarian")}</option>
+              <option value="Vegan">{t("settings.diet.vegan")}</option>
+              <option value="Keto">{t("settings.diet.keto")}</option>
+              <option value="Paleo">{t("settings.diet.paleo")}</option>
             </select>
           </div>
-          <button onClick={() => { setEditing(false); toast({ title: "Profile saved!" }); }} className="w-full py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold">
-            Save
+          <button onClick={() => { setEditing(false); toast({ title: t("settings.profileSaved") }); }} className="w-full py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold">
+            {t("settings.saveProfile")}
           </button>
         </div>
       )}
@@ -127,12 +164,12 @@ const SettingsPage = () => {
       <div className="card-surface space-y-3">
         <div className="flex items-center gap-2">
           <Bell size={18} className="text-primary" />
-          <h2 className="font-semibold text-foreground">Meal Reminders</h2>
+          <h2 className="font-semibold text-foreground">{t("settings.reminders")}</h2>
         </div>
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-medium text-foreground">Daily Reminders</p>
-            <p className="text-xs text-muted-foreground">Get notified 3 times a day to log meals</p>
+            <p className="text-sm font-medium text-foreground">{t("settings.dailyReminders")}</p>
+            <p className="text-xs text-muted-foreground">{t("settings.remindersSub")}</p>
           </div>
           <button
             onClick={() => update({ remindersEnabled: !profile.remindersEnabled })}
@@ -149,7 +186,7 @@ const SettingsPage = () => {
           <div className="space-y-2 pl-2 border-l-2 border-border ml-2">
             {(["morning", "midday", "evening"] as const).map((key) => (
               <div key={key} className="flex items-center justify-between">
-                <span className="text-sm text-foreground capitalize">{key}</span>
+                <span className="text-sm text-foreground capitalize">{t(`settings.${key}`)}</span>
                 <span className="text-sm font-medium text-primary">{profile.reminderTimes[key]}</span>
               </div>
             ))}
@@ -161,23 +198,22 @@ const SettingsPage = () => {
       <div className="card-surface space-y-2">
         <div className="flex items-center gap-2">
           <Target size={18} className="text-primary" />
-          <h2 className="font-semibold text-foreground">Daily Nutrition Targets</h2>
+          <h2 className="font-semibold text-foreground">{t("settings.targets")}</h2>
         </div>
         <div className="flex justify-between text-sm">
-          <span className="text-muted-foreground">Diet type</span>
+          <span className="text-muted-foreground">{t("settings.dietType")}</span>
           <span className="font-medium text-foreground">{profile.dietType}</span>
         </div>
         <div className="flex justify-between text-sm">
-          <span className="text-muted-foreground">BMI</span>
+          <span className="text-muted-foreground">{t("settings.bmi")}</span>
           <span className="font-medium text-foreground">{profile.bmi}</span>
         </div>
 
-        {/* Hydration target row */}
         <div className="pt-2 mt-2 border-t border-border">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Droplets size={14} className="text-info" />
-              <span className="text-sm text-muted-foreground">Daily hydration</span>
+              <span className="text-sm text-muted-foreground">{t("settings.dailyHydration")}</span>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium text-foreground">{formatHydration(profile.hydrationTarget, profile.hydrationUnit)}</span>
@@ -210,38 +246,32 @@ const SettingsPage = () => {
                   className="px-3 py-2 rounded-lg bg-secondary border border-border text-foreground text-sm focus:outline-none focus:ring-1 focus:ring-primary"
                 >
                   <option value="ml">ml</option>
-                  <option value="glasses">Glasses (250ml)</option>
-                  <option value="litres">Litres</option>
+                  <option value="glasses">{t("dashboard.hydrationModal.glasses")}</option>
+                  <option value="litres">{t("dashboard.hydrationModal.litres")}</option>
                   <option value="oz">fl oz</option>
                 </select>
               </div>
-              <p className="text-xs text-muted-foreground">
-                Minimum 1 L (1000 ml / 4 glasses / 34 fl oz).
-              </p>
+              <p className="text-xs text-muted-foreground">{t("settings.minHydration")}</p>
               <button
                 onClick={saveHydration}
                 className="w-full py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold"
               >
-                Save target
+                {t("settings.saveTarget")}
               </button>
             </div>
           )}
         </div>
 
-        <p className="text-xs text-muted-foreground pt-1">
-          Your daily nutrition targets are automatically calculated based on your age, diet type, and BMI. Update your profile to adjust.
-        </p>
+        <p className="text-xs text-muted-foreground pt-1">{t("settings.targetsHint")}</p>
       </div>
 
       {/* About */}
       <div className="card-surface space-y-2">
         <div className="flex items-center gap-2">
           <Info size={18} className="text-primary" />
-          <h2 className="font-semibold text-foreground">About NutriLens</h2>
+          <h2 className="font-semibold text-foreground">{t("settings.about")}</h2>
         </div>
-        <p className="text-sm text-muted-foreground">
-          NutriLens helps you track your meals and understand your nutrition. All data is stored locally on your device.
-        </p>
+        <p className="text-sm text-muted-foreground">{t("settings.aboutSub")}</p>
       </div>
     </div>
   );

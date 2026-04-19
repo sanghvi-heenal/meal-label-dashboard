@@ -1,8 +1,11 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { ArrowLeft, ArrowRight, Sparkles } from "lucide-react";
 import StepCard, { type ChoiceOption } from "@/components/onboarding/StepCard";
 import GoalPicker from "@/components/onboarding/GoalPicker";
+import LanguagePicker from "@/components/onboarding/LanguagePicker";
+import i18n, { type Language } from "@/i18n";
 import {
   getProfile,
   saveProfile,
@@ -12,42 +15,13 @@ import {
   type PainPoint,
 } from "@/lib/nutrition-store";
 
-const goals: ChoiceOption<Goal>[] = [
-  { value: "eat_healthy", label: "Generally eat healthier", emoji: "🥗", hint: "Balanced meals, no obsessing." },
-  { value: "energy_mood", label: "More energy & better mood", emoji: "⚡", hint: "Steady blood sugar, stay hydrated." },
-  { value: "lose_weight", label: "Lose weight", emoji: "⚖️", hint: "Track calories and portions sensibly." },
-  { value: "gain_weight", label: "Gain weight (healthy)", emoji: "🍚", hint: "Eat enough, calorie-dense whole foods." },
-  { value: "glucose", label: "Monitor glucose / diabetes", emoji: "🩺", hint: "Watch carbs, sugar, and pair with protein." },
-  { value: "heart", label: "Heart & cholesterol health", emoji: "❤️", hint: "Lower sodium and saturated fat." },
-  { value: "menopause", label: "Menopause support", emoji: "🌸", hint: "Protein, fiber, and bone-friendly foods." },
-];
-
-const logPrefs: ChoiceOption<LogPref>[] = [
-  { value: "photo", label: "Photo", emoji: "📷", hint: "Snap a picture of your meal." },
-  { value: "voice", label: "Voice", emoji: "🎤", hint: "Just say what you ate." },
-  { value: "text", label: "Typing", emoji: "⌨️", hint: "Type a quick description." },
-];
-
-const pains: ChoiceOption<PainPoint>[] = [
-  { value: "portions", label: "Portion sizes", emoji: "🍽️" },
-  { value: "sugar", label: "Sugar", emoji: "🍬" },
-  { value: "carbs", label: "Carbs", emoji: "🍞" },
-  { value: "protein", label: "Protein", emoji: "🥩" },
-  { value: "drinks", label: "Drinks", emoji: "🥤" },
-];
-
-const jobs: ChoiceOption<AppJob>[] = [
-  { value: "track", label: "Keep me on track", emoji: "🎯" },
-  { value: "teach", label: "Teach me what foods are better", emoji: "🎓" },
-  { value: "warn", label: "Warn me about problem meals", emoji: "🚨" },
-  { value: "choose", label: "Help me choose drinks/snacks", emoji: "💡" },
-];
-
 const Onboarding = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [step, setStep] = useState(0);
   const profile = getProfile();
 
+  const [language, setLanguage] = useState<Language>(profile.language || "en");
   const [selectedGoals, setSelectedGoals] = useState<Goal[]>(
     profile.goals && profile.goals.length ? profile.goals : []
   );
@@ -55,13 +29,49 @@ const Onboarding = () => {
   const [painPoints, setPainPoints] = useState<PainPoint[]>(profile.painPoints);
   const [appJobs, setAppJobs] = useState<AppJob[]>(profile.appJobs);
 
-  const total = 4;
+  const total = 5;
   const GOAL_CAP = 3;
   const GOAL_MIN = 2;
+
+  // Build localized option arrays from translation keys
+  const goals: ChoiceOption<Goal>[] = [
+    { value: "eat_healthy", emoji: "🥗", label: t("goals.eat_healthy.label"), hint: t("goals.eat_healthy.hint") },
+    { value: "energy_mood", emoji: "⚡", label: t("goals.energy_mood.label"), hint: t("goals.energy_mood.hint") },
+    { value: "lose_weight", emoji: "⚖️", label: t("goals.lose_weight.label"), hint: t("goals.lose_weight.hint") },
+    { value: "gain_weight", emoji: "🍚", label: t("goals.gain_weight.label"), hint: t("goals.gain_weight.hint") },
+    { value: "glucose", emoji: "🩺", label: t("goals.glucose.label"), hint: t("goals.glucose.hint") },
+    { value: "heart", emoji: "❤️", label: t("goals.heart.label"), hint: t("goals.heart.hint") },
+    { value: "menopause", emoji: "🌸", label: t("goals.menopause.label"), hint: t("goals.menopause.hint") },
+  ];
+  const logPrefs: ChoiceOption<LogPref>[] = [
+    { value: "photo", emoji: "📷", label: t("logPrefs.photo.label"), hint: t("logPrefs.photo.hint") },
+    { value: "voice", emoji: "🎤", label: t("logPrefs.voice.label"), hint: t("logPrefs.voice.hint") },
+    { value: "text", emoji: "⌨️", label: t("logPrefs.text.label"), hint: t("logPrefs.text.hint") },
+  ];
+  const pains: ChoiceOption<PainPoint>[] = [
+    { value: "portions", emoji: "🍽️", label: t("pains.portions.label") },
+    { value: "sugar", emoji: "🍬", label: t("pains.sugar.label") },
+    { value: "carbs", emoji: "🍞", label: t("pains.carbs.label") },
+    { value: "protein", emoji: "🥩", label: t("pains.protein.label") },
+    { value: "drinks", emoji: "🥤", label: t("pains.drinks.label") },
+  ];
+  const jobs: ChoiceOption<AppJob>[] = [
+    { value: "track", emoji: "🎯", label: t("jobs.track.label") },
+    { value: "teach", emoji: "🎓", label: t("jobs.teach.label") },
+    { value: "warn", emoji: "🚨", label: t("jobs.warn.label") },
+    { value: "choose", emoji: "💡", label: t("jobs.choose.label") },
+  ];
+
+  const handleLanguageChange = (lang: Language) => {
+    setLanguage(lang);
+    i18n.changeLanguage(lang);
+    saveProfile({ ...getProfile(), language: lang });
+  };
 
   const finish = () => {
     saveProfile({
       ...profile,
+      language,
       goals: selectedGoals.length ? selectedGoals : ["eat_healthy"],
       logPrefs: logPref.length ? logPref : ["photo", "voice", "text"],
       painPoints,
@@ -72,7 +82,7 @@ const Onboarding = () => {
   };
 
   const skip = () => {
-    saveProfile({ ...profile, onboardedAt: new Date().toISOString() });
+    saveProfile({ ...profile, language, onboardedAt: new Date().toISOString() });
     navigate("/", { replace: true });
   };
 
@@ -83,16 +93,17 @@ const Onboarding = () => {
   const toggleGoal = (v: Goal) => {
     setSelectedGoals((prev) => {
       if (prev.includes(v)) return prev.filter((g) => g !== v);
-      if (prev.length >= GOAL_CAP) return prev; // soft cap
+      if (prev.length >= GOAL_CAP) return prev;
       return [...prev, v];
     });
   };
 
   const stepValid = () => {
-    if (step === 0) return selectedGoals.length >= GOAL_MIN;
-    if (step === 1) return logPref.length > 0;
-    if (step === 2) return true; // pain points optional
-    if (step === 3) return appJobs.length > 0;
+    if (step === 0) return !!language;
+    if (step === 1) return selectedGoals.length >= GOAL_MIN;
+    if (step === 2) return logPref.length > 0;
+    if (step === 3) return true;
+    if (step === 4) return appJobs.length > 0;
     return false;
   };
 
@@ -102,13 +113,13 @@ const Onboarding = () => {
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-2">
           <Sparkles size={18} className="text-primary" />
-          <span className="text-sm font-semibold text-foreground">Welcome</span>
+          <span className="text-sm font-semibold text-foreground">{t("onboarding.welcome")}</span>
         </div>
         <button
           onClick={skip}
           className="text-xs font-medium text-muted-foreground hover:text-foreground"
         >
-          Skip
+          {t("common.skip")}
         </button>
       </div>
 
@@ -129,13 +140,29 @@ const Onboarding = () => {
           <div className="space-y-6">
             <div>
               <p className="text-xs font-medium text-muted-foreground mb-2">
-                Step 1 of {total}
+                {t("onboarding.stepOf", { step: 1, total })}
               </p>
               <h2 className="text-2xl font-bold text-foreground leading-tight">
-                What do you want help with most?
+                {t("onboarding.languageTitle")}
               </h2>
               <p className="text-sm text-muted-foreground mt-2">
-                Pick what matters most. You can change this later in Settings.
+                {t("onboarding.languageSub")}
+              </p>
+            </div>
+            <LanguagePicker value={language} onChange={handleLanguageChange} />
+          </div>
+        )}
+        {step === 1 && (
+          <div className="space-y-6">
+            <div>
+              <p className="text-xs font-medium text-muted-foreground mb-2">
+                {t("onboarding.stepOf", { step: 2, total })}
+              </p>
+              <h2 className="text-2xl font-bold text-foreground leading-tight">
+                {t("onboarding.goalsTitle")}
+              </h2>
+              <p className="text-sm text-muted-foreground mt-2">
+                {t("onboarding.goalsSub")}
               </p>
             </div>
             <GoalPicker
@@ -147,27 +174,15 @@ const Onboarding = () => {
             />
           </div>
         )}
-        {step === 1 && (
-          <StepCard
-            step={2}
-            total={total}
-            title="How do you prefer logging?"
-            subtitle="We'll put your favorite method first."
-            options={logPrefs}
-            selected={logPref}
-            onToggle={(v) => toggleMulti(logPref, setLogPref, v)}
-            multi
-          />
-        )}
         {step === 2 && (
           <StepCard
             step={3}
             total={total}
-            title="What confuses you most?"
-            subtitle="We'll explain these in plain English when they show up in your meals."
-            options={pains}
-            selected={painPoints}
-            onToggle={(v) => toggleMulti(painPoints, setPainPoints, v)}
+            title={t("onboarding.logPrefsTitle")}
+            subtitle={t("onboarding.logPrefsSub")}
+            options={logPrefs}
+            selected={logPref}
+            onToggle={(v) => toggleMulti(logPref, setLogPref, v)}
             multi
           />
         )}
@@ -175,8 +190,20 @@ const Onboarding = () => {
           <StepCard
             step={4}
             total={total}
-            title="What do you want the app to do?"
-            subtitle="This shapes the tone of your daily summary."
+            title={t("onboarding.painsTitle")}
+            subtitle={t("onboarding.painsSub")}
+            options={pains}
+            selected={painPoints}
+            onToggle={(v) => toggleMulti(painPoints, setPainPoints, v)}
+            multi
+          />
+        )}
+        {step === 4 && (
+          <StepCard
+            step={5}
+            total={total}
+            title={t("onboarding.jobsTitle")}
+            subtitle={t("onboarding.jobsSub")}
             options={jobs}
             selected={appJobs}
             onToggle={(v) => toggleMulti(appJobs, setAppJobs, v)}
@@ -192,7 +219,7 @@ const Onboarding = () => {
             onClick={() => setStep((s) => s - 1)}
             className="flex items-center gap-1 px-4 py-3 rounded-xl bg-secondary text-foreground text-sm font-medium hover:bg-secondary/80"
           >
-            <ArrowLeft size={16} /> Back
+            <ArrowLeft size={16} /> {t("common.back")}
           </button>
         )}
         <button
@@ -202,11 +229,11 @@ const Onboarding = () => {
         >
           {step < total - 1 ? (
             <>
-              Continue <ArrowRight size={16} />
+              {t("common.continue")} <ArrowRight size={16} />
             </>
           ) : (
             <>
-              Finish <Sparkles size={14} />
+              {t("common.finish")} <Sparkles size={14} />
             </>
           )}
         </button>
