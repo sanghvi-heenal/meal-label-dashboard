@@ -5,6 +5,7 @@ import CalorieRing from "@/components/CalorieRing";
 import HydrationRing from "@/components/HydrationRing";
 import MacroBar from "@/components/MacroBar";
 import SummaryCard from "@/components/dashboard/SummaryCard";
+import StatsToggleCard from "@/components/dashboard/StatsToggleCard";
 import RiskCard from "@/components/dashboard/RiskCard";
 import {
   Dialog,
@@ -98,22 +99,25 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* 1. Today's summary with Calories | Hydration toggle */}
+      {/* 1. Friendly headline / empty state */}
       <div className="animate-fade-in" style={{ animationDelay: "60ms" }}>
-        <SummaryCard
-          headline={summary.headline}
-          sub={summary.sub}
+        <SummaryCard headline={summary.headline} sub={summary.sub} />
+      </div>
+
+      {/* 2. Main risk today */}
+      <div className="animate-fade-in" style={{ animationDelay: "120ms" }}>
+        <RiskCard risk={risk} />
+      </div>
+
+      {/* 3. Stats with Calories | Hydration toggle */}
+      <div className="animate-fade-in" style={{ animationDelay: "180ms" }}>
+        <StatsToggleCard
           calories={totals.calories}
           calorieTarget={profile.calorieTarget}
           hydrationMl={hydrationMl}
           hydrationTarget={profile.hydrationTarget}
           hydrationUnit={profile.hydrationUnit}
         />
-      </div>
-
-      {/* 2. Main risk today */}
-      <div className="animate-fade-in" style={{ animationDelay: "120ms" }}>
-        <RiskCard risk={risk} />
       </div>
 
       {/* See details — full rings & breakdown */}
