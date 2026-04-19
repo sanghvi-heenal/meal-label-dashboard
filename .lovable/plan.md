@@ -1,68 +1,67 @@
 
-The user dropped a sizable feature wishlist. This is a planning task, not a single quick edit. I'll group the work into shippable phases so we don't try to land everything at once (and so each phase is reviewable).
+## Plan: Expand & restructure the "What do you want help with?" goals
 
-I have enough context from prior conversation about the codebase (Dashboard, LogMeal, SettingsPage, nutrition-store, analyze-food edge functions, local-first storage, no auth). One genuine ambiguity: where onboarding should live (separate route vs first-run modal), since the app is local-first with no auth. I'll propose a sensible default and call it out.
+Replace the current 4 hard-coded radio cards in onboarding step 1 with a richer **multi-select** list (people often have more than one goal — e.g. lose weight + eat healthy). Goals drive tone + insights downstream, so the type union and `insights.ts` references need to grow with them.
 
-Keeping the plan tight per instructions.
+### New goal set (8 options)
 
----
+| Value | Label | Emoji |
+|---|---|---|
+| `lose_weight` | Lose weight | ⚖️ |
+| `gain_muscle` | Gain muscle / strength | 💪 |
+| `gain_weight` | Gain weight (healthy) | 🍚 |
+| `glucose` | Monitor glucose / diabetes | 🩺 |
+| `heart` | Heart & cholesterol health | ❤️ |
+| `menopause` | Menopause support | 🌸 |
+| `energy_mood` | More energy & better mood | ⚡ |
+| `eat_healthy` | Generally eat healthier | 🥗 |
 
-## Plan: Goal-first onboarding, meaningful dashboard, educational meal results
+(Dropped: `weight` and `general` get renamed to `lose_weight` / `eat_healthy`. `diabetes` → `glucose`. `menopause` kept.)
 
-Three phases. Approve all three or just phase 1 to start — I'd recommend shipping in order.
+### UX
 
-### Phase 1 — Goal-first onboarding
+- Step 1 becomes **multi-select** (chips, tap to toggle), with a soft cap of 3 ("Pick up to 3 — we'll focus on these").
+- Subtitle updated: *"Pick what matters most. You can change this later in Settings."*
+- Continue button enabled when ≥1 selected.
 
-**New route**: `/onboarding` (full-screen, 4 steps, swipeable). First visit redirects here from `/`; completion writes to localStorage and to `profile` so it never shows again.
+### Data model
 
-Four questions, all multi-choice (chips/cards, tap to select):
-
-1. **What do you want help with most?** — lose weight · eat better for diabetes/prediabetes · menopause support · general healthy eating
-2. **How do you prefer logging?** — photo · voice · typing (multi-select; reorders LogMeal tabs accordingly)
-3. **What confuses you most?** — portions · sugar · carbs · protein · drinks (multi-select; drives which "explainers" surface)
-4. **What do you want the app to do?** — keep me on track · teach me · warn me about problem meals · help me choose drinks/snacks (multi-select; drives tone of dashboard messages)
-
-**Storage** (extend `profile` in `nutrition-store.ts`):
+`src/lib/nutrition-store.ts`:
 ```ts
-goal: 'weight' | 'diabetes' | 'menopause' | 'general'
-logPrefs: Array<'photo'|'voice'|'text'>
-painPoints: Array<'portions'|'sugar'|'carbs'|'protein'|'drinks'>
-appJobs: Array<'track'|'teach'|'warn'|'choose'>
-onboardedAt: string
+export type Goal =
+  | "lose_weight" | "gain_muscle" | "gain_weight"
+  | "glucose"    | "heart"       | "menopause"
+  | "energy_mood"| "eat_healthy";
+
+export interface UserProfile {
+  // ...
+  goals: Goal[];   // was: goal: Goal
+}
 ```
 
-**Files**: new `src/pages/Onboarding.tsx`, new `src/components/onboarding/StepCard.tsx`, edits to `App.tsx` (route + redirect guard), `nutrition-store.ts` (new fields + defaults), `LogMeal.tsx` (respect `logPrefs` ordering).
+**Migration**: when reading profile, if old `goal` field exists, map it once → `goals` array (`weight→lose_weight`, `diabetes→glucose`, `general→eat_healthy`, `menopause→menopause`) and drop `goal`. No data loss.
 
-### Phase 2 — Daily Health Dashboard
+### Insights engine update
 
-Replace the current top of `Dashboard.tsx` with 4 meaning-first cards (keeps existing rings/macros below as a "Details" accordion, so we don't lose data for power users).
+`src/lib/insights.ts` currently branches on `profile.goal === 'diabetes'` etc. Switch to `profile.goals.includes(...)` and add light rules for the new goals:
 
-1. **Today's summary** — single sentence generated from totals + profile. Pure rules engine in a new `src/lib/insights.ts` (no AI call, runs instantly). E.g. *"Good start. Protein is low so far, and hydration is behind."*
-2. **Main risk today** — picks the strongest signal: drink calories > 30% of total, sodium > 75% target, sugar spike, very low fiber, etc. One sentence + tiny icon.
-3. **Goal progress** — compact row: calories · hydration · protein · fiber · (carb balance if `goal === 'diabetes'`). Mini bars, not full rings.
-4. **Next action** — one concrete suggestion tied to time of day + gaps (e.g. *"At lunch, add one protein food and one vegetable."*).
+- `gain_muscle` → flag if protein < 60% target by evening; positive nudge when protein on track.
+- `gain_weight` → flip "high calories" warning into a positive; surface "you're under target" risk instead.
+- `heart` → emphasize sodium + sat fat in risk card.
+- `energy_mood` → emphasize hydration gap + sugar spikes (energy dips).
+- `glucose` → existing diabetes rules (carb balance, sugar caps).
+- `menopause` → existing protein + fiber emphasis.
+- `eat_healthy` / `lose_weight` → existing balanced + calorie rules.
 
-Tone of cards adapts to `appJobs` (warn-leaning vs teach-leaning vs cheerlead).
+Dashboard `ProgressRow` already special-cases diabetes → switch to `goals.includes('glucose')`.
 
-**Files**: new `src/lib/insights.ts` (pure functions, unit-testable), new `src/components/dashboard/SummaryCard.tsx`, `RiskCard.tsx`, `ProgressRow.tsx`, `NextActionCard.tsx`. Refactor `src/pages/Index.tsx` (or whichever is the dashboard) to use them; existing rings/macros move into a collapsed "See details" section.
+### Files touched
+- `src/lib/nutrition-store.ts` — new `Goal` union, `goals: Goal[]`, migration shim in `getProfile()`.
+- `src/pages/Onboarding.tsx` — 8-option multi-select, soft cap of 3, updated copy.
+- `src/lib/insights.ts` — branch on `goals.includes(...)`, add per-goal rule snippets.
+- `src/components/dashboard/ProgressRow.tsx` — replace `goal === 'diabetes'` check with `goals.includes('glucose')`.
+- (No changes to `VerdictCard` — it reads pain points, not goals.)
 
-### Phase 3 — Educational meal result screen
-
-After AI analysis in `LogMeal.tsx`, show a **verdict card** before the macro numbers:
-
-- **Verdict tag** (one of): balanced · carb-heavy · low-protein · high-sugar drink · salty/processed · good hydration · good fiber. Computed by rules in `insights.ts` from the AI's nutrition output (no extra AI call needed).
-- **One-line "why"** under the tag (e.g. *"Sugar from this drink ≈ 6 tsp — most of your day's allowance."*).
-- **Tip** tied to the user's `painPoints` (e.g. if "portions" is a pain point and calories are high, suggest a portion adjustment).
-
-Numbers + macro breakdown stay, but rendered below the verdict.
-
-**Files**: `LogMeal.tsx` (render verdict above existing result), reuse `insights.ts`, new `src/components/meal/VerdictCard.tsx`.
-
-### Out of scope for these 3 phases
-- Saving onboarding answers to backend (still local-first).
-- Re-running onboarding from Settings (easy follow-up).
-- Trend insights across days/weeks.
-- Push notifications based on risks.
-
-### Open question I'm defaulting on
-Onboarding as a **dedicated `/onboarding` route** (cleaner UX, easier to revisit later from Settings) rather than a stacked modal on the dashboard. Say the word if you'd rather have a modal.
+### Out of scope
+- A "Re-run onboarding" button in Settings (suggested as follow-up).
+- Per-goal custom macro target overrides (e.g. auto-bump protein for `gain_muscle`) — could be a phase 2.
