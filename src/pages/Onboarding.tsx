@@ -57,6 +57,7 @@ const Onboarding = () => {
 
   const total = 4;
   const GOAL_CAP = 3;
+  const GOAL_MIN = 2;
 
   const finish = () => {
     saveProfile({
@@ -88,7 +89,7 @@ const Onboarding = () => {
   };
 
   const stepValid = () => {
-    if (step === 0) return selectedGoals.length > 0;
+    if (step === 0) return selectedGoals.length >= GOAL_MIN;
     if (step === 1) return logPref.length > 0;
     if (step === 2) return true; // pain points optional
     if (step === 3) return appJobs.length > 0;
@@ -142,6 +143,7 @@ const Onboarding = () => {
               selected={selectedGoals}
               onToggle={toggleGoal}
               cap={GOAL_CAP}
+              min={GOAL_MIN}
             />
           </div>
         )}

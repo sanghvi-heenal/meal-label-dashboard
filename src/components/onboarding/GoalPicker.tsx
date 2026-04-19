@@ -16,6 +16,7 @@ interface GoalPickerProps<T extends string> {
   selected: T[];
   onToggle: (value: T) => void;
   cap?: number;
+  min?: number;
   placeholder?: string;
 }
 
@@ -24,6 +25,7 @@ const GoalPicker = <T extends string>({
   selected,
   onToggle,
   cap = 3,
+  min,
   placeholder = "Select your goals…",
 }: GoalPickerProps<T>) => {
   const [open, setOpen] = useState(false);
@@ -106,7 +108,7 @@ const GoalPicker = <T extends string>({
           capFlash ? "text-destructive font-medium" : "text-muted-foreground"
         )}
       >
-        Pick up to {cap} — we'll focus on these.
+        {min ? `Pick ${min}–${cap} — we'll focus on these.` : `Pick up to ${cap} — we'll focus on these.`}
       </p>
 
       {selected.length > 0 && (
