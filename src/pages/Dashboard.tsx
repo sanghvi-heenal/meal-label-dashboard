@@ -124,69 +124,93 @@ const Dashboard = () => {
 
       {showDetails && (
         <div className="space-y-4 animate-fade-in">
-          {/* Calories ring detail */}
-          <div className="card-surface card-tint-warning space-y-4">
-            <h2 className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
-              Today's calories
-            </h2>
-            <div className="flex items-baseline gap-1">
-              <span className="text-5xl font-bold bg-gradient-to-br from-warning to-warning/40 bg-clip-text text-transparent">
-                {totals.calories}
-              </span>
-              <span className="text-muted-foreground text-sm">/ {profile.calorieTarget} kcal</span>
-            </div>
-            <div className="flex items-center gap-6">
-              <CalorieRing consumed={totals.calories} target={profile.calorieTarget} />
-              <div className="space-y-2 text-sm">
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-warning" />
-                  <span className="text-muted-foreground">Consumed</span>
-                  <span className="ml-auto font-semibold text-warning">{totals.calories} kcal</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-muted-foreground" />
-                  <span className="text-muted-foreground">Remaining</span>
-                  <span className="ml-auto font-semibold text-foreground">{remaining} kcal</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Hydration ring detail */}
-          <div className="card-surface card-tint-info space-y-4">
-            <h2 className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
-              Today's hydration
-            </h2>
-            <div className="flex items-baseline gap-1">
-              <span className="text-5xl font-bold bg-gradient-to-br from-info to-info/40 bg-clip-text text-transparent">
-                {mlToUnit(hydrationMl, profile.hydrationUnit)}
-              </span>
-              <span className="text-muted-foreground text-sm">
-                / {mlToUnit(profile.hydrationTarget, profile.hydrationUnit)} {unitLabel(profile.hydrationUnit)}
-              </span>
-            </div>
-            <div className="flex items-center gap-6">
-              <HydrationRing consumed={hydrationMl} target={profile.hydrationTarget} size={120} />
-              <div className="space-y-2 text-sm flex-1">
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-info" />
-                  <span className="text-muted-foreground">Consumed</span>
-                  <span className="ml-auto font-semibold text-info">{formatHydration(hydrationMl, profile.hydrationUnit)}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-muted-foreground" />
-                  <span className="text-muted-foreground">Remaining</span>
-                  <span className="ml-auto font-semibold text-foreground">{formatHydration(hydrationRemaining, profile.hydrationUnit)}</span>
-                </div>
-              </div>
-            </div>
+          {/* Calories | Hydration toggle */}
+          <div className="grid grid-cols-2 gap-1 p-1 rounded-full bg-secondary/60 border border-border">
             <button
-              onClick={() => navigate("/log", { state: { mode: "drink" } })}
-              className="w-full py-2 rounded-lg bg-info/10 hover:bg-info/20 border border-info/30 text-info text-sm font-semibold transition-colors active:scale-95"
+              onClick={() => setDetailView("calories")}
+              className={`text-xs font-semibold py-1.5 rounded-full transition-colors ${
+                detailView === "calories" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"
+              }`}
+              aria-pressed={detailView === "calories"}
             >
-              + Log a drink
+              Calories
+            </button>
+            <button
+              onClick={() => setDetailView("hydration")}
+              className={`text-xs font-semibold py-1.5 rounded-full transition-colors ${
+                detailView === "hydration" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"
+              }`}
+              aria-pressed={detailView === "hydration"}
+            >
+              Hydration
             </button>
           </div>
+
+          {detailView === "calories" ? (
+            /* Calories ring detail */
+            <div className="card-surface card-tint-warning space-y-4">
+              <h2 className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
+                Today's calories
+              </h2>
+              <div className="flex items-baseline gap-1">
+                <span className="text-5xl font-bold bg-gradient-to-br from-warning to-warning/40 bg-clip-text text-transparent">
+                  {totals.calories}
+                </span>
+                <span className="text-muted-foreground text-sm">/ {profile.calorieTarget} kcal</span>
+              </div>
+              <div className="flex items-center gap-6">
+                <CalorieRing consumed={totals.calories} target={profile.calorieTarget} />
+                <div className="space-y-2 text-sm">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-warning" />
+                    <span className="text-muted-foreground">Consumed</span>
+                    <span className="ml-auto font-semibold text-warning">{totals.calories} kcal</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-muted-foreground" />
+                    <span className="text-muted-foreground">Remaining</span>
+                    <span className="ml-auto font-semibold text-foreground">{remaining} kcal</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            /* Hydration ring detail */
+            <div className="card-surface card-tint-info space-y-4">
+              <h2 className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
+                Today's hydration
+              </h2>
+              <div className="flex items-baseline gap-1">
+                <span className="text-5xl font-bold bg-gradient-to-br from-info to-info/40 bg-clip-text text-transparent">
+                  {mlToUnit(hydrationMl, profile.hydrationUnit)}
+                </span>
+                <span className="text-muted-foreground text-sm">
+                  / {mlToUnit(profile.hydrationTarget, profile.hydrationUnit)} {unitLabel(profile.hydrationUnit)}
+                </span>
+              </div>
+              <div className="flex items-center gap-6">
+                <HydrationRing consumed={hydrationMl} target={profile.hydrationTarget} size={120} />
+                <div className="space-y-2 text-sm flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-info" />
+                    <span className="text-muted-foreground">Consumed</span>
+                    <span className="ml-auto font-semibold text-info">{formatHydration(hydrationMl, profile.hydrationUnit)}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-muted-foreground" />
+                    <span className="text-muted-foreground">Remaining</span>
+                    <span className="ml-auto font-semibold text-foreground">{formatHydration(hydrationRemaining, profile.hydrationUnit)}</span>
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={() => navigate("/log", { state: { mode: "drink" } })}
+                className="w-full py-2 rounded-lg bg-info/10 hover:bg-info/20 border border-info/30 text-info text-sm font-semibold transition-colors active:scale-95"
+              >
+                + Log a drink
+              </button>
+            </div>
+          )}
 
           {/* Macros */}
           <div className="card-surface card-tint-primary space-y-4">
