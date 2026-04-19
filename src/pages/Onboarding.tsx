@@ -12,10 +12,14 @@ import {
 } from "@/lib/nutrition-store";
 
 const goals: ChoiceOption<Goal>[] = [
-  { value: "weight", label: "Lose weight", emoji: "⚖️", hint: "Track calories and portions sensibly." },
-  { value: "diabetes", label: "Eat better for diabetes / prediabetes", emoji: "🩺", hint: "Watch carbs, sugar, and pair with protein." },
-  { value: "menopause", label: "Menopause support", emoji: "🌸", hint: "Focus on protein, fiber, and bone-friendly foods." },
-  { value: "general", label: "General healthy eating", emoji: "🥗", hint: "Balanced meals, no obsessing over numbers." },
+  { value: "lose_weight", label: "Lose weight", emoji: "⚖️", hint: "Track calories and portions sensibly." },
+  { value: "gain_muscle", label: "Gain muscle / strength", emoji: "💪", hint: "Hit protein targets, fuel workouts." },
+  { value: "gain_weight", label: "Gain weight (healthy)", emoji: "🍚", hint: "Eat enough, calorie-dense whole foods." },
+  { value: "glucose", label: "Monitor glucose / diabetes", emoji: "🩺", hint: "Watch carbs, sugar, and pair with protein." },
+  { value: "heart", label: "Heart & cholesterol health", emoji: "❤️", hint: "Lower sodium and saturated fat." },
+  { value: "menopause", label: "Menopause support", emoji: "🌸", hint: "Protein, fiber, and bone-friendly foods." },
+  { value: "energy_mood", label: "More energy & better mood", emoji: "⚡", hint: "Steady blood sugar, stay hydrated." },
+  { value: "eat_healthy", label: "Generally eat healthier", emoji: "🥗", hint: "Balanced meals, no obsessing." },
 ];
 
 const logPrefs: ChoiceOption<LogPref>[] = [
@@ -44,17 +48,20 @@ const Onboarding = () => {
   const [step, setStep] = useState(0);
   const profile = getProfile();
 
-  const [goal, setGoal] = useState<Goal>(profile.goal);
+  const [selectedGoals, setSelectedGoals] = useState<Goal[]>(
+    profile.goals && profile.goals.length ? profile.goals : []
+  );
   const [logPref, setLogPref] = useState<LogPref[]>(profile.logPrefs);
   const [painPoints, setPainPoints] = useState<PainPoint[]>(profile.painPoints);
   const [appJobs, setAppJobs] = useState<AppJob[]>(profile.appJobs);
 
   const total = 4;
+  const GOAL_CAP = 3;
 
   const finish = () => {
     saveProfile({
       ...profile,
-      goal,
+      goals: selectedGoals.length ? selectedGoals : ["eat_healthy"],
       logPrefs: logPref.length ? logPref : ["photo", "voice", "text"],
       painPoints,
       appJobs: appJobs.length ? appJobs : ["track"],
@@ -72,8 +79,16 @@ const Onboarding = () => {
     setter(arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v]);
   };
 
+  const toggleGoal = (v: Goal) => {
+    setSelectedGoals((prev) => {
+      if (prev.includes(v)) return prev.filter((g) => g !== v);
+      if (prev.length >= GOAL_CAP) return prev; // soft cap
+      return [...prev, v];
+    });
+  };
+
   const stepValid = () => {
-    if (step === 0) return Boolean(goal);
+    if (step === 0) return selectedGoals.length > 0;
     if (step === 1) return logPref.length > 0;
     if (step === 2) return true; // pain points optional
     if (step === 3) return appJobs.length > 0;
@@ -114,10 +129,11 @@ const Onboarding = () => {
             step={1}
             total={total}
             title="What do you want help with most?"
-            subtitle="We'll personalize the app around this."
+            subtitle={`Pick what matters most (up to ${GOAL_CAP}). You can change this later in Settings.`}
             options={goals}
-            selected={[goal]}
-            onToggle={(v) => setGoal(v)}
+            selected={selectedGoals}
+            onToggle={toggleGoal}
+            multi
           />
         )}
         {step === 1 && (

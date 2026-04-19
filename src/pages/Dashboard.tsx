@@ -123,7 +123,7 @@ const Dashboard = () => {
           hydrationMl={hydrationMl}
           hydrationTarget={profile.hydrationTarget}
           hydrationUnit={profile.hydrationUnit}
-          showCarbs={profile.goal === "diabetes"}
+          showCarbs={(profile.goals || []).includes("glucose")}
           carbs={totals.carbs}
           carbsTarget={profile.carbsTarget}
         />

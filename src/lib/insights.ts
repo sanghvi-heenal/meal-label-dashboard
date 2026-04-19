@@ -117,10 +117,39 @@ export function buildRisk(
       severity: "watch",
     };
   }
-  if (profile.goal === "diabetes" && totals.carbs > profile.carbsTarget * 0.5 && totals.protein < profile.proteinTarget * 0.3) {
+  const goals = profile.goals || [];
+  if (goals.includes("glucose") && totals.carbs > profile.carbsTarget * 0.5 && totals.protein < profile.proteinTarget * 0.3) {
     return {
       label: "Carb-heavy, low protein",
       detail: "Pair carbs with protein to slow the glucose spike.",
+      severity: "watch",
+    };
+  }
+  if (goals.includes("heart") && profile.satFatTarget && totals.satFat > profile.satFatTarget * 0.75) {
+    return {
+      label: "Saturated fat is high",
+      detail: `${totals.satFat.toFixed(0)}g of ${profile.satFatTarget}g — go lighter on butter, cheese, fried foods.`,
+      severity: totals.satFat > profile.satFatTarget ? "high" : "watch",
+    };
+  }
+  if (goals.includes("gain_muscle") && dayProgress() > 0.5 && totals.protein < profile.proteinTarget * 0.5) {
+    return {
+      label: "Protein behind for muscle goal",
+      detail: `${totals.protein}g of ${profile.proteinTarget}g — load up at the next meal.`,
+      severity: "watch",
+    };
+  }
+  if (goals.includes("gain_weight") && dayProgress() > 0.6 && totals.calories < profile.calorieTarget * 0.5) {
+    return {
+      label: "Calories behind your gain target",
+      detail: `${totals.calories} of ${profile.calorieTarget} kcal — add a calorie-dense snack.`,
+      severity: "watch",
+    };
+  }
+  if (goals.includes("energy_mood") && totals.sugar > profile.sugarTarget * 0.6 && dayProgress() < 0.5) {
+    return {
+      label: "Sugar load may dip your energy",
+      detail: `${totals.sugar.toFixed(0)}g sugar already — expect a slump in 1–2h.`,
       severity: "watch",
     };
   }
