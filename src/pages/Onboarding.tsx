@@ -23,7 +23,7 @@ const goals: ChoiceOption<Goal>[] = [
 ];
 
 const logPrefs: ChoiceOption<LogPref>[] = [
-  { value: "photo", label: "Photo", emoji: "📷", hint: "Snap a picture, AI estimates the rest." },
+  { value: "photo", label: "Photo", emoji: "📷", hint: "Snap a picture of your meal." },
   { value: "voice", label: "Voice", emoji: "🎤", hint: "Just say what you ate." },
   { value: "text", label: "Typing", emoji: "⌨️", hint: "Type a quick description." },
 ];
