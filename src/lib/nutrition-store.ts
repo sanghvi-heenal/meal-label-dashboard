@@ -46,7 +46,7 @@ export interface UserProfile {
   remindersEnabled: boolean;
   reminderTimes: { morning: string; midday: string; evening: string };
   // Onboarding answers — drive personalization across dashboard, log, and meal verdict.
-  goal: Goal;
+  goals: Goal[];
   logPrefs: LogPref[];
   painPoints: PainPoint[];
   appJobs: AppJob[];
@@ -69,7 +69,7 @@ const DEFAULT_PROFILE: UserProfile = {
   hydrationUnit: "ml",
   remindersEnabled: true,
   reminderTimes: { morning: "08:00", midday: "13:00", evening: "19:00" },
-  goal: "general",
+  goals: ["eat_healthy"],
   logPrefs: ["photo", "voice", "text"],
   painPoints: [],
   appJobs: ["track"],
@@ -104,9 +104,24 @@ export function formatHydration(ml: number, unit: HydrationUnit): string {
   return `${mlToUnit(ml, unit)} ${unitLabel(unit)}`;
 }
 
+const LEGACY_GOAL_MAP: Record<string, Goal> = {
+  weight: "lose_weight",
+  diabetes: "glucose",
+  general: "eat_healthy",
+  menopause: "menopause",
+};
+
 export function getProfile(): UserProfile {
   const stored = localStorage.getItem("nutrilens-profile");
-  return stored ? { ...DEFAULT_PROFILE, ...JSON.parse(stored) } : DEFAULT_PROFILE;
+  if (!stored) return DEFAULT_PROFILE;
+  const parsed = JSON.parse(stored) as Partial<UserProfile> & { goal?: string };
+  // Migrate legacy single-goal field → goals[]
+  if (!parsed.goals && parsed.goal) {
+    const mapped = LEGACY_GOAL_MAP[parsed.goal];
+    parsed.goals = mapped ? [mapped] : ["eat_healthy"];
+    delete parsed.goal;
+  }
+  return { ...DEFAULT_PROFILE, ...parsed };
 }
 
 export function saveProfile(profile: UserProfile) {
