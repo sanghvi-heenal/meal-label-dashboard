@@ -48,17 +48,20 @@ const Onboarding = () => {
   const [step, setStep] = useState(0);
   const profile = getProfile();
 
-  const [goal, setGoal] = useState<Goal>(profile.goal);
+  const [selectedGoals, setSelectedGoals] = useState<Goal[]>(
+    profile.goals && profile.goals.length ? profile.goals : []
+  );
   const [logPref, setLogPref] = useState<LogPref[]>(profile.logPrefs);
   const [painPoints, setPainPoints] = useState<PainPoint[]>(profile.painPoints);
   const [appJobs, setAppJobs] = useState<AppJob[]>(profile.appJobs);
 
   const total = 4;
+  const GOAL_CAP = 3;
 
   const finish = () => {
     saveProfile({
       ...profile,
-      goal,
+      goals: selectedGoals.length ? selectedGoals : ["eat_healthy"],
       logPrefs: logPref.length ? logPref : ["photo", "voice", "text"],
       painPoints,
       appJobs: appJobs.length ? appJobs : ["track"],
@@ -76,8 +79,16 @@ const Onboarding = () => {
     setter(arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v]);
   };
 
+  const toggleGoal = (v: Goal) => {
+    setSelectedGoals((prev) => {
+      if (prev.includes(v)) return prev.filter((g) => g !== v);
+      if (prev.length >= GOAL_CAP) return prev; // soft cap
+      return [...prev, v];
+    });
+  };
+
   const stepValid = () => {
-    if (step === 0) return Boolean(goal);
+    if (step === 0) return selectedGoals.length > 0;
     if (step === 1) return logPref.length > 0;
     if (step === 2) return true; // pain points optional
     if (step === 3) return appJobs.length > 0;
@@ -118,10 +129,11 @@ const Onboarding = () => {
             step={1}
             total={total}
             title="What do you want help with most?"
-            subtitle="We'll personalize the app around this."
+            subtitle={`Pick what matters most (up to ${GOAL_CAP}). You can change this later in Settings.`}
             options={goals}
-            selected={[goal]}
-            onToggle={(v) => setGoal(v)}
+            selected={selectedGoals}
+            onToggle={toggleGoal}
+            multi
           />
         )}
         {step === 1 && (
