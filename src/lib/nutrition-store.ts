@@ -18,7 +18,6 @@ export type HydrationUnit = "ml" | "litres" | "oz" | "glasses";
 
 export type Goal =
   | "lose_weight"
-  | "gain_muscle"
   | "gain_weight"
   | "glucose"
   | "heart"
@@ -120,6 +119,20 @@ export function getProfile(): UserProfile {
     const mapped = LEGACY_GOAL_MAP[parsed.goal];
     parsed.goals = mapped ? [mapped] : ["eat_healthy"];
     delete parsed.goal;
+  }
+  // Strip removed goals (e.g. legacy "gain_muscle"); fall back if empty.
+  if (parsed.goals) {
+    const validGoals: Goal[] = [
+      "lose_weight",
+      "gain_weight",
+      "glucose",
+      "heart",
+      "menopause",
+      "energy_mood",
+      "eat_healthy",
+    ];
+    parsed.goals = parsed.goals.filter((g) => validGoals.includes(g as Goal)) as Goal[];
+    if (!parsed.goals.length) parsed.goals = ["eat_healthy"];
   }
   return { ...DEFAULT_PROFILE, ...parsed };
 }

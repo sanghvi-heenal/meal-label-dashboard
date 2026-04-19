@@ -132,13 +132,6 @@ export function buildRisk(
       severity: totals.satFat > profile.satFatTarget ? "high" : "watch",
     };
   }
-  if (goals.includes("gain_muscle") && dayProgress() > 0.5 && totals.protein < profile.proteinTarget * 0.5) {
-    return {
-      label: "Protein behind for muscle goal",
-      detail: `${totals.protein}g of ${profile.proteinTarget}g — load up at the next meal.`,
-      severity: "watch",
-    };
-  }
   if (goals.includes("gain_weight") && dayProgress() > 0.6 && totals.calories < profile.calorieTarget * 0.5) {
     return {
       label: "Calories behind your gain target",
