@@ -109,9 +109,8 @@ const Dashboard = () => {
       </div>
 
       {/* Full rings & breakdown — always visible */}
-      {true && (
-        <div className="space-y-4 animate-fade-in">
-          {/* Calories | Hydration toggle */}
+      <div className="space-y-4 animate-fade-in">
+        {/* Calories | Hydration toggle */}
           <div className="grid grid-cols-2 gap-1 p-1 rounded-full bg-secondary/60 border border-border">
             <button
               onClick={() => setDetailView("calories")}
