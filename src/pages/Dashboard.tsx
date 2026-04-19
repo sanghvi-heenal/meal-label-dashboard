@@ -35,6 +35,7 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const [profile, setProfile] = useState(getProfile());
   const [showDetails, setShowDetails] = useState(false);
+  const [detailView, setDetailView] = useState<"calories" | "hydration">("calories");
   const todayMeals = getMealsByDate(getTodayString());
 
   // First-run hydration onboarding (kept; only shows after main onboarding completes)
