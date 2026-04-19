@@ -115,7 +115,10 @@
     "validAmount": "Enter a valid amount",
     "targetsHint": "Your daily nutrition targets are automatically calculated based on your age, diet type, and BMI. Update your profile to adjust.",
     "about": "About NutriLens",
-    "aboutSub": "NutriLens helps you track your meals and understand your nutrition. All data is stored locally on your device."
+    "aboutSub": "NutriLens helps you track your meals and understand your nutrition. All data is stored locally on your device.",
+    "resetOnboarding": "Restart onboarding",
+    "resetOnboardingHint": "Go back through the welcome flow. Your meals and profile stay saved.",
+    "resetOnboardingToast": "Onboarding reset — taking you back to the start."
   },
   "onboarding": {
     "welcome": "Welcome",

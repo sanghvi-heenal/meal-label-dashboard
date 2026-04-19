@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { User, Bell, Target, Info, Pencil, Droplets, Languages } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { User, Bell, Target, Info, Pencil, Droplets, Languages, RotateCcw } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { formatHydration, getProfile, mlToUnit, saveProfile, type HydrationUnit, type Language, type UserProfile } from "@/lib/nutrition-store";
+import { formatHydration, getProfile, mlToUnit, resetOnboarding, saveProfile, type HydrationUnit, type Language, type UserProfile } from "@/lib/nutrition-store";
 import { useToast } from "@/hooks/use-toast";
 import i18n from "@/i18n";
 
@@ -13,6 +14,13 @@ const SettingsPage = () => {
   const [hydrationAmount, setHydrationAmount] = useState(String(mlToUnit(profile.hydrationTarget, profile.hydrationUnit)));
   const [hydrationUnit, setHydrationUnit] = useState<HydrationUnit>(profile.hydrationUnit);
   const { toast } = useToast();
+  const navigate = useNavigate();
+
+  const handleResetOnboarding = () => {
+    resetOnboarding();
+    toast({ title: t("settings.resetOnboardingToast") });
+    navigate("/onboarding");
+  };
 
   const update = (partial: Partial<UserProfile>) => {
     const next = { ...profile, ...partial };
@@ -273,6 +281,20 @@ const SettingsPage = () => {
         </div>
         <p className="text-sm text-muted-foreground">{t("settings.aboutSub")}</p>
       </div>
+
+      {/* Reset onboarding */}
+      <button
+        onClick={handleResetOnboarding}
+        className="w-full card-surface flex items-center gap-3 text-left hover:bg-secondary/40 transition-colors"
+      >
+        <div className="w-10 h-10 rounded-full bg-destructive/15 flex items-center justify-center shrink-0">
+          <RotateCcw size={18} className="text-destructive" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="font-semibold text-foreground">{t("settings.resetOnboarding")}</p>
+          <p className="text-xs text-muted-foreground">{t("settings.resetOnboardingHint")}</p>
+        </div>
+      </button>
     </div>
   );
 };
