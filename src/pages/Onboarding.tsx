@@ -5,15 +5,47 @@ import { ArrowLeft, ArrowRight, Sparkles } from "lucide-react";
 import StepCard, { type ChoiceOption } from "@/components/onboarding/StepCard";
 import GoalPicker from "@/components/onboarding/GoalPicker";
 import LanguagePicker from "@/components/onboarding/LanguagePicker";
+import AboutYouStep from "@/components/onboarding/AboutYouStep";
+import HydrationStep from "@/components/onboarding/HydrationStep";
 import i18n, { type Language } from "@/i18n";
 import {
+  computeBMI,
   getProfile,
   saveProfile,
   type AppJob,
   type Goal,
+  type HydrationUnit,
   type LogPref,
   type PainPoint,
 } from "@/lib/nutrition-store";
+
+type DietValue =
+  | "vegetarian"
+  | "vegan"
+  | "nonVeg"
+  | "eggetarian"
+  | "pescatarian"
+  | "jain"
+  | "keto"
+  | "none";
+
+const DIET_LABEL: Record<DietValue, string> = {
+  vegetarian: "Vegetarian",
+  vegan: "Vegan",
+  nonVeg: "Non-vegetarian",
+  eggetarian: "Eggetarian",
+  pescatarian: "Pescatarian",
+  jain: "Jain",
+  keto: "Keto",
+  none: "Balanced",
+};
+
+const dietValueFromStored = (stored: string): DietValue => {
+  const match = (Object.keys(DIET_LABEL) as DietValue[]).find(
+    (k) => DIET_LABEL[k] === stored
+  );
+  return match ?? "none";
+};
 
 const Onboarding = () => {
   const navigate = useNavigate();
@@ -22,14 +54,21 @@ const Onboarding = () => {
   const profile = getProfile();
 
   const [language, setLanguage] = useState<Language>(profile.language || "en");
+  const [age, setAge] = useState<number>(profile.age);
+  const [heightCm, setHeightCm] = useState<number>(profile.heightCm);
+  const [weightKg, setWeightKg] = useState<number>(profile.weightKg);
+  const [diet, setDiet] = useState<DietValue[]>([dietValueFromStored(profile.dietType)]);
   const [selectedGoals, setSelectedGoals] = useState<Goal[]>(
     profile.goals && profile.goals.length ? profile.goals : []
   );
   const [logPref, setLogPref] = useState<LogPref[]>(profile.logPrefs);
   const [painPoints, setPainPoints] = useState<PainPoint[]>(profile.painPoints);
   const [appJobs, setAppJobs] = useState<AppJob[]>(profile.appJobs);
+  const [hydrationUnit, setHydrationUnit] = useState<HydrationUnit>(profile.hydrationUnit);
+  const [currentHydrationMl, setCurrentHydrationMl] = useState<number>(profile.currentHydrationMl);
+  const [hydrationGoalMl, setHydrationGoalMl] = useState<number>(profile.hydrationTarget);
 
-  const total = 5;
+  const total = 8;
   const GOAL_CAP = 3;
   const GOAL_MIN = 2;
 
@@ -61,6 +100,16 @@ const Onboarding = () => {
     { value: "warn", emoji: "🚨", label: t("jobs.warn.label") },
     { value: "choose", emoji: "💡", label: t("jobs.choose.label") },
   ];
+  const diets: ChoiceOption<DietValue>[] = [
+    { value: "vegetarian", emoji: "🥗", label: t("diets.vegetarian.label"), hint: t("diets.vegetarian.hint") },
+    { value: "vegan", emoji: "🌱", label: t("diets.vegan.label"), hint: t("diets.vegan.hint") },
+    { value: "nonVeg", emoji: "🍗", label: t("diets.nonVeg.label"), hint: t("diets.nonVeg.hint") },
+    { value: "eggetarian", emoji: "🥚", label: t("diets.eggetarian.label"), hint: t("diets.eggetarian.hint") },
+    { value: "pescatarian", emoji: "🐟", label: t("diets.pescatarian.label"), hint: t("diets.pescatarian.hint") },
+    { value: "jain", emoji: "🙏", label: t("diets.jain.label"), hint: t("diets.jain.hint") },
+    { value: "keto", emoji: "🥑", label: t("diets.keto.label"), hint: t("diets.keto.hint") },
+    { value: "none", emoji: "✨", label: t("diets.none.label"), hint: t("diets.none.hint") },
+  ];
 
   const handleLanguageChange = (lang: Language) => {
     setLanguage(lang);
@@ -72,10 +121,18 @@ const Onboarding = () => {
     saveProfile({
       ...profile,
       language,
+      age,
+      heightCm,
+      weightKg,
+      bmi: computeBMI(heightCm, weightKg),
+      dietType: DIET_LABEL[diet[0] ?? "none"],
       goals: selectedGoals.length ? selectedGoals : ["eat_healthy"],
       logPrefs: logPref.length ? logPref : ["photo", "voice", "text"],
       painPoints,
       appJobs: appJobs.length ? appJobs : ["track"],
+      hydrationUnit,
+      currentHydrationMl,
+      hydrationTarget: hydrationGoalMl,
       onboardedAt: new Date().toISOString(),
     });
     navigate("/", { replace: true });
@@ -100,10 +157,14 @@ const Onboarding = () => {
 
   const stepValid = () => {
     if (step === 0) return !!language;
-    if (step === 1) return selectedGoals.length >= GOAL_MIN;
-    if (step === 2) return logPref.length > 0;
-    if (step === 3) return true;
-    if (step === 4) return appJobs.length > 0;
+    if (step === 1)
+      return age >= 10 && age <= 100 && heightCm >= 100 && heightCm <= 230 && weightKg >= 25 && weightKg <= 250;
+    if (step === 2) return diet.length === 1;
+    if (step === 3) return selectedGoals.length >= GOAL_MIN;
+    if (step === 4) return logPref.length > 0;
+    if (step === 5) return true;
+    if (step === 6) return appJobs.length > 0;
+    if (step === 7) return currentHydrationMl >= 0 && hydrationGoalMl >= 1000;
     return false;
   };
 
@@ -153,10 +214,35 @@ const Onboarding = () => {
           </div>
         )}
         {step === 1 && (
+          <AboutYouStep
+            step={2}
+            total={total}
+            age={age}
+            heightCm={heightCm}
+            weightKg={weightKg}
+            onChange={(p) => {
+              if (p.age !== undefined) setAge(p.age);
+              if (p.heightCm !== undefined) setHeightCm(p.heightCm);
+              if (p.weightKg !== undefined) setWeightKg(p.weightKg);
+            }}
+          />
+        )}
+        {step === 2 && (
+          <StepCard
+            step={3}
+            total={total}
+            title={t("onboarding.dietTitle")}
+            subtitle={t("onboarding.dietSub")}
+            options={diets}
+            selected={diet}
+            onToggle={(v) => setDiet([v])}
+          />
+        )}
+        {step === 3 && (
           <div className="space-y-6">
             <div>
               <p className="text-xs font-medium text-muted-foreground mb-2">
-                {t("onboarding.stepOf", { step: 2, total })}
+                {t("onboarding.stepOf", { step: 4, total })}
               </p>
               <h2 className="text-2xl font-bold text-foreground leading-tight">
                 {t("onboarding.goalsTitle")}
@@ -174,9 +260,9 @@ const Onboarding = () => {
             />
           </div>
         )}
-        {step === 2 && (
+        {step === 4 && (
           <StepCard
-            step={3}
+            step={5}
             total={total}
             title={t("onboarding.logPrefsTitle")}
             subtitle={t("onboarding.logPrefsSub")}
@@ -186,9 +272,9 @@ const Onboarding = () => {
             multi
           />
         )}
-        {step === 3 && (
+        {step === 5 && (
           <StepCard
-            step={4}
+            step={6}
             total={total}
             title={t("onboarding.painsTitle")}
             subtitle={t("onboarding.painsSub")}
@@ -198,9 +284,9 @@ const Onboarding = () => {
             multi
           />
         )}
-        {step === 4 && (
+        {step === 6 && (
           <StepCard
-            step={5}
+            step={7}
             total={total}
             title={t("onboarding.jobsTitle")}
             subtitle={t("onboarding.jobsSub")}
@@ -208,6 +294,20 @@ const Onboarding = () => {
             selected={appJobs}
             onToggle={(v) => toggleMulti(appJobs, setAppJobs, v)}
             multi
+          />
+        )}
+        {step === 7 && (
+          <HydrationStep
+            step={8}
+            total={total}
+            unit={hydrationUnit}
+            currentMl={currentHydrationMl}
+            goalMl={hydrationGoalMl}
+            onChange={(p) => {
+              if (p.unit !== undefined) setHydrationUnit(p.unit);
+              if (p.currentMl !== undefined) setCurrentHydrationMl(p.currentMl);
+              if (p.goalMl !== undefined) setHydrationGoalMl(p.goalMl);
+            }}
           />
         )}
       </div>
