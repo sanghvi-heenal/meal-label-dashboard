@@ -163,6 +163,12 @@ const Dashboard = () => {
                   </div>
                 </div>
               </div>
+              <button
+                onClick={() => navigate("/log")}
+                className="w-full py-2 rounded-lg bg-warning/10 hover:bg-warning/20 border border-warning/30 text-warning text-sm font-semibold transition-colors active:scale-95"
+              >
+                {t("dashboard.logMeal")}
+              </button>
             </div>
           ) : (
             /* Hydration ring detail */
