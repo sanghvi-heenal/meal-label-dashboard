@@ -127,6 +127,20 @@
     "languageSub": "You can change this later in Settings.",
     "english": "English",
     "hindi": "हिन्दी (Hindi)",
+    "aboutTitle": "Tell us about you",
+    "aboutSub": "We use this to personalize your calorie and macro targets.",
+    "ageLabel": "Age",
+    "heightLabel": "Height",
+    "weightLabel": "Weight",
+    "years": "years",
+    "bmiLabel": "Your BMI",
+    "dietTitle": "What's your diet?",
+    "dietSub": "Pick the one that fits best — you can change it later.",
+    "hydrationTitle": "Your hydration",
+    "hydrationSub": "How much you drink today, and where you'd like to be.",
+    "unitLabel": "Preferred unit",
+    "currentHydration": "How much do you drink today?",
+    "hydrationGoal": "Daily goal",
     "goalsTitle": "What do you want help with most?",
     "goalsSub": "Pick what matters most. You can change this later in Settings.",
     "logPrefsTitle": "How do you prefer logging?",
@@ -142,6 +156,22 @@
     "goalsSelected_one": "{{count}} goal selected",
     "goalsSelected_other": "{{count}} goals selected",
     "noOptions": "No options."
+  },
+  "bmi": {
+    "underweight": "Underweight",
+    "healthy": "Healthy",
+    "overweight": "Overweight",
+    "obese": "Obese"
+  },
+  "diets": {
+    "vegetarian": { "label": "Vegetarian", "hint": "No meat or fish." },
+    "vegan": { "label": "Vegan", "hint": "No animal products." },
+    "nonVeg": { "label": "Non-vegetarian", "hint": "Eats meat, fish, eggs." },
+    "eggetarian": { "label": "Eggetarian", "hint": "Vegetarian + eggs." },
+    "pescatarian": { "label": "Pescatarian", "hint": "Vegetarian + fish." },
+    "jain": { "label": "Jain", "hint": "No root vegetables, no meat." },
+    "keto": { "label": "Keto", "hint": "Low-carb, high-fat." },
+    "none": { "label": "No preference", "hint": "I eat a bit of everything." }
   },
   "goals": {
     "eat_healthy": { "label": "Generally eat healthier", "hint": "Balanced meals, no obsessing." },

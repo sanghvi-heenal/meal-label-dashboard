@@ -31,8 +31,11 @@ export type Language = "en" | "hi";
 
 export interface UserProfile {
   age: number;
+  heightCm: number;
+  weightKg: number;
   dietType: string;
   bmi: number;
+  currentHydrationMl: number;
   calorieTarget: number;
   proteinTarget: number;
   carbsTarget: number;
@@ -56,8 +59,11 @@ export interface UserProfile {
 
 const DEFAULT_PROFILE: UserProfile = {
   age: 30,
+  heightCm: 165,
+  weightKg: 65,
   dietType: "Balanced",
   bmi: 22,
+  currentHydrationMl: 1500,
   calorieTarget: 2000,
   proteinTarget: 55,
   carbsTarget: 280,
@@ -104,6 +110,30 @@ export function unitLabel(unit: HydrationUnit): string {
 /** Format a ml value in the user's preferred unit, e.g. "1.5 L", "320 ml", "8 glasses". */
 export function formatHydration(ml: number, unit: HydrationUnit): string {
   return `${mlToUnit(ml, unit)} ${unitLabel(unit)}`;
+}
+
+/** Convert a value from the given unit back to ml (canonical). */
+export function unitToMl(value: number, unit: HydrationUnit): number {
+  if (unit === "litres") return Math.round(value * 1000);
+  if (unit === "oz") return Math.round(value * ML_PER_OZ);
+  if (unit === "glasses") return Math.round(value * ML_PER_GLASS);
+  return Math.round(value);
+}
+
+/** Compute BMI from height (cm) and weight (kg), rounded to 1 decimal. */
+export function computeBMI(heightCm: number, weightKg: number): number {
+  if (!heightCm || !weightKg) return 0;
+  const m = heightCm / 100;
+  return Math.round((weightKg / (m * m)) * 10) / 10;
+}
+
+export type BmiCategory = "underweight" | "healthy" | "overweight" | "obese";
+
+export function bmiCategory(bmi: number): BmiCategory {
+  if (bmi < 18.5) return "underweight";
+  if (bmi < 25) return "healthy";
+  if (bmi < 30) return "overweight";
+  return "obese";
 }
 
 const LEGACY_GOAL_MAP: Record<string, Goal> = {

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { User, Bell, Target, Info, Pencil, Droplets, Languages, RotateCcw } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { formatHydration, getProfile, mlToUnit, resetOnboarding, saveProfile, type HydrationUnit, type Language, type UserProfile } from "@/lib/nutrition-store";
+import { computeBMI, formatHydration, getProfile, mlToUnit, resetOnboarding, saveProfile, type HydrationUnit, type Language, type UserProfile } from "@/lib/nutrition-store";
 import { useToast } from "@/hooks/use-toast";
 import i18n from "@/i18n";
 
@@ -24,6 +24,10 @@ const SettingsPage = () => {
 
   const update = (partial: Partial<UserProfile>) => {
     const next = { ...profile, ...partial };
+    // Auto-recompute BMI if height or weight changed
+    if (partial.heightCm !== undefined || partial.weightKg !== undefined) {
+      next.bmi = computeBMI(next.heightCm, next.weightKg);
+    }
     setProfile(next);
     saveProfile(next);
   };
@@ -142,15 +146,23 @@ const SettingsPage = () => {
 
       {editing && (
         <div className="card-surface space-y-3">
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-3 gap-2">
             <div>
               <label className="text-xs text-muted-foreground">{t("settings.age")}</label>
               <input type="number" value={profile.age} onChange={(e) => update({ age: Number(e.target.value) })} className="w-full mt-1 px-3 py-2 rounded-lg bg-secondary border border-border text-foreground text-sm focus:outline-none focus:ring-1 focus:ring-primary" />
             </div>
             <div>
-              <label className="text-xs text-muted-foreground">{t("settings.bmi")}</label>
-              <input type="number" value={profile.bmi} onChange={(e) => update({ bmi: Number(e.target.value) })} className="w-full mt-1 px-3 py-2 rounded-lg bg-secondary border border-border text-foreground text-sm focus:outline-none focus:ring-1 focus:ring-primary" />
+              <label className="text-xs text-muted-foreground">{t("onboarding.heightLabel")} (cm)</label>
+              <input type="number" value={profile.heightCm} onChange={(e) => update({ heightCm: Number(e.target.value) })} className="w-full mt-1 px-3 py-2 rounded-lg bg-secondary border border-border text-foreground text-sm focus:outline-none focus:ring-1 focus:ring-primary" />
             </div>
+            <div>
+              <label className="text-xs text-muted-foreground">{t("onboarding.weightLabel")} (kg)</label>
+              <input type="number" value={profile.weightKg} onChange={(e) => update({ weightKg: Number(e.target.value) })} className="w-full mt-1 px-3 py-2 rounded-lg bg-secondary border border-border text-foreground text-sm focus:outline-none focus:ring-1 focus:ring-primary" />
+            </div>
+          </div>
+          <div className="flex items-center justify-between rounded-lg bg-primary/5 px-3 py-2">
+            <span className="text-xs font-medium text-muted-foreground">{t("settings.bmi")}</span>
+            <span className="text-sm font-semibold text-foreground">{profile.bmi}</span>
           </div>
           <div>
             <label className="text-xs text-muted-foreground">{t("settings.dietType")}</label>
