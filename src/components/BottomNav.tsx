@@ -1,4 +1,4 @@
-import { Home, Camera, Clock, Settings } from "lucide-react";
+import { Home, Camera, Clock, Lightbulb, Settings } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 
@@ -10,6 +10,7 @@ const BottomNav = () => {
   const tabs = [
     { path: "/", icon: Home, label: t("nav.dashboard") },
     { path: "/log", icon: Camera, label: t("nav.log") },
+    { path: "/suggestions", icon: Lightbulb, label: t("nav.ideas") },
     { path: "/history", icon: Clock, label: t("nav.history") },
     { path: "/settings", icon: Settings, label: t("nav.settings") },
   ];

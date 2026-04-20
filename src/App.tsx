@@ -9,6 +9,7 @@ import LogMeal from "./pages/LogMeal";
 import History from "./pages/History";
 import SettingsPage from "./pages/SettingsPage";
 import Onboarding from "./pages/Onboarding";
+import Suggestions from "./pages/Suggestions";
 import NotFound from "./pages/NotFound";
 import { isOnboarded } from "@/lib/nutrition-store";
 
@@ -33,6 +34,7 @@ const App = () => (
           <Route path="/" element={<RequireOnboarding><Index /></RequireOnboarding>} />
           <Route path="/log" element={<RequireOnboarding><LogMeal /></RequireOnboarding>} />
           <Route path="/history" element={<RequireOnboarding><History /></RequireOnboarding>} />
+          <Route path="/suggestions" element={<RequireOnboarding><Suggestions /></RequireOnboarding>} />
           <Route path="/settings" element={<RequireOnboarding><SettingsPage /></RequireOnboarding>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
