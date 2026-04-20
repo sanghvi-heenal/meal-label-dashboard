@@ -13,6 +13,7 @@
   "nav": {
     "dashboard": "Dashboard",
     "log": "Log",
+    "ideas": "Ideas",
     "history": "History",
     "settings": "Settings"
   },
@@ -34,6 +35,8 @@
     "kcal": "kcal",
     "logDrink": "+ Log a drink",
     "logMeal": "+ Log a meal",
+    "getIdeas": "Get meal ideas",
+    "getIdeasSub": "Smart suggestions based on what you ate today",
     "macros": "Macronutrients",
     "protein": "Protein",
     "carbs": "Carbs",
@@ -205,5 +208,15 @@
     "title": "404",
     "message": "Oops! Page not found",
     "home": "Return to Home"
+  },
+  "suggestions": {
+    "title": "Meal ideas for you",
+    "subtitle": "Based on what you ate today",
+    "empty": "Log a meal first and we'll suggest what to add next.",
+    "refresh": "Refresh ideas",
+    "whyItFits": "Why it fits",
+    "quickTip": "Quick tip",
+    "errorTitle": "Couldn't load suggestions",
+    "tryAgain": "Try again"
   }
 }

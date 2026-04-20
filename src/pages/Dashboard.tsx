@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { User } from "lucide-react";
+import { User, Lightbulb, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import CalorieRing from "@/components/CalorieRing";
@@ -239,6 +239,21 @@ const Dashboard = () => {
               </div>
             </div>
           </div>
+
+          {/* Meal ideas entry */}
+          <button
+            onClick={() => navigate("/suggestions")}
+            className="card-surface card-tint-primary w-full flex items-center gap-3 text-left active:scale-[0.98] transition-transform"
+          >
+            <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+              <Lightbulb size={18} className="text-primary" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-foreground">{t("dashboard.getIdeas")}</p>
+              <p className="text-xs text-muted-foreground">{t("dashboard.getIdeasSub")}</p>
+            </div>
+            <ChevronRight size={18} className="text-muted-foreground flex-shrink-0" />
+          </button>
         </div>
 
 
