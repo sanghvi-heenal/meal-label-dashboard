@@ -1,8 +1,9 @@
-import { useEffect, useState, useCallback, useMemo } from "react";
-import { Lightbulb, RefreshCw, AlertCircle, Sparkles, Loader2 } from "lucide-react";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
+import { Lightbulb, RefreshCw, AlertCircle, Sparkles, Loader2, Database } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import {
   getMealsByDate,
   getProfile,
@@ -10,42 +11,23 @@ import {
 } from "@/lib/nutrition-store";
 import { sumTotals } from "@/lib/insights";
 import GapSummary from "@/components/suggestions/GapSummary";
-import SuggestionCard, { type Suggestion } from "@/components/suggestions/SuggestionCard";
+import IdeaCard, { type IdeaSuggestion } from "@/components/suggestions/IdeaCard";
+import IdeasFilters, {
+  autoPickMealType,
+  type MealTypeFilter,
+  type MealWeightFilter,
+} from "@/components/suggestions/IdeasFilters";
 import RecipeSearchBar from "@/components/suggestions/RecipeSearchBar";
 import SwapCard, { type RecipeSwap } from "@/components/suggestions/SwapCard";
 import { toast } from "@/hooks/use-toast";
 
 interface SuggestionsResponse {
   gapSummary: string;
-  suggestions: Suggestion[];
+  suggestions: IdeaSuggestion[];
 }
 
-const CACHE_KEY = "nutrilens-suggestions-cache";
 const SEARCH_CACHE_KEY = "nutrilens-recipe-search-cache";
 const SEARCH_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24h
-
-interface CacheEntry {
-  date: string;
-  mealCount: number;
-  data: SuggestionsResponse;
-}
-
-const readCache = (date: string, mealCount: number): SuggestionsResponse | null => {
-  try {
-    const raw = localStorage.getItem(CACHE_KEY);
-    if (!raw) return null;
-    const entry = JSON.parse(raw) as CacheEntry;
-    if (entry.date === date && entry.mealCount === mealCount) return entry.data;
-    return null;
-  } catch {
-    return null;
-  }
-};
-
-const writeCache = (date: string, mealCount: number, data: SuggestionsResponse) => {
-  const entry: CacheEntry = { date, mealCount, data };
-  localStorage.setItem(CACHE_KEY, JSON.stringify(entry));
-};
 
 interface SearchCacheEntry {
   query: string;
@@ -83,7 +65,6 @@ const writeSearchCache = (query: string, dietType: string, results: RecipeSwap[]
       ts: Date.now(),
       results,
     };
-    // cap at ~30 entries to keep localStorage small
     const keys = Object.keys(map);
     if (keys.length > 30) {
       const sorted = keys
@@ -105,10 +86,17 @@ const writeSearchCache = (query: string, dietType: string, results: RecipeSwap[]
 const Suggestions = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
+
+  // Filter state (defaults: auto-pick by clock, light)
+  const [mealType, setMealType] = useState<MealTypeFilter>(() => autoPickMealType());
+  const [mealWeight, setMealWeight] = useState<MealWeightFilter>("light");
+
   const [data, setData] = useState<SuggestionsResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fromCache, setFromCache] = useState(false);
 
   // Search state
   const [searchQuery, setSearchQuery] = useState("");
@@ -143,27 +131,67 @@ const Suggestions = () => {
     return result;
   }, [meals, cleanMealName]);
 
-  const remaining = {
-    calories: Math.max(profile.calorieTarget - totals.calories, 0),
-    protein: Math.max(profile.proteinTarget - totals.protein, 0),
-    carbs: Math.max(profile.carbsTarget - totals.carbs, 0),
-    fat: Math.max(profile.fatTarget - totals.fat, 0),
-    fiber: Math.max(profile.fiberTarget - totals.fiber, 0),
-  };
+  const remaining = useMemo(
+    () => ({
+      calories: Math.max(profile.calorieTarget - totals.calories, 0),
+      protein: Math.max(profile.proteinTarget - totals.protein, 0),
+      carbs: Math.max(profile.carbsTarget - totals.carbs, 0),
+      fat: Math.max(profile.fatTarget - totals.fat, 0),
+      fiber: Math.max(profile.fiberTarget - totals.fiber, 0),
+    }),
+    [profile, totals],
+  );
 
-  const fetchSuggestions = useCallback(
+  const deficits = useMemo(
+    () => ({
+      protein: Math.max(profile.proteinTarget - totals.protein, 0),
+      fiber: Math.max(profile.fiberTarget - totals.fiber, 0),
+      calories: Math.max(profile.calorieTarget - totals.calories, 0),
+    }),
+    [profile, totals],
+  );
+
+  // Track in-flight requests so filter changes cancel stale ones.
+  const requestIdRef = useRef(0);
+
+  const fetchIdeas = useCallback(
     async (forceRefresh = false) => {
-      if (meals.length === 0) return;
+      if (!user) return;
+      const reqId = ++requestIdRef.current;
+      setError(null);
+
+      // 1. Try server cache first (cached_ideas).
       if (!forceRefresh) {
-        const cached = readCache(today, meals.length);
-        if (cached) {
-          setData(cached);
-          return;
+        try {
+          const { data: cacheRow } = await supabase
+            .from("cached_ideas")
+            .select("suggestions, updated_at")
+            .eq("user_id", user.id)
+            .eq("diet_type", profile.dietType)
+            .eq("meal_type", mealType)
+            .eq("meal_weight", mealWeight)
+            .maybeSingle();
+
+          if (reqId !== requestIdRef.current) return; // stale
+          if (cacheRow?.suggestions) {
+            // Same-day cache hit
+            const updated = new Date(cacheRow.updated_at);
+            const isToday = updated.toISOString().split("T")[0] === today;
+            if (isToday) {
+              setData(cacheRow.suggestions as unknown as SuggestionsResponse);
+              setFromCache(true);
+              return;
+            }
+          }
+        } catch (e) {
+          // ignore cache read errors and fall through to live fetch
+          console.warn("cached_ideas read failed", e);
         }
       }
 
+      // 2. Live fetch from edge function
       setLoading(true);
-      setError(null);
+      setFromCache(false);
       try {
         const { data: resp, error: fnError } = await supabase.functions.invoke("suggest-meals", {
           body: {
@@ -180,32 +208,59 @@ const Suggestions = () => {
             dietType: profile.dietType,
             goals: profile.goals,
             language: profile.language,
+            allergies: profile.allergies,
+            allergiesOther: profile.allergiesOther,
+            healthGoal: profile.goals[0],
+            mealType,
+            mealWeight,
+            deficits,
           },
         });
 
+        if (reqId !== requestIdRef.current) return; // stale
         if (fnError) throw fnError;
         if (!resp || (resp as { error?: string }).error) {
-          throw new Error((resp as { error?: string })?.error || "Failed to load suggestions");
+          throw new Error((resp as { error?: string })?.error || "Failed to load ideas");
         }
 
         const result = resp as SuggestionsResponse;
         setData(result);
-        writeCache(today, meals.length, result);
+
+        // 3. Persist to server cache (upsert)
+        try {
+          await supabase
+            .from("cached_ideas")
+            .upsert(
+              {
+                user_id: user.id,
+                diet_type: profile.dietType,
+                meal_type: mealType,
+                meal_weight: mealWeight,
+                suggestions: result as unknown as never,
+                updated_at: new Date().toISOString(),
+              },
+              { onConflict: "user_id,diet_type,meal_type,meal_weight" },
+            );
+        } catch (e) {
+          console.warn("cached_ideas upsert failed", e);
+        }
       } catch (e) {
+        if (reqId !== requestIdRef.current) return;
         const msg = e instanceof Error ? e.message : "Something went wrong";
         setError(msg);
         toast({ title: t("suggestions.errorTitle"), description: msg, variant: "destructive" });
       } finally {
-        setLoading(false);
+        if (reqId === requestIdRef.current) setLoading(false);
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [meals.length, today],
+    [user?.id, mealType, mealWeight, profile.dietType, today],
   );
 
+  // Refetch whenever filter or user changes.
   useEffect(() => {
-    fetchSuggestions(false);
-  }, [fetchSuggestions]);
+    fetchIdeas(false);
+  }, [fetchIdeas]);
 
   const runSearch = useCallback(
     async (query: string, forceRefresh = false) => {
@@ -263,11 +318,13 @@ const Suggestions = () => {
       const cleaned = focus.trim().replace(/\s*\([^)]*\)\s*$/, "").trim();
       setSearchQuery(cleaned);
       runSearch(cleaned, false);
-      // Remove the param so refreshes don't re-trigger
       setSearchParams({}, { replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const filterLabel = t(`suggestions.filters.${mealType}`);
+  const weightLabel = t(`suggestions.filters.${mealWeight}`);
 
   return (
     <div className="px-4 pt-6 pb-24 max-w-md mx-auto space-y-4">
@@ -284,7 +341,7 @@ const Suggestions = () => {
 
       {/* Search bar — always visible */}
       <RecipeSearchBar
-        key={searchQuery /* remount when ?focus= sets a new value */}
+        key={searchQuery}
         initialValue={searchQuery}
         loggedToday={loggedTodayChips}
         loading={searchLoading}
@@ -359,16 +416,81 @@ const Suggestions = () => {
         </div>
       )}
 
-      {/* Add-ons section header (only shows when there are logged meals) */}
-      {meals.length > 0 && (
-        <div className="pt-2 px-1">
-          <h2 className="text-lg font-bold text-foreground">{t("suggestions.addOnsTitle")}</h2>
-          <p className="text-xs text-muted-foreground">{t("suggestions.addOnsSub")}</p>
+      {/* ============ Ideas-for-you section ============ */}
+      <div className="pt-2 px-1">
+        <h2 className="text-lg font-bold text-foreground">{t("suggestions.ideasForTitle")}</h2>
+        <p className="text-xs text-muted-foreground">
+          {t("suggestions.ideasForSub", { type: filterLabel, weight: weightLabel })}
+        </p>
+      </div>
+
+      <IdeasFilters
+        mealType={mealType}
+        mealWeight={mealWeight}
+        onMealTypeChange={setMealType}
+        onMealWeightChange={setMealWeight}
+      />
+
+      {/* Loading skeleton */}
+      {loading && (
+        <div className="space-y-3 animate-fade-in">
+          <div className="card-surface h-20 animate-pulse bg-secondary/40" />
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="card-surface h-72 animate-pulse bg-secondary/40" />
+          ))}
         </div>
       )}
 
-      {/* Empty state — no meals logged yet */}
-      {meals.length === 0 && (
+      {/* Error state */}
+      {!loading && error && (
+        <div className="card-surface card-tint-warning flex gap-3 items-start animate-fade-in">
+          <AlertCircle size={20} className="text-warning flex-shrink-0 mt-0.5" />
+          <div className="space-y-2 flex-1">
+            <p className="text-sm text-foreground">{error}</p>
+            <button
+              onClick={() => fetchIdeas(true)}
+              className="text-xs font-semibold text-warning hover:underline"
+            >
+              {t("suggestions.tryAgain")}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Results */}
+      {!loading && data && (
+        <div className="space-y-4">
+          {data.gapSummary && <GapSummary text={data.gapSummary} />}
+
+          <div className="flex items-center justify-between gap-2">
+            {fromCache ? (
+              <span className="text-[11px] font-medium text-muted-foreground inline-flex items-center gap-1">
+                <Database size={11} />
+                {t("suggestions.cached")}
+              </span>
+            ) : (
+              <span />
+            )}
+            <button
+              onClick={() => fetchIdeas(true)}
+              disabled={loading}
+              className="text-xs font-semibold text-muted-foreground hover:text-foreground inline-flex items-center gap-1 active:scale-95 transition-transform"
+            >
+              <RefreshCw size={12} />
+              {t("suggestions.refresh")}
+            </button>
+          </div>
+
+          <div className="space-y-3">
+            {data.suggestions.map((s, i) => (
+              <IdeaCard key={`${s.name}-${i}`} idea={s} index={i} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Empty state — no results AND not loading AND no error */}
+      {!loading && !error && !data && meals.length === 0 && (
         <div className="card-surface text-center space-y-3 animate-fade-in">
           <div className="w-12 h-12 rounded-full bg-muted mx-auto flex items-center justify-center">
             <Lightbulb size={22} className="text-muted-foreground" />
@@ -380,54 +502,6 @@ const Suggestions = () => {
           >
             {t("dashboard.logMeal")}
           </button>
-        </div>
-      )}
-
-      {/* Loading skeleton */}
-      {loading && (
-        <div className="space-y-3 animate-fade-in">
-          <div className="card-surface h-20 animate-pulse bg-secondary/40" />
-          {[0, 1, 2].map((i) => (
-            <div key={i} className="card-surface h-40 animate-pulse bg-secondary/40" />
-          ))}
-        </div>
-      )}
-
-      {/* Error state */}
-      {!loading && error && meals.length > 0 && (
-        <div className="card-surface card-tint-warning flex gap-3 items-start animate-fade-in">
-          <AlertCircle size={20} className="text-warning flex-shrink-0 mt-0.5" />
-          <div className="space-y-2 flex-1">
-            <p className="text-sm text-foreground">{error}</p>
-            <button
-              onClick={() => fetchSuggestions(true)}
-              className="text-xs font-semibold text-warning hover:underline"
-            >
-              {t("suggestions.tryAgain")}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Results */}
-      {!loading && data && meals.length > 0 && (
-        <div className="space-y-4">
-          <GapSummary text={data.gapSummary} />
-
-          <button
-            onClick={() => fetchSuggestions(true)}
-            disabled={loading}
-            className="w-full py-2 rounded-lg bg-secondary hover:bg-secondary/80 border border-border text-foreground text-sm font-semibold flex items-center justify-center gap-2 active:scale-95 transition-transform"
-          >
-            <RefreshCw size={14} />
-            {t("suggestions.refresh")}
-          </button>
-
-          <div className="space-y-3">
-            {data.suggestions.map((s, i) => (
-              <SuggestionCard key={`${s.name}-${i}`} suggestion={s} index={i} />
-            ))}
-          </div>
         </div>
       )}
     </div>
