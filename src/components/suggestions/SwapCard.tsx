@@ -1,5 +1,6 @@
 import { Play, Search, ExternalLink } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { handleExternalClick } from "@/lib/external-link";
 
 export interface RecipeSwap {
   name: string;
@@ -41,6 +42,7 @@ const SwapCard = ({ swap, index = 0 }: SwapCardProps) => {
         href={watchUrl}
         target="_blank"
         rel="noopener noreferrer"
+        onClick={handleExternalClick(watchUrl)}
         className="block relative -mx-4 -mt-4 mb-1 aspect-video bg-secondary/60 group"
       >
         {swap.thumbnailUrl ? (
