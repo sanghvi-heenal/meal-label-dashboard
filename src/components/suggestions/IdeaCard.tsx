@@ -38,6 +38,14 @@ const IdeaCard = ({ idea, index = 0 }: IdeaCardProps) => {
     ?? `https://www.youtube.com/results?search_query=${encodeURIComponent(idea.searchQuery)}`;
   const thumb = idea.youtubeThumbnailUrl ?? idea.articleImage;
 
+  // Preview iframes (e.g. Lovable sandbox) block youtube.com from loading.
+  // Force the link to open in the top-level window via window.open with noopener.
+  const openExternal = (url: string) => (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
+
   return (
     <div
       className="card-surface space-y-3 animate-fade-in overflow-hidden"
@@ -48,6 +56,7 @@ const IdeaCard = ({ idea, index = 0 }: IdeaCardProps) => {
         href={watchUrl}
         target="_blank"
         rel="noopener noreferrer"
+        onClick={openExternal(watchUrl)}
         className="block relative -mx-4 -mt-4 mb-1 aspect-video bg-secondary/60 group"
       >
         {thumb ? (
