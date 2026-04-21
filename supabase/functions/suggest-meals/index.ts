@@ -116,7 +116,10 @@ async function findYoutubeVideo(searchQuery: string, apiKey?: string): Promise<Y
   const fallback: YoutubeMatch = {
     youtubeSearchUrl: `https://www.youtube.com/results?search_query=${encodeURIComponent(searchQuery)}`,
   };
-  if (!apiKey) return fallback;
+  if (!apiKey) {
+    console.warn("[youtube] no YOUTUBE_API_KEY configured; using search fallback for:", searchQuery);
+    return fallback;
+  }
   try {
     const url = new URL("https://www.googleapis.com/youtube/v3/search");
     url.searchParams.set("part", "snippet");
@@ -128,13 +131,40 @@ async function findYoutubeVideo(searchQuery: string, apiKey?: string): Promise<Y
     url.searchParams.set("key", apiKey);
     const res = await fetch(url.toString());
     if (!res.ok) {
-      console.warn("YouTube search failed", res.status, await res.text());
+      const bodyText = await res.text();
+      // Try to surface a clear reason: quota / disabled API / invalid key.
+      let reason = "unknown";
+      try {
+        const parsedErr = JSON.parse(bodyText);
+        const apiReason = parsedErr?.error?.errors?.[0]?.reason;
+        const apiMessage = parsedErr?.error?.message;
+        if (apiReason === "quotaExceeded" || apiReason === "dailyLimitExceeded") {
+          reason = "quota_exceeded";
+        } else if (apiReason === "keyInvalid" || res.status === 400) {
+          reason = "invalid_api_key";
+        } else if (apiReason === "accessNotConfigured") {
+          reason = "youtube_data_api_disabled";
+        } else if (res.status === 403) {
+          reason = "forbidden_or_restricted_key";
+        }
+        console.warn(
+          `[youtube] search failed status=${res.status} reason=${reason} apiReason=${apiReason} message=${apiMessage} query="${searchQuery}"`,
+        );
+      } catch {
+        console.warn(
+          `[youtube] search failed status=${res.status} reason=${reason} body=${bodyText.slice(0, 300)} query="${searchQuery}"`,
+        );
+      }
       return fallback;
     }
     const data = await res.json();
     const item = data.items?.[0];
     const id = item?.id?.videoId;
-    if (!id) return fallback;
+    if (!id) {
+      console.warn(`[youtube] no video found for query="${searchQuery}" (items=${data.items?.length ?? 0})`);
+      return fallback;
+    }
+    console.log(`[youtube] matched videoId=${id} for query="${searchQuery}"`);
     return {
       youtubeId: id,
       youtubeTitle: item.snippet?.title,
@@ -144,7 +174,7 @@ async function findYoutubeVideo(searchQuery: string, apiKey?: string): Promise<Y
       youtubeSearchUrl: fallback.youtubeSearchUrl,
     };
   } catch (e) {
-    console.warn("YouTube fetch error", e);
+    console.warn(`[youtube] fetch threw for query="${searchQuery}":`, e);
     return fallback;
   }
 }
