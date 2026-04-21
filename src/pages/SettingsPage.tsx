@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { User, Bell, Target, Info, Pencil, Droplets, Languages, RotateCcw } from "lucide-react";
+import { User, Bell, Target, Info, Pencil, Droplets, Languages, RotateCcw, ShieldAlert } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { computeBMI, formatHydration, getProfile, mlToUnit, resetOnboarding, saveProfile, type HydrationUnit, type Language, type UserProfile } from "@/lib/nutrition-store";
+import { computeBMI, formatHydration, getProfile, mlToUnit, resetOnboarding, saveProfile, type Allergy, type HydrationUnit, type Language, type UserProfile } from "@/lib/nutrition-store";
 import { useToast } from "@/hooks/use-toast";
 import i18n from "@/i18n";
 
