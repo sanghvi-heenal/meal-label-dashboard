@@ -1,6 +1,6 @@
-import { useEffect, useState, useCallback } from "react";
-import { Lightbulb, RefreshCw, AlertCircle } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState, useCallback, useMemo } from "react";
+import { Lightbulb, RefreshCw, AlertCircle, Sparkles, Loader2 } from "lucide-react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -11,6 +11,8 @@ import {
 import { sumTotals } from "@/lib/insights";
 import GapSummary from "@/components/suggestions/GapSummary";
 import SuggestionCard, { type Suggestion } from "@/components/suggestions/SuggestionCard";
+import RecipeSearchBar from "@/components/suggestions/RecipeSearchBar";
+import SwapCard, { type RecipeSwap } from "@/components/suggestions/SwapCard";
 import { toast } from "@/hooks/use-toast";
 
 interface SuggestionsResponse {
@@ -19,6 +21,8 @@ interface SuggestionsResponse {
 }
 
 const CACHE_KEY = "nutrilens-suggestions-cache";
+const SEARCH_CACHE_KEY = "nutrilens-recipe-search-cache";
+const SEARCH_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24h
 
 interface CacheEntry {
   date: string;
@@ -41,6 +45,61 @@ const readCache = (date: string, mealCount: number): SuggestionsResponse | null 
 const writeCache = (date: string, mealCount: number, data: SuggestionsResponse) => {
   const entry: CacheEntry = { date, mealCount, data };
   localStorage.setItem(CACHE_KEY, JSON.stringify(entry));
+};
+
+interface SearchCacheEntry {
+  query: string;
+  dietType: string;
+  ts: number;
+  results: RecipeSwap[];
+}
+type SearchCacheMap = Record<string, SearchCacheEntry>;
+
+const normalizeQuery = (q: string) => q.trim().toLowerCase().replace(/\s+/g, " ");
+const buildSearchKey = (query: string, dietType: string) =>
+  `${normalizeQuery(query)}::${dietType}`;
+
+const readSearchCache = (query: string, dietType: string): RecipeSwap[] | null => {
+  try {
+    const raw = localStorage.getItem(SEARCH_CACHE_KEY);
+    if (!raw) return null;
+    const map = JSON.parse(raw) as SearchCacheMap;
+    const entry = map[buildSearchKey(query, dietType)];
+    if (!entry) return null;
+    if (Date.now() - entry.ts > SEARCH_CACHE_TTL_MS) return null;
+    return entry.results;
+  } catch {
+    return null;
+  }
+};
+
+const writeSearchCache = (query: string, dietType: string, results: RecipeSwap[]) => {
+  try {
+    const raw = localStorage.getItem(SEARCH_CACHE_KEY);
+    const map: SearchCacheMap = raw ? (JSON.parse(raw) as SearchCacheMap) : {};
+    map[buildSearchKey(query, dietType)] = {
+      query: normalizeQuery(query),
+      dietType,
+      ts: Date.now(),
+      results,
+    };
+    // cap at ~30 entries to keep localStorage small
+    const keys = Object.keys(map);
+    if (keys.length > 30) {
+      const sorted = keys
+        .map((k) => ({ k, ts: map[k].ts }))
+        .sort((a, b) => b.ts - a.ts)
+        .slice(0, 30)
+        .map((x) => x.k);
+      const trimmed: SearchCacheMap = {};
+      sorted.forEach((k) => (trimmed[k] = map[k]));
+      localStorage.setItem(SEARCH_CACHE_KEY, JSON.stringify(trimmed));
+    } else {
+      localStorage.setItem(SEARCH_CACHE_KEY, JSON.stringify(map));
+    }
+  } catch {
+    // ignore quota errors
+  }
 };
 
 const Suggestions = () => {
