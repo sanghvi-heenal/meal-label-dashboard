@@ -122,7 +122,11 @@
     "aboutSub": "NutriLens helps you track your meals and understand your nutrition. All data is stored locally on your device.",
     "resetOnboarding": "Restart onboarding",
     "resetOnboardingHint": "Go back through the welcome flow. Your meals and profile stay saved.",
-    "resetOnboardingToast": "Onboarding reset — taking you back to the start."
+    "resetOnboardingToast": "Onboarding reset — taking you back to the start.",
+    "allergiesTitle": "Allergies & food sensitivities",
+    "allergiesHint": "We'll skip these in your meal ideas.",
+    "allergiesOtherLabel": "Anything else? (optional)",
+    "allergiesOtherPlaceholder": "e.g. sesame, mustard, kiwi"
   },
   "onboarding": {
     "welcome": "Welcome",
@@ -160,6 +164,12 @@
     "goalsSelected_one": "{{count}} goal selected",
     "goalsSelected_other": "{{count}} goals selected",
     "noOptions": "No options."
+    ,
+    "allergiesTitle": "Any allergies or sensitivities?",
+    "allergiesSub": "We'll exclude these from your meal ideas. Optional — skip if none.",
+    "allergiesOtherLabel": "Anything else? (optional)",
+    "allergiesOtherPlaceholder": "e.g. sesame, mustard, kiwi",
+    "allergiesSkippable": "Optional — leave empty if none."
   },
   "bmi": {
     "underweight": "Underweight",

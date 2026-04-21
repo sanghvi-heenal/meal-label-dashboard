@@ -122,7 +122,11 @@
     "aboutSub": "NutriLens आपको अपने मील ट्रैक करने और न्यूट्रिशन समझने में मदद करता है। सारा डेटा आपके डिवाइस पर ही सेव होता है।",
     "resetOnboarding": "ऑनबोर्डिंग दोबारा शुरू करें",
     "resetOnboardingHint": "वेलकम फ्लो दोबारा देखें। आपके मील और प्रोफ़ाइल सेव रहेंगे।",
-    "resetOnboardingToast": "ऑनबोर्डिंग रीसेट हो गई — आपको शुरुआत पर ले जा रहे हैं।"
+    "resetOnboardingToast": "ऑनबोर्डिंग रीसेट हो गई — आपको शुरुआत पर ले जा रहे हैं।",
+    "allergiesTitle": "एलर्जी और फ़ूड सेंसिटिविटी",
+    "allergiesHint": "इन्हें आपके मील आइडियाज़ से हटा देंगे।",
+    "allergiesOtherLabel": "और कुछ? (वैकल्पिक)",
+    "allergiesOtherPlaceholder": "जैसे तिल, सरसों, कीवी"
   },
   "onboarding": {
     "welcome": "स्वागत है",
@@ -160,6 +164,12 @@
     "goalsSelected_one": "{{count}} गोल चुना",
     "goalsSelected_other": "{{count}} गोल चुने",
     "noOptions": "कोई विकल्प नहीं।"
+    ,
+    "allergiesTitle": "कोई एलर्जी या सेंसिटिविटी?",
+    "allergiesSub": "इन्हें आपके मील आइडियाज़ से हटा देंगे। वैकल्पिक — कोई न हो तो स्किप करें।",
+    "allergiesOtherLabel": "और कुछ? (वैकल्पिक)",
+    "allergiesOtherPlaceholder": "जैसे तिल, सरसों, कीवी",
+    "allergiesSkippable": "वैकल्पिक — कोई न हो तो खाली छोड़ें।"
   },
   "bmi": {
     "underweight": "कम वज़न",
