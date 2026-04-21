@@ -374,11 +374,46 @@ Suggest 3-5 specific dishes that complement what they've eaten, close the bigges
       });
     }
 
-    const parsed = JSON.parse(toolCall.function.arguments);
+    const parsed = JSON.parse(toolCall.function.arguments) as {
+      gapSummary: string;
+      suggestions: Array<{
+        name: string;
+        benefitLine: string;
+        calories: number;
+        protein: number;
+        carbs: number;
+        fat: number;
+        fiber: number;
+        tags: string[];
+        searchQuery: string;
+      }>;
+    };
+    const baseSuggestions = parsed.suggestions || [];
 
-    return new Response(JSON.stringify(parsed), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    // Enrich each suggestion with YouTube + (optional) article in parallel.
+    const enriched = await Promise.all(
+      baseSuggestions.map(async (s) => {
+        const [yt, article] = await Promise.all([
+          findYoutubeVideo(s.searchQuery, YOUTUBE_API_KEY),
+          findArticle(s.searchQuery, GOOGLE_SEARCH_API_KEY, GOOGLE_CSE_ID),
+        ]);
+        return {
+          ...s,
+          ...yt,
+          ...(article ?? {}),
+        };
+      }),
+    );
+
+    return new Response(
+      JSON.stringify({
+        gapSummary: parsed.gapSummary,
+        suggestions: enriched,
+        hasYoutubeKey: Boolean(YOUTUBE_API_KEY),
+        hasArticleKeys: Boolean(GOOGLE_SEARCH_API_KEY && GOOGLE_CSE_ID),
+      }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
   } catch (e) {
     console.error("suggest-meals error:", e);
     return new Response(
