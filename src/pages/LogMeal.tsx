@@ -20,6 +20,7 @@ import { saveMeal, getTodayString, type MealEntry } from "@/lib/nutrition-store"
 import { useNavigate, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useToast } from "@/hooks/use-toast";
+import { ToastAction } from "@/components/ui/toast";
 import { supabase } from "@/integrations/supabase/client";
 import DrinkDescribeSheet, { type DrinkAnalysisResult } from "@/components/DrinkDescribeSheet";
 import VerdictCard from "@/components/meal/VerdictCard";
@@ -533,7 +534,23 @@ const LogMeal = () => {
       timestamp: Date.now(),
     };
     saveMeal(entry);
-    toast({ title: "Meal logged!", description: `${foodName} added to ${selectedMeal} on ${logDateLabel}` });
+    if (isLoggingToday && selectedMeal !== "drink") {
+      toast({
+        title: t("logToast.title"),
+        description: t("logToast.body"),
+        duration: 6000,
+        action: (
+          <ToastAction
+            altText={t("logToast.seeIdeas")}
+            onClick={() => navigate(`/suggestions?focus=${encodeURIComponent(foodName.trim())}`)}
+          >
+            {t("logToast.seeIdeas")}
+          </ToastAction>
+        ),
+      });
+    } else {
+      toast({ title: "Meal logged!", description: `${foodName} added to ${selectedMeal} on ${logDateLabel}` });
+    }
     setShowSuccess(true);
     setTimeout(() => {
       setShowSuccess(false);
