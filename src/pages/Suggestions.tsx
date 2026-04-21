@@ -207,6 +207,68 @@ const Suggestions = () => {
     fetchSuggestions(false);
   }, [fetchSuggestions]);
 
+  const runSearch = useCallback(
+    async (query: string, forceRefresh = false) => {
+      const q = query.trim();
+      if (!q) return;
+      setActiveQuery(q);
+      setSearchError(null);
+
+      if (!forceRefresh) {
+        const cached = readSearchCache(q, profile.dietType);
+        if (cached) {
+          setSearchResults(cached);
+          return;
+        }
+      }
+
+      setSearchLoading(true);
+      setSearchResults(null);
+      try {
+        const { data: resp, error: fnError } = await supabase.functions.invoke(
+          "search-healthier-recipes",
+          {
+            body: {
+              query: q,
+              dietType: profile.dietType,
+              goals: profile.goals,
+              painPoints: profile.painPoints,
+              language: profile.language,
+            },
+          },
+        );
+        if (fnError) throw fnError;
+        if (!resp || (resp as { error?: string }).error) {
+          throw new Error((resp as { error?: string })?.error || "Search failed");
+        }
+        const results = (resp as { results: RecipeSwap[] }).results || [];
+        setSearchResults(results);
+        if (results.length > 0) writeSearchCache(q, profile.dietType, results);
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : "Something went wrong";
+        setSearchError(msg);
+        toast({ title: t("suggestions.errorTitle"), description: msg, variant: "destructive" });
+      } finally {
+        setSearchLoading(false);
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [profile.dietType, profile.language, t],
+  );
+
+  // Handle ?focus=<dish> deep link from the post-log toast.
+  useEffect(() => {
+    const focus = searchParams.get("focus");
+    if (focus && focus.trim()) {
+      const cleaned = focus.trim().replace(/\s*\([^)]*\)\s*$/, "").trim();
+      setSearchQuery(cleaned);
+      runSearch(cleaned, false);
+      // Remove the param so refreshes don't re-trigger
+      setSearchParams({}, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   return (
     <div className="px-4 pt-6 pb-24 max-w-md mx-auto space-y-4">
       {/* Header */}
