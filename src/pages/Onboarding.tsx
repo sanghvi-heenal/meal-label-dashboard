@@ -12,6 +12,7 @@ import {
   computeBMI,
   getProfile,
   saveProfile,
+  type Allergy,
   type AppJob,
   type Goal,
   type HydrationUnit,
@@ -67,8 +68,10 @@ const Onboarding = () => {
   const [hydrationUnit, setHydrationUnit] = useState<HydrationUnit>(profile.hydrationUnit);
   const [currentHydrationMl, setCurrentHydrationMl] = useState<number>(profile.currentHydrationMl);
   const [hydrationGoalMl, setHydrationGoalMl] = useState<number>(profile.hydrationTarget);
+  const [allergies, setAllergies] = useState<Allergy[]>(profile.allergies ?? []);
+  const [allergiesOther, setAllergiesOther] = useState<string>(profile.allergiesOther ?? "");
 
-  const total = 8;
+  const total = 9;
   const GOAL_CAP = 3;
   const GOAL_MIN = 2;
 
