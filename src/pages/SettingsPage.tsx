@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { User, Bell, Target, Info, Pencil, Droplets, Languages, RotateCcw, ShieldAlert } from "lucide-react";
+import { User, Bell, Target, Info, Pencil, Droplets, Languages, RotateCcw, ShieldAlert, LogOut } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { computeBMI, formatHydration, getProfile, mlToUnit, resetOnboarding, saveProfile, type Allergy, type HydrationUnit, type Language, type UserProfile } from "@/lib/nutrition-store";
 import { useToast } from "@/hooks/use-toast";
 import i18n from "@/i18n";
+import { useAuth } from "@/hooks/useAuth";
 
 const SettingsPage = () => {
   const { t } = useTranslation();
@@ -15,11 +16,18 @@ const SettingsPage = () => {
   const [hydrationUnit, setHydrationUnit] = useState<HydrationUnit>(profile.hydrationUnit);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { user, signOut } = useAuth();
 
   const handleResetOnboarding = () => {
     resetOnboarding();
     toast({ title: t("settings.resetOnboardingToast") });
     navigate("/onboarding");
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
+    toast({ title: t("auth.signedOut") });
+    navigate("/auth", { replace: true });
   };
 
   const update = (partial: Partial<UserProfile>) => {
@@ -346,6 +354,20 @@ const SettingsPage = () => {
         <div className="flex-1 min-w-0">
           <p className="font-semibold text-foreground">{t("settings.resetOnboarding")}</p>
           <p className="text-xs text-muted-foreground">{t("settings.resetOnboardingHint")}</p>
+        </div>
+      </button>
+
+      {/* Sign out */}
+      <button
+        onClick={handleSignOut}
+        className="w-full card-surface flex items-center gap-3 text-left hover:bg-secondary/40 transition-colors"
+      >
+        <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center shrink-0">
+          <LogOut size={18} className="text-muted-foreground" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="font-semibold text-foreground">{t("auth.signOut")}</p>
+          <p className="text-xs text-muted-foreground truncate">{user?.email ?? ""}</p>
         </div>
       </button>
     </div>
