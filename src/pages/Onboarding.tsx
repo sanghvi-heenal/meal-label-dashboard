@@ -144,6 +144,8 @@ const Onboarding = () => {
       hydrationUnit,
       currentHydrationMl,
       hydrationTarget: hydrationGoalMl,
+      allergies,
+      allergiesOther: allergiesOther.trim(),
       onboardedAt: new Date().toISOString(),
     });
     navigate("/", { replace: true });
