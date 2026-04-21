@@ -1,88 +1,153 @@
 
-## Plan: Post-log nudge + searchable Ideas page
 
-Two related additions to the Ideas flow:
+## Plan: Visual Ideas page — YouTube + article cards, filters, caching, and post-meal alert
 
-1. **Toast nudge after logging a meal** — right after a meal is saved, show a friendly toast: *"Nice — meal logged! Tap to see healthier ideas based on what you've eaten."* Tapping it deep-links to `/suggestions`.
-2. **Search bar on the Ideas page** — user types a dish (e.g. *"roti and lady's finger"*) and gets back **healthier, protein-boosted versions of that exact dish** as recipe cards, each with a YouTube recipe link. Works independently of what they've logged today.
+A 5-step build that turns the **Ideas** page into a visual recipe grid powered by YouTube thumbnails and Open Graph article previews, personalized by diet, allergies, meal type, and meal weight, with safe daily caching.
 
-Yes, this is fully possible — the AI generates the healthier variants, and YouTube Data API v3 finds a real recipe video for each one (same approach as the previously approved "Healthier Swaps" plan).
+I'll build this in phases and pause for you to verify after each phase.
 
-### 1. Post-log toast nudge
+### Phase 1 — User preferences (allergies + finer meal context)
 
-After a successful save in `LogMeal.tsx`, show a sonner toast with an action button:
+Profile (`src/lib/nutrition-store.ts`) gains:
+- `allergies: string[]` (e.g. `["dairy","nuts","gluten"]`)
+- `healthGoal: string` — derived from existing `goals[0]` (no UI change; reused as a clear single signal for the AI)
 
-```text
-✓ Meal logged!
-Find healthier versions of this on the Ideas page.
-                                    [ See ideas → ]
+UI additions:
+- **Onboarding** — new optional "Any allergies?" multi-select chip step (Dairy, Nuts, Gluten, Eggs, Shellfish, Soy, + "Other" free text). Skippable.
+- **Settings → About you** — same allergy chips, editable any time.
+
+No DB migration needed — profile lives in `localStorage`.
+
+### Phase 2 — Upgrade `suggest-meals` edge function
+
+New request body:
+```ts
+{
+  meals, remaining, dietType, goals, language, // existing
+  allergies: string[],
+  healthGoal: string,
+  mealType: "breakfast"|"lunch"|"dinner"|"snack",
+  mealWeight: "light"|"heavy",
+  deficits: { protein, fiber, calories }
+}
 ```
 
-- Uses existing `toast()` (sonner) — no new dependency
-- "See ideas" button navigates to `/suggestions?focus=<logged-meal-name>` so the Ideas page can pre-fill the search bar with what they just ate
-- Shown once per log action (not repeated)
-- Dismissible; auto-hides after ~6s
+AI tool schema returns per suggestion:
+`name, calories, protein, carbs, fat, fiber, tags[], benefitLine, searchQuery`
 
-### 2. Search bar on Ideas page
+Then the function enriches each result in parallel:
+- **YouTube** — reuse existing `findYoutubeVideo()` (uses `YOUTUBE_API_KEY`). Only stores `youtubeWatchUrl` (`https://www.youtube.com/watch?v=<id>`), `youtubeThumbnailUrl` (`https://img.youtube.com/vi/<id>/hqdefault.jpg`), `youtubeTitle`, `channelTitle`, plus `youtubeSearchUrl` fallback. **No iframe ever.**
+- **Article (optional, graceful)** — new helper `findArticle(query)`:
+  1. Google Custom Search call: `q = "<searchQuery> recipe" + site filter (healthline, eatingwell, bbcgoodfood, bonappetit)`, using `GOOGLE_SEARCH_API_KEY` + `GOOGLE_CSE_ID`.
+  2. Fetch top result HTML, extract `og:title`, `og:image`, `og:description` with regex (lightweight, no parser dep).
+  3. Return `{ articleUrl, articleTitle, articleImage, articleDescription }`. If keys missing or no result → omit.
 
-New search section at the top of `Suggestions.tsx`:
+Final shape per suggestion matches your spec exactly.
 
+### Phase 3 — Server-side daily cache (`cached_ideas` table)
+
+New table via migration:
 ```text
-┌───────────────────────────────────────────┐
-│ Find a healthier version of…              │
-│ ┌─────────────────────────────────┐ [Go]  │
-│ │ e.g. roti and lady's finger     │       │
-│ └─────────────────────────────────┘       │
-│                                           │
-│ Quick chips: [Logged today: Masala chai]  │
-│              [Logged today: Khakhra]      │
-└───────────────────────────────────────────┘
+cached_ideas (
+  id uuid pk default gen_random_uuid(),
+  user_id uuid not null,
+  diet_type text not null,
+  meal_type text not null,
+  meal_weight text not null,
+  suggestions jsonb not null,
+  created_at timestamptz default now(),
+  unique (user_id, diet_type, meal_type, meal_weight)
+)
 ```
 
-- Free-text input + Go button (also submits on Enter)
-- "Quick chips" = tappable pills of dishes the user logged today, so one tap searches that dish
-- If the page is opened with `?focus=<dish>`, the input is pre-filled and search auto-runs
-- Results render below using the same **SwapCard** layout from the Healthier Swaps plan: dish name, "why it's healthier" (e.g. *"+18g protein, lower glycemic load"*), macro chips, and a **▶ Watch recipe** button
+- RLS on. Policies: users can `select`/`insert`/`update`/`delete` rows where `user_id = auth.uid()`.
+- Frontend reads: `select * where user_id = me AND diet_type = X AND meal_type = Y AND meal_weight = Z AND created_at > now() - 24h`. If hit → render. If miss → call edge function, then `upsert` the row.
+- Edge function itself does NOT touch the table — it stays a pure compute function. Caching is owned by the client (single source of truth, simpler).
 
-### How the search works (backend)
+> Requires auth. Today the app has no Supabase auth flow. Confirms below in "What you need to decide".
 
-New edge function **`search-healthier-recipes`** (separate from `suggest-meals`, single-purpose):
+### Phase 4 — Ideas page UI
 
-1. **AI step** (Lovable AI, `google/gemini-3-flash-preview`, tool-calling): given the search query + diet type + goals, return 3-5 healthier variations of *that specific dish*. Example for "roti and lady's finger":
-   - *Multigrain roti + bhindi-paneer masala* (+18g protein)
-   - *Besan-stuffed roti + bhindi do pyaza* (+14g protein, more fiber)
-   - *Jowar roti + bhindi-chana sabzi* (low GI, +12g protein)
-2. **YouTube step**: for each suggestion, call YouTube Data API v3 `search.list` with `<dishName> recipe`, attach the top result's `{ youtubeId, title, channelTitle, thumbnailUrl }`. If no key configured → return a `youtubeSearchUrl` fallback (`https://www.youtube.com/results?search_query=...`).
+`src/pages/Suggestions.tsx`:
+- New **filter chip bar** at top of the suggestions area (horizontal scroll):
+  - Meal type: **All · Breakfast · Lunch · Dinner · Snack**
+  - Weight: **Light · Heavy**
+  - Selecting a combo → check cache → render or fetch.
+  - Default selection: `All` + `Light` (or auto-pick by current time of day).
+- **Section header**: "Ideas for you · Tap to watch or read recipes". Shows a subtle "Refreshing…" pill when a stale-revalidation fetch is in-flight while old cards are still on screen.
+- New **`IdeaCard`** component (`src/components/suggestions/IdeaCard.tsx`):
 
-Returned shape per result: `{ name, whyHealthier, calories, protein, carbs, fat, fiber, proteinAddedG?, tags[], youtubeId?, youtubeTitle?, channelTitle?, thumbnailUrl?, youtubeSearchUrl? }`.
+```text
+┌──────────────────────────────────────┐
+│  [YouTube thumbnail]            ▶    │  ← whole image links to youtubeWatchUrl, target=_blank
+├──────────────────────────────────────┤
+│  Keto Egg Muffins         210 kcal   │
+│  "Adds 18g protein, fills gap today" │
+│  P 18g · C 3g · F 14g · Fib 1g       │
+│  [keto] [high-protein] [snack]       │
+│  ┌────────────────────┐ ┌──────────┐ │
+│  │ ▶ Watch on YouTube │ │ 📄 Article│ │
+│  └────────────────────┘ └──────────┘ │
+└──────────────────────────────────────┘
+```
 
-### Caching
+- Article button only renders when `articleUrl` exists; opens in a new tab.
+- Loading: 3 shimmer skeleton cards.
+- Cache key bumped to `nutrilens-suggestions-cache-v3`; old text cards no longer render.
+- **Delete** `src/components/suggestions/SuggestionCard.tsx`.
 
-- Search results cached in `localStorage` keyed by **normalized query + diet type** for 24h, so repeating the same search is instant and free
-- A small "Refresh" link re-runs the AI + YouTube lookup
+The existing **search bar** (top of page, healthier-versions search) stays unchanged.
+
+### Phase 5 — High-calorie post-log alert
+
+Already triggered after meal save (LogMeal toast). Extend to a **bottom sheet** when the just-logged meal exceeds a threshold (default: meal calories > 35% of `calorieTarget` OR > 600 kcal):
+- Title: *"That was a high-calorie meal. Here are lighter ideas next time 👇"*
+- Body: 2 `IdeaCard`s with `mealType = <same as logged>` and `mealWeight = "light"` from cache (or 2 skeletons + fetch in background).
+- Footer: **"See all ideas →"** → navigates to `/suggestions?mealType=<x>&weight=light`.
+
+Uses the existing `Sheet` component.
+
+### What we will NOT build (per your spec)
+
+- No inline YouTube iframe / embedded player — opens in new tab only.
+- No Instagram / Pinterest integration.
+- No Google CSE call when `GOOGLE_SEARCH_API_KEY` or `GOOGLE_CSE_ID` is missing — article section silently omitted.
 
 ### Files
 
-**New:**
-- `src/components/suggestions/RecipeSearchBar.tsx` — input + Go button + quick chips of today's logged meals
-- `src/components/suggestions/SwapCard.tsx` — recipe card with thumbnail, macros, "▶ Watch recipe" / "Search on YouTube" button (shared with the healthier-swaps work)
-- `supabase/functions/search-healthier-recipes/index.ts` — AI + YouTube edge function
+**New**
+- `src/components/suggestions/IdeaCard.tsx`
+- `src/components/suggestions/MealFilterBar.tsx`
+- `src/components/suggestions/HighCalorieIdeasSheet.tsx`
+- DB migration creating `cached_ideas` + RLS policies
 
-**Edited:**
-- `src/pages/Suggestions.tsx` — render search bar at the top, results section below it, then existing gap summary + add-on cards
-- `src/pages/LogMeal.tsx` — after successful save, show sonner toast with "See ideas →" action that navigates to `/suggestions?focus=<dishName>`
-- `src/i18n/locales/en.json` & `hi.json` — keys: `suggestions.searchTitle`, `suggestions.searchPlaceholder`, `suggestions.searchGo`, `suggestions.loggedToday`, `suggestions.watchRecipe`, `suggestions.searchOnYoutube`, `suggestions.healthierBy`, `suggestions.noResults`, `log.toastLoggedTitle`, `log.toastLoggedBody`, `log.toastSeeIdeas`
+**Edited**
+- `supabase/functions/suggest-meals/index.ts` — new inputs, YouTube + article enrichment, new return shape
+- `src/pages/Suggestions.tsx` — filter bar, server cache check, IdeaCard rendering, v3 cache key
+- `src/pages/LogMeal.tsx` — high-calorie sheet trigger after save
+- `src/pages/Onboarding.tsx` — allergies step
+- `src/pages/SettingsPage.tsx` — allergies edit
+- `src/lib/nutrition-store.ts` — `allergies`, `healthGoal`
+- `src/i18n/locales/en.json` & `hi.json` — new keys
 
-### What you'll need to provide
+**Deleted**
+- `src/components/suggestions/SuggestionCard.tsx`
 
-A **YouTube Data API v3 key** (free tier: 10,000 units/day — way more than enough). When you approve this plan I'll walk you through getting one from Google Cloud Console (~2 min) and add it as a project secret (`YOUTUBE_API_KEY`). **Without the key the feature still works** — each card just shows a "Search on YouTube" button that opens youtube.com results in a new tab, instead of an inline thumbnail.
+### Secrets needed
 
-### Out of scope (follow-ups)
-- Voice search in the Ideas search bar (you have voice transcription already — easy follow-up)
-- Saving favorite recipes
-- Embedded video player (opens in YouTube tab for now)
-- Auto-logging a searched recipe into today's meals
-- Filtering by cooking time / cuisine
+- `YOUTUBE_API_KEY` — already configured? I'll verify; if missing, cards still render with thumbnails via `https://img.youtube.com/vi/<id>/hqdefault.jpg` only when we have a `youtubeId`, else the thumbnail spot just shows a search icon and the button becomes "Search on YouTube". (To get real `youtubeId`s + titles, the key is required.)
+- `GOOGLE_SEARCH_API_KEY` and `GOOGLE_CSE_ID` — optional; without them the 📄 Article button never appears. Get from Google Cloud Console → Custom Search JSON API + programmablesearchengine.google.com (CSE restricted to healthline.com, eatingwell.com, bbcgoodfood.com, bonappetit.com).
 
-### Open question
-Should the post-log toast appear **every time** a meal is logged, or **only when today's macros look unbalanced** (e.g. low protein after a carb-heavy meal — feels smarter, less spammy)? I'll default to **only when unbalanced** unless you prefer every time.
+I'll request these via the secrets tool when we reach Phase 2.
+
+### What you need to decide before I start
+
+1. **Auth**: server-side `cached_ideas` per user requires Supabase Auth (email/password + Google). The app currently has no login screen. Three options:
+   - **(a) Add full email + Google auth now** as part of Phase 3 (recommended; needed for multi-device anyway).
+   - **(b) Keep cache in `localStorage` only** (per-device, no auth) — simpler, but each device re-spends YouTube quota on first load.
+   - **(c) Anonymous Supabase sessions** — gives a stable per-device user_id without a login screen.
+2. **Filter defaults**: "All + Light" always, or auto-pick meal type by clock (breakfast 5–11, lunch 11–16, snack 16–18, dinner 18–23)?
+3. **High-calorie threshold**: stick with `meal kcal > 35% of daily target OR > 600 kcal`, or set a fixed number (e.g. > 700)?
+
+Reply with **1: a/b/c**, **2: all/auto**, **3: 35%/700/your number**, and I'll start Phase 1.
+
