@@ -239,7 +239,20 @@
     "searchResultsTitle": "Healthier versions",
     "searchResultsSub": "Tap any card to watch the recipe",
     "addOnsTitle": "Complementary add-ons",
-    "addOnsSub": "Dishes that fill today's nutrition gaps"
+    "addOnsSub": "Dishes that fill today's nutrition gaps",
+    "readArticle": "Read article",
+    "filters": {
+      "all": "All",
+      "breakfast": "Breakfast",
+      "lunch": "Lunch",
+      "dinner": "Dinner",
+      "snack": "Snack",
+      "light": "Light",
+      "heavy": "Heavy"
+    },
+    "ideasForTitle": "Ideas for you",
+    "ideasForSub": "{{type}} · {{weight}}",
+    "cached": "Saved earlier today"
   },
   "logToast": {
     "title": "Meal logged!",
