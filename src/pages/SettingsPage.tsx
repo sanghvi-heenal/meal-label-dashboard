@@ -285,6 +285,47 @@ const SettingsPage = () => {
         <p className="text-xs text-muted-foreground pt-1">{t("settings.targetsHint")}</p>
       </div>
 
+      {/* Allergies */}
+      <div className="card-surface space-y-3">
+        <div className="flex items-center gap-2">
+          <ShieldAlert size={18} className="text-primary" />
+          <h2 className="font-semibold text-foreground">{t("settings.allergiesTitle")}</h2>
+        </div>
+        <p className="text-xs text-muted-foreground">{t("settings.allergiesHint")}</p>
+        <div className="flex flex-wrap gap-2">
+          {(["dairy","nuts","gluten","eggs","shellfish","soy"] as Allergy[]).map((a) => {
+            const isSel = (profile.allergies ?? []).includes(a);
+            return (
+              <button
+                key={a}
+                onClick={() => {
+                  const current = profile.allergies ?? [];
+                  const next = isSel ? current.filter((x) => x !== a) : [...current, a];
+                  update({ allergies: next });
+                }}
+                className={`px-3 py-1.5 rounded-full border-2 text-xs font-medium transition-all ${
+                  isSel
+                    ? "border-primary bg-primary/10 text-primary"
+                    : "border-border bg-card text-foreground hover:border-muted-foreground"
+                }`}
+              >
+                {t(`allergies.${a}`)}
+              </button>
+            );
+          })}
+        </div>
+        <div>
+          <label className="text-xs text-muted-foreground">{t("settings.allergiesOtherLabel")}</label>
+          <input
+            type="text"
+            value={profile.allergiesOther ?? ""}
+            onChange={(e) => update({ allergiesOther: e.target.value })}
+            placeholder={t("settings.allergiesOtherPlaceholder")}
+            className="w-full mt-1 px-3 py-2 rounded-lg bg-secondary border border-border text-foreground text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+          />
+        </div>
+      </div>
+
       {/* About */}
       <div className="card-surface space-y-2">
         <div className="flex items-center gap-2">
