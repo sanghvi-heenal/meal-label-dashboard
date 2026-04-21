@@ -111,6 +111,7 @@ const IdeaCard = ({ idea, index = 0 }: IdeaCardProps) => {
           href={watchUrl}
           target="_blank"
           rel="noopener noreferrer"
+          onClick={openExternal(watchUrl)}
           className="flex-1 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold flex items-center justify-center gap-2 active:scale-95 transition-transform"
         >
           {hasVideo ? (
@@ -130,6 +131,7 @@ const IdeaCard = ({ idea, index = 0 }: IdeaCardProps) => {
             href={idea.articleUrl}
             target="_blank"
             rel="noopener noreferrer"
+            onClick={openExternal(idea.articleUrl)}
             className="px-3 py-2 rounded-lg bg-secondary hover:bg-secondary/80 border border-border text-foreground text-sm font-semibold flex items-center justify-center gap-1.5 active:scale-95 transition-transform"
             aria-label={t("suggestions.readArticle")}
             title={idea.articleTitle || t("suggestions.readArticle")}
