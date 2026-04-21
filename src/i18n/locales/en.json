@@ -245,5 +245,13 @@
     "title": "Meal logged!",
     "body": "Find healthier versions of this on the Ideas page.",
     "seeIdeas": "See ideas"
+  },
+  "allergies": {
+    "dairy": "Dairy",
+    "nuts": "Nuts",
+    "gluten": "Gluten",
+    "eggs": "Eggs",
+    "shellfish": "Shellfish",
+    "soy": "Soy"
   }
 }
