@@ -114,6 +114,7 @@ const SwapCard = ({ swap, index = 0 }: SwapCardProps) => {
         href={watchUrl}
         target="_blank"
         rel="noopener noreferrer"
+        onClick={handleExternalClick(watchUrl)}
         className="w-full py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold flex items-center justify-center gap-2 active:scale-95 transition-transform"
       >
         {hasVideo ? (
