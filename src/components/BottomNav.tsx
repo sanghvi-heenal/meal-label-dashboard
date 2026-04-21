@@ -7,6 +7,11 @@ const BottomNav = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
 
+  // Hide nav on auth & onboarding routes for a focused, full-screen flow.
+  if (location.pathname === "/auth" || location.pathname === "/onboarding") {
+    return null;
+  }
+
   const tabs = [
     { path: "/", icon: Home, label: t("nav.dashboard") },
     { path: "/log", icon: Camera, label: t("nav.log") },

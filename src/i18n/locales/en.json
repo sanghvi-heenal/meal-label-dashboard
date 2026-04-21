@@ -253,5 +253,24 @@
     "eggs": "Eggs",
     "shellfish": "Shellfish",
     "soy": "Soy"
+  },
+  "auth": {
+    "title": "Welcome to NutriLens",
+    "subtitle": "Sign in to sync your meals across devices.",
+    "email": "Email",
+    "password": "Password",
+    "signIn": "Sign in",
+    "signUp": "Sign up",
+    "createAccount": "Create account",
+    "continueGoogle": "Continue with Google",
+    "or": "or",
+    "signedIn": "Signed in",
+    "signedOut": "Signed out",
+    "signOut": "Sign out",
+    "accountCreated": "Account created!",
+    "accountCreatedSub": "You're all set — let's get started.",
+    "signInFailed": "Couldn't sign in",
+    "signUpFailed": "Couldn't create account",
+    "googleFailed": "Google sign-in failed"
   }
 }
