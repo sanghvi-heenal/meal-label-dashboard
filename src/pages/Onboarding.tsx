@@ -311,8 +311,57 @@ const Onboarding = () => {
           />
         )}
         {step === 7 && (
+          <div className="space-y-5">
+            <div className="space-y-2">
+              <p className="text-xs font-semibold tracking-wider text-primary uppercase">
+                {t("onboarding.stepOf", { step: 8, total })}
+              </p>
+              <h2 className="text-2xl font-bold text-foreground leading-tight">
+                {t("onboarding.allergiesTitle")}
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                {t("onboarding.allergiesSub")}
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {allergyOptions.map((opt) => {
+                const isSel = allergies.includes(opt.value);
+                return (
+                  <button
+                    key={opt.value}
+                    onClick={() => toggleMulti(allergies, setAllergies, opt.value)}
+                    className={`px-3 py-2 rounded-full border-2 text-sm font-medium transition-all flex items-center gap-1.5 ${
+                      isSel
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-border bg-card text-foreground hover:border-muted-foreground"
+                    }`}
+                  >
+                    {opt.emoji && <span aria-hidden="true">{opt.emoji}</span>}
+                    <span>{opt.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground">
+                {t("onboarding.allergiesOtherLabel")}
+              </label>
+              <input
+                type="text"
+                value={allergiesOther}
+                onChange={(e) => setAllergiesOther(e.target.value)}
+                placeholder={t("onboarding.allergiesOtherPlaceholder")}
+                className="w-full mt-1 px-3 py-2 rounded-lg bg-secondary border border-border text-foreground text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+              />
+            </div>
+            <p className="text-xs text-muted-foreground text-center">
+              {t("onboarding.allergiesSkippable")}
+            </p>
+          </div>
+        )}
+        {step === 8 && (
           <HydrationStep
-            step={8}
+            step={9}
             total={total}
             unit={hydrationUnit}
             currentMl={currentHydrationMl}
