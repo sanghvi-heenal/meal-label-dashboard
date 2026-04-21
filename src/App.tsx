@@ -11,12 +11,26 @@ import SettingsPage from "./pages/SettingsPage";
 import Onboarding from "./pages/Onboarding";
 import Suggestions from "./pages/Suggestions";
 import NotFound from "./pages/NotFound";
+import Auth from "./pages/Auth";
 import { isOnboarded } from "@/lib/nutrition-store";
+import { AuthProvider, useAuth } from "@/hooks/useAuth";
+import { Loader2 } from "lucide-react";
 
 const queryClient = new QueryClient();
 
-const RequireOnboarding = ({ children }: { children: JSX.Element }) => {
+const RequireAuth = ({ children }: { children: JSX.Element }) => {
   const location = useLocation();
+  const { session, loading } = useAuth();
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="size-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+  if (!session) {
+    return <Navigate to="/auth" state={{ from: location.pathname }} replace />;
+  }
   if (!isOnboarded() && location.pathname !== "/onboarding") {
     return <Navigate to="/onboarding" replace />;
   }
@@ -29,16 +43,19 @@ const App = () => (
       <Toaster />
       <BackgroundBlobs />
       <BrowserRouter>
-        <Routes>
-          <Route path="/onboarding" element={<Onboarding />} />
-          <Route path="/" element={<RequireOnboarding><Index /></RequireOnboarding>} />
-          <Route path="/log" element={<RequireOnboarding><LogMeal /></RequireOnboarding>} />
-          <Route path="/history" element={<RequireOnboarding><History /></RequireOnboarding>} />
-          <Route path="/suggestions" element={<RequireOnboarding><Suggestions /></RequireOnboarding>} />
-          <Route path="/settings" element={<RequireOnboarding><SettingsPage /></RequireOnboarding>} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-        <BottomNav />
+        <AuthProvider>
+          <Routes>
+            <Route path="/auth" element={<Auth />} />
+            <Route path="/onboarding" element={<RequireAuth><Onboarding /></RequireAuth>} />
+            <Route path="/" element={<RequireAuth><Index /></RequireAuth>} />
+            <Route path="/log" element={<RequireAuth><LogMeal /></RequireAuth>} />
+            <Route path="/history" element={<RequireAuth><History /></RequireAuth>} />
+            <Route path="/suggestions" element={<RequireAuth><Suggestions /></RequireAuth>} />
+            <Route path="/settings" element={<RequireAuth><SettingsPage /></RequireAuth>} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+          <BottomNav />
+        </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
