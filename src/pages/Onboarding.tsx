@@ -103,6 +103,14 @@ const Onboarding = () => {
     { value: "warn", emoji: "🚨", label: t("jobs.warn.label") },
     { value: "choose", emoji: "💡", label: t("jobs.choose.label") },
   ];
+  const allergyOptions: ChoiceOption<Allergy>[] = [
+    { value: "dairy", emoji: "🥛", label: t("allergies.dairy") },
+    { value: "nuts", emoji: "🥜", label: t("allergies.nuts") },
+    { value: "gluten", emoji: "🌾", label: t("allergies.gluten") },
+    { value: "eggs", emoji: "🥚", label: t("allergies.eggs") },
+    { value: "shellfish", emoji: "🦐", label: t("allergies.shellfish") },
+    { value: "soy", emoji: "🫘", label: t("allergies.soy") },
+  ];
   const diets: ChoiceOption<DietValue>[] = [
     { value: "vegetarian", label: t("diets.vegetarian.label"), hint: t("diets.vegetarian.hint") },
     { value: "vegan", label: t("diets.vegan.label"), hint: t("diets.vegan.hint") },
