@@ -103,6 +103,133 @@ const SUGGEST_TOOL = {
   },
 };
 
+interface YoutubeMatch {
+  youtubeId?: string;
+  youtubeTitle?: string;
+  channelTitle?: string;
+  youtubeThumbnailUrl?: string;
+  youtubeWatchUrl?: string;
+  youtubeSearchUrl: string;
+}
+
+async function findYoutubeVideo(searchQuery: string, apiKey?: string): Promise<YoutubeMatch> {
+  const fallback: YoutubeMatch = {
+    youtubeSearchUrl: `https://www.youtube.com/results?search_query=${encodeURIComponent(searchQuery)}`,
+  };
+  if (!apiKey) return fallback;
+  try {
+    const url = new URL("https://www.googleapis.com/youtube/v3/search");
+    url.searchParams.set("part", "snippet");
+    url.searchParams.set("q", searchQuery);
+    url.searchParams.set("type", "video");
+    url.searchParams.set("maxResults", "1");
+    url.searchParams.set("safeSearch", "moderate");
+    url.searchParams.set("relevanceLanguage", "en");
+    url.searchParams.set("key", apiKey);
+    const res = await fetch(url.toString());
+    if (!res.ok) {
+      console.warn("YouTube search failed", res.status, await res.text());
+      return fallback;
+    }
+    const data = await res.json();
+    const item = data.items?.[0];
+    const id = item?.id?.videoId;
+    if (!id) return fallback;
+    return {
+      youtubeId: id,
+      youtubeTitle: item.snippet?.title,
+      channelTitle: item.snippet?.channelTitle,
+      youtubeThumbnailUrl: `https://img.youtube.com/vi/${id}/hqdefault.jpg`,
+      youtubeWatchUrl: `https://www.youtube.com/watch?v=${id}`,
+      youtubeSearchUrl: fallback.youtubeSearchUrl,
+    };
+  } catch (e) {
+    console.warn("YouTube fetch error", e);
+    return fallback;
+  }
+}
+
+interface ArticleMatch {
+  articleUrl?: string;
+  articleTitle?: string;
+  articleImage?: string;
+  articleDescription?: string;
+}
+
+function extractMeta(html: string, property: string): string | undefined {
+  // Match <meta property="og:xxx" content="..."> or name="..."
+  const patterns = [
+    new RegExp(`<meta[^>]+property=["']${property}["'][^>]+content=["']([^"']+)["']`, "i"),
+    new RegExp(`<meta[^>]+content=["']([^"']+)["'][^>]+property=["']${property}["']`, "i"),
+    new RegExp(`<meta[^>]+name=["']${property}["'][^>]+content=["']([^"']+)["']`, "i"),
+  ];
+  for (const p of patterns) {
+    const m = html.match(p);
+    if (m?.[1]) return m[1].replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+  }
+  return undefined;
+}
+
+async function findArticle(
+  searchQuery: string,
+  apiKey?: string,
+  cseId?: string,
+): Promise<ArticleMatch | null> {
+  if (!apiKey || !cseId) return null;
+  try {
+    const cseUrl = new URL("https://www.googleapis.com/customsearch/v1");
+    cseUrl.searchParams.set("key", apiKey);
+    cseUrl.searchParams.set("cx", cseId);
+    cseUrl.searchParams.set(
+      "q",
+      `${searchQuery} recipe site:healthline.com OR site:eatingwell.com OR site:bbcgoodfood.com OR site:bonappetit.com`,
+    );
+    cseUrl.searchParams.set("num", "1");
+    const cseRes = await fetch(cseUrl.toString());
+    if (!cseRes.ok) {
+      console.warn("Google CSE failed", cseRes.status, await cseRes.text());
+      return null;
+    }
+    const cseData = await cseRes.json();
+    const top = cseData.items?.[0];
+    const articleUrl: string | undefined = top?.link;
+    if (!articleUrl) return null;
+
+    // Fetch the page HTML to extract Open Graph metadata.
+    let articleTitle: string | undefined = top.title;
+    let articleImage: string | undefined = top.pagemap?.cse_image?.[0]?.src;
+    let articleDescription: string | undefined = top.snippet;
+
+    try {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 4000);
+      const pageRes = await fetch(articleUrl, {
+        signal: ctrl.signal,
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (compatible; NutriLensBot/1.0; +https://nutrilens.app)",
+        },
+      });
+      clearTimeout(timer);
+      if (pageRes.ok) {
+        const html = (await pageRes.text()).slice(0, 60_000);
+        articleTitle = extractMeta(html, "og:title") || articleTitle;
+        articleImage = extractMeta(html, "og:image") || articleImage;
+        articleDescription = extractMeta(html, "og:description") || articleDescription;
+      } else {
+        console.warn("Article fetch non-OK", pageRes.status, articleUrl);
+      }
+    } catch (e) {
+      console.warn("Article OG fetch failed, falling back to CSE snippet", e);
+    }
+
+    return { articleUrl, articleTitle, articleImage, articleDescription };
+  } catch (e) {
+    console.warn("findArticle error", e);
+    return null;
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -111,13 +238,28 @@ Deno.serve(async (req) => {
   try {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+    const YOUTUBE_API_KEY = Deno.env.get("YOUTUBE_API_KEY");
+    const GOOGLE_SEARCH_API_KEY = Deno.env.get("GOOGLE_SEARCH_API_KEY");
+    const GOOGLE_CSE_ID = Deno.env.get("GOOGLE_CSE_ID");
 
     const body = (await req.json()) as RequestBody;
-    const { meals = [], remaining, dietType, goals = [], language = "en" } = body;
+    const {
+      meals = [],
+      remaining,
+      dietType,
+      goals = [],
+      language = "en",
+      allergies = [],
+      allergiesOther = "",
+      healthGoal,
+      mealType = "all",
+      mealWeight = "light",
+      deficits,
+    } = body;
 
     const langInstruction =
       language === "hi"
-        ? "Respond in Hindi (Devanagari script) for all user-facing text fields (gapSummary, name, whyItFits, quickTip, tags). Keep numbers as numbers."
+        ? "Respond in Hindi (Devanagari script) for user-facing text fields (gapSummary, name, benefitLine, tags). Keep numbers as numbers. searchQuery MUST stay in English (it goes to YouTube)."
         : "Respond in English.";
 
     const mealsText = meals.length
@@ -129,22 +271,40 @@ Deno.serve(async (req) => {
           .join("\n")
       : "(nothing logged yet)";
 
+    const allergyList = [
+      ...allergies,
+      ...(allergiesOther ? [allergiesOther] : []),
+    ].filter(Boolean);
+    const allergyText = allergyList.length
+      ? allergyList.join(", ")
+      : "none";
+
+    const mealTypeText = mealType === "all" ? "any meal/snack" : mealType;
+    const weightText = mealWeight === "heavy" ? "heavier (full meal portion)" : "lighter (snack-sized)";
+
+    const deficitText = deficits
+      ? `Protein deficit: ${deficits.protein}g. Fiber deficit: ${deficits.fiber}g. Calorie headroom: ${deficits.calories} kcal.`
+      : "";
+
     const systemPrompt = `You are a nutrition coach suggesting specific dishes that complement what the user already ate today.
 
 STRICT RULES:
 1. Respect dietType strictly. Vegetarian = no meat/fish. Vegan = no animal products. Jain = no meat, no root vegetables. Keto = very low carb. Eggetarian = veg + eggs. Pescatarian = veg + fish.
-2. Suggestions should fill the biggest macro gap (usually protein, fiber, or remaining calories).
+2. NEVER include any allergen the user listed. Treat allergies as hard exclusions (no traces, no substitutions that contain them).
+3. Suggestions should fill the biggest macro gap (usually protein, fiber, or remaining calories).
+4. Match the requested mealType (${mealTypeText}) and weight (${weightText}). Light = ~150-300 kcal, heavy = ~400-650 kcal.
 3. Keep suggestions culturally consistent with what they ate (e.g. if they ate Indian food like khakhra/chai, suggest Indian dishes like moong dal chilla, sprouts chaat, idli).
-4. Each suggestion's calories should fit comfortably within remaining calorie budget. Prefer 150-400 kcal items.
-5. Tailor to goals:
+6. Each suggestion's calories should fit comfortably within the remaining calorie budget.
+7. Tailor to goals:
    - "glucose" → low-GI, pair carbs with protein/fiber
    - "lose_weight" → lower calorie, high satiety
    - "gain_weight" → calorie-dense, whole foods
    - "heart" → low sodium, low saturated fat
    - "menopause" → protein, calcium, fiber
    - "energy_mood" → steady carbs + protein
-6. Be specific. "Moong dal chilla" not "lentil pancake". "Greek yogurt with chia" not "yogurt".
-7. ${langInstruction}`;
+8. Be specific. "Moong dal chilla" not "lentil pancake". "Greek yogurt with chia" not "yogurt".
+9. searchQuery: short, English-only, suitable for YouTube search. Always include "recipe" and key descriptors (diet, mealType). Examples: "keto egg muffins high protein snack recipe", "moong dal chilla paneer stuffing recipe".
+10. ${langInstruction}`;
 
     const userPrompt = `Today the user has logged:
 ${mealsText}
@@ -157,9 +317,14 @@ Remaining targets for today:
 - Fiber: ${remaining.fiber} g
 
 Diet type: ${dietType}
-Goals: ${goals.join(", ") || "general health"}
+Health goal: ${healthGoal || goals[0] || "general health"}
+All goals: ${goals.join(", ") || "general health"}
+Allergies (HARD EXCLUSIONS): ${allergyText}
+Requested meal type: ${mealTypeText}
+Requested meal weight: ${weightText}
+${deficitText}
 
-Suggest 3-5 specific dishes that complement what they've eaten and close the biggest gaps.`;
+Suggest 3-5 specific dishes that complement what they've eaten, close the biggest gaps, and match the requested meal type + weight.`;
 
     const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
