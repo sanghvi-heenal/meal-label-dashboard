@@ -282,7 +282,92 @@ const Suggestions = () => {
         </div>
       </div>
 
-      {/* Empty state */}
+      {/* Search bar — always visible */}
+      <RecipeSearchBar
+        key={searchQuery /* remount when ?focus= sets a new value */}
+        initialValue={searchQuery}
+        loggedToday={loggedTodayChips}
+        loading={searchLoading}
+        onSearch={(q) => {
+          setSearchQuery(q);
+          runSearch(q, false);
+        }}
+      />
+
+      {/* Search loading */}
+      {searchLoading && (
+        <div className="space-y-3 animate-fade-in">
+          <div className="card-surface flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 size={16} className="animate-spin text-primary" />
+            {t("common.loading")}
+          </div>
+          {[0, 1].map((i) => (
+            <div key={i} className="card-surface h-72 animate-pulse bg-secondary/40" />
+          ))}
+        </div>
+      )}
+
+      {/* Search error */}
+      {!searchLoading && searchError && (
+        <div className="card-surface card-tint-warning flex gap-3 items-start animate-fade-in">
+          <AlertCircle size={20} className="text-warning flex-shrink-0 mt-0.5" />
+          <div className="space-y-2 flex-1">
+            <p className="text-sm text-foreground">{searchError}</p>
+            <button
+              onClick={() => activeQuery && runSearch(activeQuery, true)}
+              className="text-xs font-semibold text-warning hover:underline"
+            >
+              {t("suggestions.tryAgain")}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Search results */}
+      {!searchLoading && searchResults && searchResults.length > 0 && (
+        <div className="space-y-3 animate-fade-in">
+          <div className="flex items-end justify-between gap-2 px-1">
+            <div>
+              <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
+                <Sparkles size={16} className="text-info" />
+                {t("suggestions.searchResultsTitle")}
+              </h2>
+              <p className="text-xs text-muted-foreground">
+                {t("suggestions.searchResultsSub")} · "{activeQuery}"
+              </p>
+            </div>
+            <button
+              onClick={() => runSearch(activeQuery, true)}
+              className="text-xs font-semibold text-muted-foreground hover:text-foreground flex items-center gap-1"
+              aria-label={t("suggestions.refresh")}
+            >
+              <RefreshCw size={12} />
+              {t("suggestions.refresh")}
+            </button>
+          </div>
+          <div className="space-y-3">
+            {searchResults.map((s, i) => (
+              <SwapCard key={`${s.name}-${i}`} swap={s} index={i} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {!searchLoading && searchResults && searchResults.length === 0 && (
+        <div className="card-surface text-center text-sm text-muted-foreground animate-fade-in">
+          {t("suggestions.noResults")}
+        </div>
+      )}
+
+      {/* Add-ons section header (only shows when there are logged meals) */}
+      {meals.length > 0 && (
+        <div className="pt-2 px-1">
+          <h2 className="text-lg font-bold text-foreground">{t("suggestions.addOnsTitle")}</h2>
+          <p className="text-xs text-muted-foreground">{t("suggestions.addOnsSub")}</p>
+        </div>
+      )}
+
+      {/* Empty state — no meals logged yet */}
       {meals.length === 0 && (
         <div className="card-surface text-center space-y-3 animate-fade-in">
           <div className="w-12 h-12 rounded-full bg-muted mx-auto flex items-center justify-center">
