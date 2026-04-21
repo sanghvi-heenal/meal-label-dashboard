@@ -1,5 +1,6 @@
 import { Play, Search, ExternalLink, BookOpen } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { handleExternalClick } from "@/lib/external-link";
 
 export interface IdeaSuggestion {
   name: string;
@@ -38,14 +39,6 @@ const IdeaCard = ({ idea, index = 0 }: IdeaCardProps) => {
     ?? `https://www.youtube.com/results?search_query=${encodeURIComponent(idea.searchQuery)}`;
   const thumb = idea.youtubeThumbnailUrl ?? idea.articleImage;
 
-  // Preview iframes (e.g. Lovable sandbox) block youtube.com from loading.
-  // Force the link to open in the top-level window via window.open with noopener.
-  const openExternal = (url: string) => (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    window.open(url, "_blank", "noopener,noreferrer");
-  };
-
   return (
     <div
       className="card-surface space-y-3 animate-fade-in overflow-hidden"
@@ -56,7 +49,7 @@ const IdeaCard = ({ idea, index = 0 }: IdeaCardProps) => {
         href={watchUrl}
         target="_blank"
         rel="noopener noreferrer"
-        onClick={openExternal(watchUrl)}
+        onClick={handleExternalClick(watchUrl)}
         className="block relative -mx-4 -mt-4 mb-1 aspect-video bg-secondary/60 group"
       >
         {thumb ? (
@@ -111,7 +104,7 @@ const IdeaCard = ({ idea, index = 0 }: IdeaCardProps) => {
           href={watchUrl}
           target="_blank"
           rel="noopener noreferrer"
-          onClick={openExternal(watchUrl)}
+          onClick={handleExternalClick(watchUrl)}
           className="flex-1 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold flex items-center justify-center gap-2 active:scale-95 transition-transform"
         >
           {hasVideo ? (
@@ -131,7 +124,7 @@ const IdeaCard = ({ idea, index = 0 }: IdeaCardProps) => {
             href={idea.articleUrl}
             target="_blank"
             rel="noopener noreferrer"
-            onClick={openExternal(idea.articleUrl)}
+            onClick={handleExternalClick(idea.articleUrl)}
             className="px-3 py-2 rounded-lg bg-secondary hover:bg-secondary/80 border border-border text-foreground text-sm font-semibold flex items-center justify-center gap-1.5 active:scale-95 transition-transform"
             aria-label={t("suggestions.readArticle")}
             title={idea.articleTitle || t("suggestions.readArticle")}
