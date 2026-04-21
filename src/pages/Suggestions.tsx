@@ -105,14 +105,43 @@ const writeSearchCache = (query: string, dietType: string, results: RecipeSwap[]
 const Suggestions = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [data, setData] = useState<SuggestionsResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Search state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<RecipeSwap[] | null>(null);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const [activeQuery, setActiveQuery] = useState<string>("");
 
   const today = getTodayString();
   const meals = getMealsByDate(today);
   const profile = getProfile();
   const totals = sumTotals(meals);
+
+  // Strip "(Medium)" / "(150g, Medium)" suffix from logged names for cleaner chips/search.
+  const cleanMealName = useCallback((name: string) => {
+    return name.replace(/\s*\([^)]*\)\s*$/, "").trim();
+  }, []);
+
+  const loggedTodayChips = useMemo(() => {
+    const seen = new Set<string>();
+    const result: string[] = [];
+    for (const m of meals) {
+      if (m.mealType === "drink") continue;
+      const cleaned = cleanMealName(m.name);
+      const key = cleaned.toLowerCase();
+      if (cleaned && !seen.has(key)) {
+        seen.add(key);
+        result.push(cleaned);
+      }
+      if (result.length >= 6) break;
+    }
+    return result;
+  }, [meals, cleanMealName]);
 
   const remaining = {
     calories: Math.max(profile.calorieTarget - totals.calories, 0),
