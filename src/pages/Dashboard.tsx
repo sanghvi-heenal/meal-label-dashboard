@@ -223,17 +223,17 @@ const Dashboard = () => {
           <div className="card-surface">
             <div className="grid grid-cols-3 divide-x divide-border">
               <div className="text-center py-2">
-                <p className="text-lg font-bold text-nutrient-protein">{totals.sodium}mg</p>
+                <p className={`text-lg font-bold ${totals.sodium > profile.sodiumTarget ? "text-[hsl(var(--over-target))]" : "text-nutrient-protein"}`}>{totals.sodium}mg</p>
                 <p className="text-xs text-muted-foreground">{t("dashboard.sodium")}</p>
                 <p className="text-[10px] text-muted-foreground">/ {profile.sodiumTarget}</p>
               </div>
               <div className="text-center py-2">
-                <p className="text-lg font-bold text-nutrient-carbs">{totals.sugar.toFixed(1)}g</p>
+                <p className={`text-lg font-bold ${totals.sugar > profile.sugarTarget ? "text-[hsl(var(--over-target))]" : "text-nutrient-carbs"}`}>{totals.sugar.toFixed(1)}g</p>
                 <p className="text-xs text-muted-foreground">{t("dashboard.sugar")}</p>
                 <p className="text-[10px] text-muted-foreground">/ {profile.sugarTarget}</p>
               </div>
               <div className="text-center py-2">
-                <p className="text-lg font-bold text-nutrient-fat">{totals.satFat.toFixed(1)}g</p>
+                <p className={`text-lg font-bold ${totals.satFat > profile.satFatTarget ? "text-[hsl(var(--over-target))]" : "text-nutrient-fat"}`}>{totals.satFat.toFixed(1)}g</p>
                 <p className="text-xs text-muted-foreground">{t("dashboard.satFat")}</p>
                 <p className="text-[10px] text-muted-foreground">/ {profile.satFatTarget}</p>
               </div>
