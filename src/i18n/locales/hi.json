@@ -253,5 +253,24 @@
     "eggs": "अंडे",
     "shellfish": "शेलफिश",
     "soy": "सोया"
+  },
+  "auth": {
+    "title": "NutriLens में आपका स्वागत है",
+    "subtitle": "अपने मील्स सभी डिवाइस पर सिंक करने के लिए साइन इन करें।",
+    "email": "ईमेल",
+    "password": "पासवर्ड",
+    "signIn": "साइन इन",
+    "signUp": "साइन अप",
+    "createAccount": "अकाउंट बनाएँ",
+    "continueGoogle": "Google से जारी रखें",
+    "or": "या",
+    "signedIn": "साइन इन हो गए",
+    "signedOut": "साइन आउट हो गए",
+    "signOut": "साइन आउट",
+    "accountCreated": "अकाउंट बन गया!",
+    "accountCreatedSub": "सब तैयार है — चलिए शुरू करें।",
+    "signInFailed": "साइन इन नहीं हो सका",
+    "signUpFailed": "अकाउंट नहीं बना",
+    "googleFailed": "Google साइन इन फेल"
   }
 }
