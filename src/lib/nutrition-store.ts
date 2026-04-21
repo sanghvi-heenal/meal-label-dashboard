@@ -29,6 +29,8 @@ export type PainPoint = "portions" | "sugar" | "carbs" | "protein" | "drinks";
 export type AppJob = "track" | "teach" | "warn" | "choose";
 export type Language = "en" | "hi";
 
+export type Allergy = "dairy" | "nuts" | "gluten" | "eggs" | "shellfish" | "soy";
+
 export interface UserProfile {
   age: number;
   heightCm: number;
@@ -55,6 +57,10 @@ export interface UserProfile {
   appJobs: AppJob[];
   language: Language;
   onboardedAt: string | null;
+  /** Common allergies the user has — drives Ideas filtering & AI suggestions. */
+  allergies: Allergy[];
+  /** Free-text "other" allergies the user typed in. */
+  allergiesOther: string;
 }
 
 const DEFAULT_PROFILE: UserProfile = {
@@ -82,6 +88,8 @@ const DEFAULT_PROFILE: UserProfile = {
   appJobs: ["track"],
   language: "en",
   onboardedAt: null,
+  allergies: [],
+  allergiesOther: "",
 };
 
 export function isOnboarded(): boolean {
