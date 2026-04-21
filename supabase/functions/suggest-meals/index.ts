@@ -1,6 +1,8 @@
 // Edge function: suggest-meals
 // Uses Lovable AI Gateway with tool-calling to return structured meal suggestions
-// that complement what the user has already logged today.
+// that complement what the user has already logged today, then enriches each
+// suggestion with a YouTube video (thumbnail + watch link) and, optionally,
+// a recipe article preview (Open Graph metadata) when Google CSE keys are set.
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -30,6 +32,12 @@ interface RequestBody {
   dietType: string;
   goals: string[];
   language?: "en" | "hi";
+  allergies?: string[];
+  allergiesOther?: string;
+  healthGoal?: string;
+  mealType?: "breakfast" | "lunch" | "dinner" | "snack" | "all";
+  mealWeight?: "light" | "heavy";
+  deficits?: { protein: number; fiber: number; calories: number };
 }
 
 const SUGGEST_TOOL = {
@@ -53,36 +61,37 @@ const SUGGEST_TOOL = {
             type: "object",
             properties: {
               name: { type: "string", description: "Specific dish name, culturally relevant." },
-              whyItFits: {
+              benefitLine: {
                 type: "string",
-                description: "≤90 chars. Why this fills the gap given diet + goals.",
+                description: "≤90 chars. Concrete benefit, e.g. 'Adds 18g protein, fills today's gap.'",
               },
               calories: { type: "number" },
               protein: { type: "number", description: "grams" },
               carbs: { type: "number", description: "grams" },
               fat: { type: "number", description: "grams" },
               fiber: { type: "number", description: "grams" },
-              quickTip: {
-                type: "string",
-                description: "One-line how-to-make tip, ≤120 chars.",
-              },
               tags: {
                 type: "array",
                 items: { type: "string" },
                 description:
                   "Short tags like 'vegetarian', 'high-protein', 'low-GI', 'heart-friendly'.",
               },
+              searchQuery: {
+                type: "string",
+                description:
+                  "Short English-only YouTube search query suitable for finding a recipe video. Always include 'recipe'. E.g. 'keto egg muffins high protein recipe'.",
+              },
             },
             required: [
               "name",
-              "whyItFits",
+              "benefitLine",
               "calories",
               "protein",
               "carbs",
               "fat",
               "fiber",
-              "quickTip",
               "tags",
+              "searchQuery",
             ],
             additionalProperties: false,
           },
