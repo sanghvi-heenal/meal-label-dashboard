@@ -217,6 +217,23 @@
     "whyItFits": "क्यों फिट है",
     "quickTip": "क्विक टिप",
     "errorTitle": "सुझाव लोड नहीं हो सके",
-    "tryAgain": "फिर से कोशिश करें"
+    "tryAgain": "फिर से कोशिश करें",
+    "searchTitle": "इसका हेल्दी वर्ज़न ढूँढें…",
+    "searchPlaceholder": "जैसे रोटी और भिंडी",
+    "searchGo": "खोजें",
+    "loggedToday": "आज लॉग किया",
+    "watchRecipe": "रेसिपी देखें",
+    "searchOnYoutube": "YouTube पर खोजें",
+    "healthierBy": "हेल्दी क्यों",
+    "noResults": "कोई हेल्दी वर्ज़न नहीं मिला। दूसरी डिश आज़माएँ।",
+    "searchResultsTitle": "हेल्दी वर्ज़न",
+    "searchResultsSub": "रेसिपी देखने के लिए कार्ड पर टैप करें",
+    "addOnsTitle": "साथ में जोड़ने लायक",
+    "addOnsSub": "आज की कमी पूरी करने वाले डिशेज़"
+  },
+  "logToast": {
+    "title": "मील लॉग हो गया!",
+    "body": "इसका हेल्दी वर्ज़न आइडियाज़ पेज पर देखें।",
+    "seeIdeas": "आइडियाज़ देखें"
   }
 }

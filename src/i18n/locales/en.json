@@ -217,6 +217,23 @@
     "whyItFits": "Why it fits",
     "quickTip": "Quick tip",
     "errorTitle": "Couldn't load suggestions",
-    "tryAgain": "Try again"
+    "tryAgain": "Try again",
+    "searchTitle": "Find a healthier version of…",
+    "searchPlaceholder": "e.g. roti and lady's finger",
+    "searchGo": "Go",
+    "loggedToday": "Logged today",
+    "watchRecipe": "Watch recipe",
+    "searchOnYoutube": "Search on YouTube",
+    "healthierBy": "Healthier",
+    "noResults": "No healthier versions found. Try a different dish.",
+    "searchResultsTitle": "Healthier versions",
+    "searchResultsSub": "Tap any card to watch the recipe",
+    "addOnsTitle": "Complementary add-ons",
+    "addOnsSub": "Dishes that fill today's nutrition gaps"
+  },
+  "logToast": {
+    "title": "Meal logged!",
+    "body": "Find healthier versions of this on the Ideas page.",
+    "seeIdeas": "See ideas"
   }
 }
