@@ -138,12 +138,18 @@ const Dashboard = () => {
 
           {detailView === "calories" ? (
             /* Calories ring detail */
-            <div className="card-surface card-tint-warning space-y-4">
+            <div className="card-surface card-tint-info space-y-4">
               <h2 className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
                 {t("dashboard.todaysCalories")}
               </h2>
               <div className="flex items-baseline gap-1">
-                <span className="text-5xl font-bold bg-gradient-to-br from-warning to-warning/40 bg-clip-text text-transparent">
+                <span className={`text-5xl font-bold bg-gradient-to-br bg-clip-text text-transparent ${
+                  totals.calories > 3000
+                    ? "from-[hsl(var(--over-target))] to-[hsl(var(--over-target))]/40"
+                    : totals.calories > 2000
+                      ? "from-warning to-warning/40"
+                      : "from-primary to-primary/40"
+                }`}>
                   {totals.calories}
                 </span>
                 <span className="text-muted-foreground text-sm">/ {profile.calorieTarget} {t("dashboard.kcal")}</span>
@@ -152,9 +158,21 @@ const Dashboard = () => {
                 <CalorieRing consumed={totals.calories} target={profile.calorieTarget} />
                 <div className="space-y-2 text-sm">
                   <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-warning" />
+                    <span className={`w-2 h-2 rounded-full ${
+                      totals.calories > 3000
+                        ? "bg-[hsl(var(--over-target))]"
+                        : totals.calories > 2000
+                          ? "bg-warning"
+                          : "bg-primary"
+                    }`} />
                     <span className="text-muted-foreground">{t("dashboard.consumed")}</span>
-                    <span className="ml-auto font-semibold text-warning">{totals.calories} {t("dashboard.kcal")}</span>
+                    <span className={`ml-auto font-semibold ${
+                      totals.calories > 3000
+                        ? "text-[hsl(var(--over-target))]"
+                        : totals.calories > 2000
+                          ? "text-warning"
+                          : "text-primary"
+                    }`}>{totals.calories} {t("dashboard.kcal")}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-muted-foreground" />
@@ -165,7 +183,7 @@ const Dashboard = () => {
               </div>
               <button
                 onClick={() => navigate("/log")}
-                className="w-full py-2 rounded-lg bg-warning/10 hover:bg-warning/20 border border-warning/30 text-warning text-sm font-semibold transition-colors active:scale-95"
+                className="w-full py-2 rounded-lg bg-info/10 hover:bg-info/20 border border-info/30 text-info text-sm font-semibold transition-colors active:scale-95"
               >
                 {t("dashboard.logMeal")}
               </button>
