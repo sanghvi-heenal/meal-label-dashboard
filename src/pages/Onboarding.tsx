@@ -101,14 +101,14 @@ const Onboarding = () => {
     { value: "choose", emoji: "💡", label: t("jobs.choose.label") },
   ];
   const diets: ChoiceOption<DietValue>[] = [
-    { value: "vegetarian", emoji: "🥗", label: t("diets.vegetarian.label"), hint: t("diets.vegetarian.hint") },
-    { value: "vegan", emoji: "🌱", label: t("diets.vegan.label"), hint: t("diets.vegan.hint") },
-    { value: "nonVeg", emoji: "🍗", label: t("diets.nonVeg.label"), hint: t("diets.nonVeg.hint") },
-    { value: "eggetarian", emoji: "🥚", label: t("diets.eggetarian.label"), hint: t("diets.eggetarian.hint") },
-    { value: "pescatarian", emoji: "🐟", label: t("diets.pescatarian.label"), hint: t("diets.pescatarian.hint") },
-    { value: "jain", emoji: "🙏", label: t("diets.jain.label"), hint: t("diets.jain.hint") },
-    { value: "keto", emoji: "🥑", label: t("diets.keto.label"), hint: t("diets.keto.hint") },
-    { value: "none", emoji: "✨", label: t("diets.none.label"), hint: t("diets.none.hint") },
+    { value: "vegetarian", label: t("diets.vegetarian.label"), hint: t("diets.vegetarian.hint") },
+    { value: "vegan", label: t("diets.vegan.label"), hint: t("diets.vegan.hint") },
+    { value: "nonVeg", label: t("diets.nonVeg.label"), hint: t("diets.nonVeg.hint") },
+    { value: "eggetarian", label: t("diets.eggetarian.label"), hint: t("diets.eggetarian.hint") },
+    { value: "pescatarian", label: t("diets.pescatarian.label"), hint: t("diets.pescatarian.hint") },
+    { value: "jain", label: t("diets.jain.label"), hint: t("diets.jain.hint") },
+    { value: "keto", label: t("diets.keto.label"), hint: t("diets.keto.hint") },
+    { value: "none", label: t("diets.none.label"), hint: t("diets.none.hint") },
   ];
 
   const handleLanguageChange = (lang: Language) => {
