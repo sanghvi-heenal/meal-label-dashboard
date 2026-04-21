@@ -177,7 +177,8 @@ const Onboarding = () => {
     if (step === 4) return logPref.length > 0;
     if (step === 5) return true;
     if (step === 6) return appJobs.length > 0;
-    if (step === 7) return currentHydrationMl >= 0 && hydrationGoalMl >= 1000;
+    if (step === 7) return true; // allergies — optional/skippable
+    if (step === 8) return currentHydrationMl >= 0 && hydrationGoalMl >= 1000;
     return false;
   };
 
