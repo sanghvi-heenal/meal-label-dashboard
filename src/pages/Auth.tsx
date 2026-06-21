@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Mail, Lock, Loader2 } from "lucide-react";
@@ -30,6 +30,41 @@ const Auth = () => {
     }
   }, [authLoading, session, navigate, redirectTo]);
 
+  const startGoogleOAuth = async () => {
+    setSubmitting(true);
+    const result = await lovable.auth.signInWithOAuth("google", {
+      redirect_uri: window.location.origin,
+    });
+    if (result.error) {
+      setSubmitting(false);
+      console.error("[Google OAuth] error:", result.error);
+      toast({
+        title: t("auth.googleFailed"),
+        description: String(result.error),
+        variant: "destructive",
+      });
+      return;
+    }
+    if (result.redirected) return;
+  };
+
+  // Auto-resume OAuth at top-level after iframe handoff
+  const autoStartedRef = useRef(false);
+  useEffect(() => {
+    if (autoStartedRef.current) return;
+    const params = new URLSearchParams(window.location.search);
+    const inIframe = window.top !== window.self;
+    if (params.get("startGoogle") === "1" && !inIframe) {
+      autoStartedRef.current = true;
+      // Clean URL so a refresh doesn't re-trigger
+      const url = new URL(window.location.href);
+      url.searchParams.delete("startGoogle");
+      window.history.replaceState({}, "", url.toString());
+      void startGoogleOAuth();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
@@ -59,16 +94,41 @@ const Auth = () => {
   };
 
   const handleGoogle = async () => {
-    setSubmitting(true);
-    const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
-    });
-    if (result.error) {
-      setSubmitting(false);
-      toast({ title: t("auth.googleFailed"), description: String(result.error), variant: "destructive" });
+    // If we're inside the Lovable preview iframe, break out to the top
+    // window first — Google OAuth blocks iframes (X-Frame-Options: DENY)
+    // and the callback can't reach the iframe context otherwise.
+    const inIframe = (() => {
+      try {
+        return window.top !== window.self;
+      } catch {
+        return true;
+      }
+    })();
+
+    if (inIframe) {
+      const target = new URL(window.location.href);
+      target.searchParams.set("startGoogle", "1");
+      try {
+        if (window.top) {
+          window.top.location.href = target.toString();
+          return;
+        }
+      } catch {
+        // cross-origin; fall through to opening a new tab
+      }
+      const opened = window.open(target.toString(), "_blank", "noopener,noreferrer");
+      if (!opened) {
+        toast({
+          title: t("auth.googleFailed"),
+          description:
+            "Open the app in a new browser tab (or use the published URL) to sign in with Google. The preview iframe blocks Google's consent screen.",
+          variant: "destructive",
+        });
+      }
       return;
     }
-    if (result.redirected) return;
+
+    await startGoogleOAuth();
   };
 
   return (
