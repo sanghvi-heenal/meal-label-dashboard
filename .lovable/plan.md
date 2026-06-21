@@ -1,54 +1,46 @@
+## Situation today
 
-## Plan: Fix YouTube links being blocked
+Google sign-in code is wired up correctly:
+- `src/pages/Auth.tsx` calls `lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin })`
+- `src/integrations/lovable/index.ts` is the auto-generated Lovable Cloud managed OAuth bridge — it redirects to `/~oauth/initiate`, Google authenticates, then comes back to `/~oauth/callback`, which returns tokens that get set via `supabase.auth.setSession`.
+- `useAuth` listens on `onAuthStateChange` and would route you to `/` once a session appears.
 
-This is not caused by your app user ID, Google login, or needing to be logged into the same Google account as Lovable. The app requests are working: the Ideas cache request and `suggest-meals` backend function both returned `200`, and your authenticated user session is being used correctly.
+So the implementation is fine. What is failing is the **environment**, not the code:
 
-The blocking screenshot says:
+1. **You are testing inside the Lovable preview iframe** (`id-preview--…lovable.app` rendered inside the editor). Google's consent screen sets `X-Frame-Options: DENY`, so the OAuth pop / redirect breaks out of the iframe to the top window. After you accept, Google redirects back to `window.location.origin` — but the value of `window.location.origin` was captured **inside the iframe**, so the callback lands in a tab/window the iframe can't observe. The iframe keeps showing `/auth` and "does nothing" — exactly the symptom you describe.
+2. A second, related cause: the `redirect_uri` passed in is the preview origin. Even when it lands top-level, the running iframe instance never sees the `setSession` result because that JS ran in a different window context.
 
-```text
-www.youtube.com refused to connect
-ERR_BLOCKED_BY_RESPONSE
-```
+This is purely a preview-environment quirk. The same flow normally works on the **published URL** and on **custom domains**, where the page is top-level and the broker callback runs in the same window that started the flow.
 
-That means YouTube is being loaded inside the embedded preview frame, and YouTube blocks being displayed in iframes. The fix is to make recipe links open as true external browser navigation, never as iframe navigation.
+## Fix plan
 
-## What I’ll change
+### 1. Make OAuth always run in the top window
+Update `handleGoogle` in `src/pages/Auth.tsx` so that, if the app is running inside an iframe, we break out to the top window before starting OAuth. Concretely:
 
-1. **Create a safer external-link helper**
-   - Add one reusable helper for opening external URLs.
-   - It will try to open YouTube/articles in a real new tab.
-   - If the preview blocks popups, it will fall back to top-level navigation instead of loading YouTube inside the app iframe.
-   - It will avoid default `<a>` iframe navigation entirely.
+- Detect iframe: `window.top !== window.self`.
+- If in iframe: set `window.top.location.href` to the current app URL with `?startGoogle=1` (so the top-level page can auto-trigger the flow), instead of calling `signInWithOAuth` from inside the iframe.
+- If top-level: call `lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin })` exactly as today.
 
-2. **Update Ideas cards**
-   - Change `IdeaCard` YouTube/article clicks from normal anchors to controlled external buttons.
-   - Apply this to:
-     - The video thumbnail area
-     - “Watch recipe”
-     - “Search on YouTube”
-     - Article button
+### 2. Auto-resume OAuth at top level
+On `/auth` mount, if `window.top === window.self` and the URL has `?startGoogle=1`, immediately call `lovable.auth.signInWithOAuth("google", …)`. This makes the iframe → top-level handoff seamless: user clicks once, top window opens, Google runs, returns, session is set, redirect to `/`.
 
-3. **Update Search result cards too**
-   - `SwapCard` still uses plain `<a target="_blank">`, so healthier-recipe search results can still trigger the same blocked iframe behavior.
-   - I’ll update `SwapCard` to use the same safe external opener.
+### 3. Better error surfacing
+- Log `result.error` to the console verbatim (today we only toast `String(error)`).
+- If the popup/redirect is blocked, toast a clear message telling the user to open the **published URL** (or current origin in a fresh tab) to sign in.
 
-4. **Add user-friendly fallback behavior**
-   - If the browser refuses to open the tab, show a small toast telling the user the link was opened in the current tab or can be retried.
-   - This prevents the app from silently failing.
+### 4. Tell the user where to test
+After deploying the fix:
+- **Preview iframe**: Google sign-in will now open the app in a new top-level tab and complete there.
+- **Published URL** (`Publish` then open the `.lovable.app` URL): Google sign-in works directly.
+- **Custom domain**: works directly (managed OAuth supports custom domains).
 
-5. **Improve YouTube enrichment diagnostics**
-   - The backend response shows `hasYoutubeKey: true`, but the returned ideas are still falling back to `youtubeSearchUrl` instead of direct `youtubeWatchUrl`.
-   - I’ll add clearer backend logging around YouTube API failures so we can distinguish:
-     - API quota exceeded
-     - API key invalid/restricted
-     - YouTube Data API not enabled
-     - No video returned for that query
-   - The user experience will still work either way: if a direct video is unavailable, it opens YouTube search externally.
+### 5. What I will NOT change
+- No changes to `src/integrations/lovable/index.ts` (auto-generated).
+- No changes to `client.ts` / `types.ts`.
+- No changes to provider configuration — Google is already the Lovable Cloud managed provider; no client ID/secret setup is needed from you.
+
+## Files touched
+- `src/pages/Auth.tsx` — iframe detection, top-level handoff, auto-resume on `?startGoogle=1`, clearer error toast/log.
 
 ## Expected result
-
-After this fix:
-- Clicking “Boiled Moong Sprouts Salad with Paneer” opens YouTube outside the embedded app preview.
-- The blocked iframe error should stop happening.
-- Both Ideas cards and Search result cards behave consistently.
-- Login/user ID will not affect YouTube opening.
+Clicking **Continue with Google** in the preview opens the app top-level, Google consent completes, you land back on `/` signed in. On the published URL it works in place, no handoff needed.
