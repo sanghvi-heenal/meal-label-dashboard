@@ -108,15 +108,15 @@ export default function OAuthConsent() {
     <div className="min-h-screen flex items-center justify-center px-4 py-10">
       <Card className="w-full max-w-md p-6 space-y-5">
         <div className="space-y-1">
-          <h1 className="text-xl font-semibold">Connect {clientName} to NutriLens</h1>
+          <h1 className="text-xl font-semibold">Connect {clientName} to Nutrition Lens</h1>
           <p className="text-sm text-muted-foreground">
-            {clientName} will be able to call NutriLens tools while you are signed in.
+            {clientName} will be able to call Nutrition Lens tools while you are signed in.
           </p>
         </div>
         <div className="text-xs text-muted-foreground space-y-1">
           <div>• Read your basic profile</div>
           <div>• Access your saved meal ideas</div>
-          <div>This does not bypass NutriLens permissions or backend policies.</div>
+          <div>This does not bypass Nutrition Lens permissions or backend policies.</div>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" className="flex-1" disabled={busy} onClick={() => decide(false)}>

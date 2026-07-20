@@ -13,7 +13,7 @@
     "server": {
       "name": "nutrilens-mcp",
       "version": "0.1.0",
-      "title": "NutriLens"
+      "title": "Nutrition Lens"
     },
     "tools": [
       {
