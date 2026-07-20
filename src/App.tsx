@@ -12,6 +12,7 @@ import Onboarding from "./pages/Onboarding";
 import Suggestions from "./pages/Suggestions";
 import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
+import OAuthConsent from "./pages/OAuthConsent";
 import { isOnboarded } from "@/lib/nutrition-store";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { Loader2 } from "lucide-react";
@@ -46,6 +47,7 @@ const App = () => (
         <AuthProvider>
           <Routes>
             <Route path="/auth" element={<Auth />} />
+            <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
             <Route path="/onboarding" element={<RequireAuth><Onboarding /></RequireAuth>} />
             <Route path="/" element={<RequireAuth><Index /></RequireAuth>} />
             <Route path="/log" element={<RequireAuth><LogMeal /></RequireAuth>} />

@@ -8,7 +8,11 @@ const BottomNav = () => {
   const { t } = useTranslation();
 
   // Hide nav on auth & onboarding routes for a focused, full-screen flow.
-  if (location.pathname === "/auth" || location.pathname === "/onboarding") {
+  if (
+    location.pathname === "/auth" ||
+    location.pathname === "/onboarding" ||
+    location.pathname.startsWith("/.lovable/")
+  ) {
     return null;
   }
 

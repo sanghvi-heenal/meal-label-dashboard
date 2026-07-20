@@ -22,7 +22,15 @@ const Auth = () => {
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  const redirectTo = (location.state as { from?: string } | null)?.from ?? "/";
+  // Preserve a same-origin `next` from the query string (used by the OAuth
+  // consent route when it sends unauthenticated users here). Fall back to
+  // router state, then home.
+  const rawNext = new URLSearchParams(location.search).get("next");
+  const safeNext =
+    rawNext && rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : null;
+  const redirectTo =
+    safeNext ?? (location.state as { from?: string } | null)?.from ?? "/";
+  const absoluteRedirect = window.location.origin + redirectTo;
 
   useEffect(() => {
     if (!authLoading && session) {
@@ -33,7 +41,7 @@ const Auth = () => {
   const startGoogleOAuth = async () => {
     setSubmitting(true);
     const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
+      redirect_uri: absoluteRedirect,
     });
     if (result.error) {
       setSubmitting(false);
@@ -83,7 +91,7 @@ const Auth = () => {
     const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: { emailRedirectTo: window.location.origin },
+      options: { emailRedirectTo: absoluteRedirect },
     });
     setSubmitting(false);
     if (error) {
