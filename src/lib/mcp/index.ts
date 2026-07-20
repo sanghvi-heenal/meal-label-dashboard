@@ -10,10 +10,10 @@ const projectRef = import.meta.env.VITE_SUPABASE_PROJECT_ID ?? "project-ref-unse
 
 export default defineMcp({
   name: "nutrilens-mcp",
-  title: "NutriLens",
+  title: "Nutrition Lens",
   version: "0.1.0",
   instructions:
-    "Tools for the signed-in NutriLens user. Use `whoami` to verify the session, `get_profile` to fetch the profile row, and `list_meal_ideas` to browse cached AI meal suggestions.",
+    "Tools for the signed-in Nutrition Lens user. Use `whoami` to verify the session, `get_profile` to fetch the profile row, and `list_meal_ideas` to browse cached AI meal suggestions.",
   auth: auth.oauth.issuer({
     issuer: `https://${projectRef}.supabase.co/auth/v1`,
     acceptedAudiences: "authenticated",
