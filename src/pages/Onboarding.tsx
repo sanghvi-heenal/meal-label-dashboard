@@ -103,7 +103,7 @@ const Onboarding = () => {
     { value: "warn", emoji: "🚨", label: t("jobs.warn.label") },
     { value: "choose", emoji: "💡", label: t("jobs.choose.label") },
   ];
-  const allergyOptions: ChoiceOption<Allergy>[] = [
+  const ALL_ALLERGY_OPTIONS: ChoiceOption<Allergy>[] = [
     { value: "dairy", emoji: "🥛", label: t("allergies.dairy") },
     { value: "nuts", emoji: "🥜", label: t("allergies.nuts") },
     { value: "gluten", emoji: "🌾", label: t("allergies.gluten") },
@@ -111,6 +111,30 @@ const Onboarding = () => {
     { value: "shellfish", emoji: "🦐", label: t("allergies.shellfish") },
     { value: "soy", emoji: "🫘", label: t("allergies.soy") },
   ];
+  // Only surface animal-derived allergens the user's diet actually includes.
+  const allowedAllergiesForDiet = (d: DietValue): Allergy[] => {
+    switch (d) {
+      case "vegan":
+      case "vegetarian":
+      case "jain":
+        return ["dairy", "nuts", "gluten", "soy"];
+      case "eggetarian":
+        return ["dairy", "nuts", "gluten", "soy", "eggs"];
+      case "pescatarian":
+        return ["dairy", "nuts", "gluten", "soy", "eggs", "shellfish"];
+      default:
+        return ["dairy", "nuts", "gluten", "eggs", "shellfish", "soy"];
+    }
+  };
+  const activeDiet: DietValue = diet[0] ?? "none";
+  const allowed = allowedAllergiesForDiet(activeDiet);
+  const allergyOptions = ALL_ALLERGY_OPTIONS.filter((o) => allowed.includes(o.value));
+  // Strip previously-selected allergies that are no longer valid for this diet.
+  const visibleAllergies = allergies.filter((a) => allowed.includes(a));
+  if (visibleAllergies.length !== allergies.length) {
+    // Defer to avoid setState during render
+    queueMicrotask(() => setAllergies(visibleAllergies));
+  }
   const diets: ChoiceOption<DietValue>[] = [
     { value: "vegetarian", label: t("diets.vegetarian.label"), hint: t("diets.vegetarian.hint") },
     { value: "vegan", label: t("diets.vegan.label"), hint: t("diets.vegan.hint") },
