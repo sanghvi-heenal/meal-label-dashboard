@@ -167,8 +167,9 @@
     ,
     "allergiesTitle": "कोई एलर्जी या सेंसिटिविटी?",
     "allergiesSub": "इन्हें आपके मील आइडियाज़ से हटा देंगे। वैकल्पिक — कोई न हो तो स्किप करें।",
-    "allergiesOtherLabel": "और कुछ? (वैकल्पिक)",
-    "allergiesOtherPlaceholder": "जैसे तिल, सरसों, कीवी",
+    "allergiesAddLabel": "कोई और एलर्जी जोड़ें",
+    "allergiesAddPlaceholder": "जैसे तिल, सरसों, कीवी",
+    "allergiesAddCta": "जोड़ें",
     "allergiesSkippable": "वैकल्पिक — कोई न हो तो खाली छोड़ें।"
   },
   "bmi": {
