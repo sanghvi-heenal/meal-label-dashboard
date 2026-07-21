@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { getAuthStorageKey } from "@/lib/auth-persistence";
 
 interface AuthContextValue {
   session: Session | null;
@@ -27,7 +28,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    // Re-read the session when the auth token changes in another tab
+    // (e.g. the top-level tab that completed Google OAuth writes the
+    // session; the preview iframe should pick it up without a manual
+    // reload) or when this tab becomes visible again.
+    const authKey = getAuthStorageKey();
+    const refresh = () => {
+      supabase.auth.getSession().then(({ data: { session: existing } }) => {
+        setSession(existing);
+        setLoading(false);
+      });
+    };
+    const onStorage = (e: StorageEvent) => {
+      if (!authKey || e.key === authKey || e.key === null) refresh();
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") refresh();
+    };
+    window.addEventListener("storage", onStorage);
+    document.addEventListener("visibilitychange", onVisibility);
+
+    return () => {
+      subscription.unsubscribe();
+      window.removeEventListener("storage", onStorage);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
   }, []);
 
   const signOut = async () => {
