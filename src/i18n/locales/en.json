@@ -167,8 +167,9 @@
     ,
     "allergiesTitle": "Any allergies or sensitivities?",
     "allergiesSub": "We'll exclude these from your meal ideas. Optional — skip if none.",
-    "allergiesOtherLabel": "Anything else? (optional)",
-    "allergiesOtherPlaceholder": "e.g. sesame, mustard, kiwi",
+    "allergiesAddLabel": "Add another allergy",
+    "allergiesAddPlaceholder": "e.g. sesame, mustard, kiwi",
+    "allergiesAddCta": "Add",
     "allergiesSkippable": "Optional — leave empty if none."
   },
   "bmi": {
