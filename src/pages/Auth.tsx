@@ -95,6 +95,15 @@ const Auth = () => {
     }
     setSubmitting(false);
     if (result.redirected) return;
+    const { error: sessionError } = await supabase.auth.setSession(result.tokens);
+    if (sessionError) {
+      toast({
+        title: t("auth.googleFailed"),
+        description: sessionError.message,
+        variant: "destructive",
+      });
+      return;
+    }
     applySessionPersistence(remember);
   };
 
