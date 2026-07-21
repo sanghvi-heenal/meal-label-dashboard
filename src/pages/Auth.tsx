@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import { ExternalLink, RefreshCw } from "lucide-react";
 import {
   applySessionPersistence,
   getRememberPreference,
@@ -28,6 +29,38 @@ const Auth = () => {
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [remember, setRemember] = useState<boolean>(() => getRememberPreference());
+
+  // Detect the "iframe with a different top-level origin" case. When the
+  // preview iframe and the top window run on different origins, the session
+  // written by the OAuth tab lives in a localStorage the iframe can never
+  // read — so we tell the user and give them a one-click escape.
+  const crossOriginPreview = (() => {
+    try {
+      if (window.top === window.self) return false;
+      // Reading window.top.location.origin throws when cross-origin.
+      return window.top!.location.origin !== window.location.origin;
+    } catch {
+      return true;
+    }
+  })();
+
+  const openTopLevel = () => {
+    const url = window.location.href;
+    try {
+      window.open(url, "_blank", "noopener,noreferrer");
+    } catch {
+      /* ignore */
+    }
+  };
+
+  const reloadPreview = async () => {
+    const { data } = await supabase.auth.getSession();
+    if (data.session) {
+      navigate(redirectTo, { replace: true });
+    } else {
+      window.location.reload();
+    }
+  };
 
   // Preserve a same-origin `next` from the query string (used by the OAuth
   // consent route when it sends unauthenticated users here). Fall back to
@@ -163,6 +196,22 @@ const Auth = () => {
           <h1 className="text-2xl font-semibold">{t("auth.title")}</h1>
           <p className="text-sm text-muted-foreground">{t("auth.subtitle")}</p>
         </div>
+
+        {crossOriginPreview && (
+          <div className="rounded-md border border-border bg-muted/40 p-3 space-y-2 text-sm">
+            <p className="text-muted-foreground">{t("auth.crossOriginNotice")}</p>
+            <div className="flex gap-2">
+              <Button type="button" size="sm" variant="secondary" onClick={openTopLevel}>
+                <ExternalLink className="mr-1.5 size-3.5" />
+                {t("auth.openInNewTab")}
+              </Button>
+              <Button type="button" size="sm" variant="ghost" onClick={reloadPreview}>
+                <RefreshCw className="mr-1.5 size-3.5" />
+                {t("auth.reloadPreview")}
+              </Button>
+            </div>
+          </div>
+        )}
 
         <Button
           type="button"
