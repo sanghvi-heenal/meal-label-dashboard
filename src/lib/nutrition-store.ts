@@ -178,7 +178,17 @@ export function getProfile(): UserProfile {
     parsed.goals = parsed.goals.filter((g) => validGoals.includes(g as Goal)) as Goal[];
     if (!parsed.goals.length) parsed.goals = ["eat_healthy"];
   }
-  return { ...DEFAULT_PROFILE, ...parsed };
+  const merged = { ...DEFAULT_PROFILE, ...parsed };
+  // Migrate legacy free-text `allergiesOther` → structured `customAllergies` chips.
+  if ((!merged.customAllergies || merged.customAllergies.length === 0) && merged.allergiesOther) {
+    const items = merged.allergiesOther
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    merged.customAllergies = Array.from(new Set(items));
+    merged.allergiesOther = "";
+  }
+  return merged;
 }
 
 export function saveProfile(profile: UserProfile) {
