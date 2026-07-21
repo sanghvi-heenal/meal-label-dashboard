@@ -17,7 +17,7 @@ import OAuthConsent from "./pages/OAuthConsent";
 import { isOnboarded } from "@/lib/nutrition-store";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { getAuthStorageKey } from "@/lib/auth-persistence";
+import { getAuthStorageKey, restoreSessionForCurrentTab } from "@/lib/auth-persistence";
 import { Loader2 } from "lucide-react";
 
 const queryClient = new QueryClient();
@@ -41,6 +41,7 @@ const RequireAuth = ({ children }: { children: JSX.Element }) => {
     let cancelled = false;
     const authKey = getAuthStorageKey();
     const check = async () => {
+      restoreSessionForCurrentTab();
       const { data } = await supabase.auth.getSession();
       if (!cancelled && data.session) setRecovered(true);
     };
@@ -94,6 +95,8 @@ const App = () => (
             <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
             <Route path="/onboarding" element={<RequireAuth><Onboarding /></RequireAuth>} />
             <Route path="/" element={<RequireAuth><Index /></RequireAuth>} />
+            <Route path="/dashboard" element={<RequireAuth><Index /></RequireAuth>} />
+            <Route path="/homepage" element={<RequireAuth><Index /></RequireAuth>} />
             <Route path="/log" element={<RequireAuth><LogMeal /></RequireAuth>} />
             <Route path="/history" element={<RequireAuth><History /></RequireAuth>} />
             <Route path="/suggestions" element={<RequireAuth><Suggestions /></RequireAuth>} />
