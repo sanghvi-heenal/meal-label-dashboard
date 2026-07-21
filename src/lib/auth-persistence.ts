@@ -75,3 +75,13 @@ export function restoreSessionForCurrentTab(): void {
     /* ignore */
   }
 }
+
+export function clearStoredAuthSession(): void {
+  if (!AUTH_TOKEN_KEY) return;
+  try {
+    localStorage.removeItem(AUTH_TOKEN_KEY);
+    sessionStorage.removeItem(AUTH_TOKEN_KEY);
+  } catch {
+    /* ignore */
+  }
+}

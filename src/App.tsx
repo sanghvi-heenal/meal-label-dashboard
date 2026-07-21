@@ -24,7 +24,7 @@ const queryClient = new QueryClient();
 
 const RequireAuth = ({ children }: { children: JSX.Element }) => {
   const location = useLocation();
-  const { session, loading } = useAuth();
+  const { session, loading, refreshSession } = useAuth();
   const [graceElapsed, setGraceElapsed] = useState(false);
   const [recovered, setRecovered] = useState<boolean | null>(null);
 
@@ -42,8 +42,8 @@ const RequireAuth = ({ children }: { children: JSX.Element }) => {
     const authKey = getAuthStorageKey();
     const check = async () => {
       restoreSessionForCurrentTab();
-      const { data } = await supabase.auth.getSession();
-      if (!cancelled && data.session) setRecovered(true);
+      const existing = await refreshSession();
+      if (!cancelled && existing) setRecovered(true);
     };
     const onStorage = (e: StorageEvent) => {
       if (!authKey || e.key === authKey || e.key === null) void check();
@@ -65,7 +65,7 @@ const RequireAuth = ({ children }: { children: JSX.Element }) => {
       window.removeEventListener("storage", onStorage);
       document.removeEventListener("visibilitychange", onVisibility);
     };
-  }, [loading, session]);
+  }, [loading, session, refreshSession]);
 
   if (loading || (!session && !graceElapsed && recovered !== false)) {
     return (
