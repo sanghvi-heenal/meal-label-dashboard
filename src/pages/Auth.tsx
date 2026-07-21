@@ -11,6 +11,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  applySessionPersistence,
+  getRememberPreference,
+  setRememberPreference,
+} from "@/lib/auth-persistence";
 
 const Auth = () => {
   const { t } = useTranslation();
@@ -21,6 +27,7 @@ const Auth = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [remember, setRemember] = useState<boolean>(() => getRememberPreference());
 
   // Preserve a same-origin `next` from the query string (used by the OAuth
   // consent route when it sends unauthenticated users here). Fall back to
@@ -40,6 +47,7 @@ const Auth = () => {
 
   const startGoogleOAuth = async () => {
     setSubmitting(true);
+    setRememberPreference(remember);
     const result = await lovable.auth.signInWithOAuth("google", {
       redirect_uri: absoluteRedirect,
     });
@@ -76,18 +84,21 @@ const Auth = () => {
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
+    setRememberPreference(remember);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setSubmitting(false);
     if (error) {
       toast({ title: t("auth.signInFailed"), description: error.message, variant: "destructive" });
       return;
     }
+    applySessionPersistence(remember);
     toast({ title: t("auth.signedIn") });
   };
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
+    setRememberPreference(remember);
     const { error } = await supabase.auth.signUp({
       email,
       password,
@@ -98,6 +109,7 @@ const Auth = () => {
       toast({ title: t("auth.signUpFailed"), description: error.message, variant: "destructive" });
       return;
     }
+    applySessionPersistence(remember);
     toast({ title: t("auth.accountCreated"), description: t("auth.accountCreatedSub") });
   };
 
@@ -140,6 +152,11 @@ const Auth = () => {
   };
 
   return (
+    authLoading || session ? (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="size-6 animate-spin text-muted-foreground" />
+      </div>
+    ) : (
     <div className="min-h-screen flex items-center justify-center px-4 py-10">
       <Card className="w-full max-w-md p-6 space-y-6 backdrop-blur-sm">
         <div className="text-center space-y-1">
@@ -193,8 +210,17 @@ const Auth = () => {
             </form>
           </TabsContent>
         </Tabs>
+
+        <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer select-none">
+          <Checkbox
+            checked={remember}
+            onCheckedChange={(v) => setRemember(v === true)}
+          />
+          {t("auth.rememberMe")}
+        </label>
       </Card>
     </div>
+    )
   );
 };
 
