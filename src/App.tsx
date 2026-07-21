@@ -16,7 +16,6 @@ import Auth from "./pages/Auth";
 import OAuthConsent from "./pages/OAuthConsent";
 import { isOnboarded } from "@/lib/nutrition-store";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/integrations/supabase/client";
 import { getAuthStorageKey, restoreSessionForCurrentTab } from "@/lib/auth-persistence";
 import { Loader2 } from "lucide-react";
 
