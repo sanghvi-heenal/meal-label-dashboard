@@ -284,6 +284,7 @@
     "accountCreatedSub": "You're all set — let's get started.",
     "signInFailed": "Couldn't sign in",
     "signUpFailed": "Couldn't create account",
-    "googleFailed": "Google sign-in failed"
+    "googleFailed": "Google sign-in failed",
+    "rememberMe": "Keep me signed in"
   }
 }
