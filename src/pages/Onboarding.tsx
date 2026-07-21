@@ -94,7 +94,7 @@ const Onboarding = () => {
     { value: "portions", emoji: "🍽️", label: t("pains.portions.label") },
     { value: "sugar", emoji: "🍬", label: t("pains.sugar.label") },
     { value: "carbs", emoji: "🍞", label: t("pains.carbs.label") },
-    { value: "protein", emoji: "🥩", label: t("pains.protein.label") },
+    { value: "protein", emoji: "🫘", label: t("pains.protein.label") },
     { value: "drinks", emoji: "🥤", label: t("pains.drinks.label") },
   ];
   const jobs: ChoiceOption<AppJob>[] = [
