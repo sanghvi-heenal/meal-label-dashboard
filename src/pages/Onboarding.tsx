@@ -116,6 +116,7 @@ const Onboarding = () => {
   const allowedAllergiesForDiet = (d: DietValue): Allergy[] => {
     switch (d) {
       case "vegan":
+        return ["nuts", "gluten", "soy"];
       case "vegetarian":
       case "jain":
         return ["dairy", "nuts", "gluten", "soy"];
