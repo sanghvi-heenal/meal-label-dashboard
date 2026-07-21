@@ -57,3 +57,31 @@ export function applySessionPersistence(remember: boolean): void {
     /* ignore */
   }
 }
+
+/**
+ * The generated auth client reads from localStorage. If a previous
+ * "don't remember me" sign-in moved the token into sessionStorage, mirror it
+ * back for this tab before `getSession()` runs so refreshes stay signed in.
+ */
+export function restoreSessionForCurrentTab(): void {
+  if (!AUTH_TOKEN_KEY) return;
+  try {
+    const inSession = sessionStorage.getItem(AUTH_TOKEN_KEY);
+    const inLocal = localStorage.getItem(AUTH_TOKEN_KEY);
+    if (inSession && !inLocal) {
+      localStorage.setItem(AUTH_TOKEN_KEY, inSession);
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
+export function clearStoredAuthSession(): void {
+  if (!AUTH_TOKEN_KEY) return;
+  try {
+    localStorage.removeItem(AUTH_TOKEN_KEY);
+    sessionStorage.removeItem(AUTH_TOKEN_KEY);
+  } catch {
+    /* ignore */
+  }
+}

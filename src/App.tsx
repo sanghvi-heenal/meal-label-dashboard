@@ -16,15 +16,14 @@ import Auth from "./pages/Auth";
 import OAuthConsent from "./pages/OAuthConsent";
 import { isOnboarded } from "@/lib/nutrition-store";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/integrations/supabase/client";
-import { getAuthStorageKey } from "@/lib/auth-persistence";
+import { getAuthStorageKey, restoreSessionForCurrentTab } from "@/lib/auth-persistence";
 import { Loader2 } from "lucide-react";
 
 const queryClient = new QueryClient();
 
 const RequireAuth = ({ children }: { children: JSX.Element }) => {
   const location = useLocation();
-  const { session, loading } = useAuth();
+  const { session, loading, refreshSession } = useAuth();
   const [graceElapsed, setGraceElapsed] = useState(false);
   const [recovered, setRecovered] = useState<boolean | null>(null);
 
@@ -41,8 +40,9 @@ const RequireAuth = ({ children }: { children: JSX.Element }) => {
     let cancelled = false;
     const authKey = getAuthStorageKey();
     const check = async () => {
-      const { data } = await supabase.auth.getSession();
-      if (!cancelled && data.session) setRecovered(true);
+      restoreSessionForCurrentTab();
+      const existing = await refreshSession();
+      if (!cancelled && existing) setRecovered(true);
     };
     const onStorage = (e: StorageEvent) => {
       if (!authKey || e.key === authKey || e.key === null) void check();
@@ -64,7 +64,7 @@ const RequireAuth = ({ children }: { children: JSX.Element }) => {
       window.removeEventListener("storage", onStorage);
       document.removeEventListener("visibilitychange", onVisibility);
     };
-  }, [loading, session]);
+  }, [loading, session, refreshSession]);
 
   if (loading || (!session && !graceElapsed && recovered !== false)) {
     return (
@@ -94,6 +94,8 @@ const App = () => (
             <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
             <Route path="/onboarding" element={<RequireAuth><Onboarding /></RequireAuth>} />
             <Route path="/" element={<RequireAuth><Index /></RequireAuth>} />
+            <Route path="/dashboard" element={<RequireAuth><Index /></RequireAuth>} />
+            <Route path="/homepage" element={<RequireAuth><Index /></RequireAuth>} />
             <Route path="/log" element={<RequireAuth><LogMeal /></RequireAuth>} />
             <Route path="/history" element={<RequireAuth><History /></RequireAuth>} />
             <Route path="/suggestions" element={<RequireAuth><Suggestions /></RequireAuth>} />

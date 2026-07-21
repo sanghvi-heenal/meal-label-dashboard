@@ -29,7 +29,9 @@ const BottomNav = () => {
       <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
       <div className="flex justify-around items-center h-16 max-w-md mx-auto">
         {tabs.map(({ path, icon: Icon, label }) => {
-          const active = location.pathname === path;
+          const active = path === "/"
+            ? ["/", "/dashboard", "/homepage"].includes(location.pathname)
+            : location.pathname === path;
           return (
             <button
               key={path}
