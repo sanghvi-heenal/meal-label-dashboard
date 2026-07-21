@@ -368,18 +368,67 @@ const Onboarding = () => {
                   </button>
                 );
               })}
+              {customAllergies.map((item) => (
+                <span
+                  key={`custom-${item}`}
+                  className="px-3 py-2 rounded-full border-2 border-primary bg-primary/10 text-primary text-sm font-medium flex items-center gap-1.5"
+                >
+                  <span aria-hidden="true">🏷️</span>
+                  <span>{item}</span>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setCustomAllergies((prev) => prev.filter((x) => x !== item))
+                    }
+                    aria-label={`Remove ${item}`}
+                    className="ml-1 text-primary/70 hover:text-primary"
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
             </div>
             <div>
               <label className="text-xs text-muted-foreground">
-                {t("onboarding.allergiesOtherLabel")}
+                {t("onboarding.allergiesAddLabel")}
               </label>
-              <input
-                type="text"
-                value={allergiesOther}
-                onChange={(e) => setAllergiesOther(e.target.value)}
-                placeholder={t("onboarding.allergiesOtherPlaceholder")}
-                className="w-full mt-1 px-3 py-2 rounded-lg bg-secondary border border-border text-foreground text-sm focus:outline-none focus:ring-1 focus:ring-primary"
-              />
+              <div className="mt-1 flex gap-2">
+                <input
+                  type="text"
+                  value={customAllergyDraft}
+                  onChange={(e) => setCustomAllergyDraft(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      const v = customAllergyDraft.trim();
+                      if (!v) return;
+                      const exists = customAllergies.some(
+                        (x) => x.toLowerCase() === v.toLowerCase()
+                      );
+                      if (!exists) setCustomAllergies((prev) => [...prev, v]);
+                      setCustomAllergyDraft("");
+                    }
+                  }}
+                  placeholder={t("onboarding.allergiesAddPlaceholder")}
+                  className="flex-1 px-3 py-2 rounded-lg bg-secondary border border-border text-foreground text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    const v = customAllergyDraft.trim();
+                    if (!v) return;
+                    const exists = customAllergies.some(
+                      (x) => x.toLowerCase() === v.toLowerCase()
+                    );
+                    if (!exists) setCustomAllergies((prev) => [...prev, v]);
+                    setCustomAllergyDraft("");
+                  }}
+                  disabled={!customAllergyDraft.trim()}
+                  className="px-3 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium disabled:opacity-50"
+                >
+                  {t("onboarding.allergiesAddCta")}
+                </button>
+              </div>
             </div>
             <p className="text-xs text-muted-foreground text-center">
               {t("onboarding.allergiesSkippable")}
