@@ -171,7 +171,8 @@ const Onboarding = () => {
       currentHydrationMl,
       hydrationTarget: hydrationGoalMl,
       allergies,
-      allergiesOther: allergiesOther.trim(),
+      allergiesOther: "",
+      customAllergies,
       onboardedAt: new Date().toISOString(),
     });
     navigate("/", { replace: true });
