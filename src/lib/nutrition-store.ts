@@ -61,6 +61,8 @@ export interface UserProfile {
   allergies: Allergy[];
   /** Free-text "other" allergies the user typed in. */
   allergiesOther: string;
+  /** User-added custom allergies rendered as chips. */
+  customAllergies: string[];
 }
 
 const DEFAULT_PROFILE: UserProfile = {
@@ -90,6 +92,7 @@ const DEFAULT_PROFILE: UserProfile = {
   onboardedAt: null,
   allergies: [],
   allergiesOther: "",
+  customAllergies: [],
 };
 
 export function isOnboarded(): boolean {
