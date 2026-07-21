@@ -284,6 +284,7 @@
     "accountCreatedSub": "सब तैयार है — चलिए शुरू करें।",
     "signInFailed": "साइन इन नहीं हो सका",
     "signUpFailed": "अकाउंट नहीं बना",
-    "googleFailed": "Google साइन इन फेल"
+    "googleFailed": "Google साइन इन फेल",
+    "rememberMe": "मुझे साइन इन रखें"
   }
 }
