@@ -1,7 +1,12 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
-import { getAuthStorageKey, restoreSessionForCurrentTab } from "@/lib/auth-persistence";
+import {
+  applySessionPersistence,
+  getAuthStorageKey,
+  getRememberPreference,
+  restoreSessionForCurrentTab,
+} from "@/lib/auth-persistence";
 
 interface AuthContextValue {
   session: Session | null;
@@ -23,11 +28,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, newSession) => {
       setSession(newSession);
       setLoading(false);
+      applySessionPersistence(getRememberPreference());
     });
 
     supabase.auth.getSession().then(({ data: { session: existing } }) => {
       setSession(existing);
       setLoading(false);
+      applySessionPersistence(getRememberPreference());
     });
 
     // Re-read the session when the auth token changes in another tab
@@ -40,6 +47,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       supabase.auth.getSession().then(({ data: { session: existing } }) => {
         setSession(existing);
         setLoading(false);
+        applySessionPersistence(getRememberPreference());
       });
     };
     const onStorage = (e: StorageEvent) => {
