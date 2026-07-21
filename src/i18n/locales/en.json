@@ -285,6 +285,9 @@
     "signInFailed": "Couldn't sign in",
     "signUpFailed": "Couldn't create account",
     "googleFailed": "Google sign-in failed",
-    "rememberMe": "Keep me signed in"
+    "rememberMe": "Keep me signed in",
+    "crossOriginNotice": "The editor preview runs on a different origin than the app, so it can't see your signed-in session. Open the app in a new tab to use it while editing.",
+    "openInNewTab": "Open in new tab",
+    "reloadPreview": "Reload preview"
   }
 }
