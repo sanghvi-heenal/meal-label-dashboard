@@ -69,7 +69,8 @@ const Onboarding = () => {
   const [currentHydrationMl, setCurrentHydrationMl] = useState<number>(profile.currentHydrationMl);
   const [hydrationGoalMl, setHydrationGoalMl] = useState<number>(profile.hydrationTarget);
   const [allergies, setAllergies] = useState<Allergy[]>(profile.allergies ?? []);
-  const [allergiesOther, setAllergiesOther] = useState<string>(profile.allergiesOther ?? "");
+  const [customAllergies, setCustomAllergies] = useState<string[]>(profile.customAllergies ?? []);
+  const [customAllergyDraft, setCustomAllergyDraft] = useState<string>("");
 
   const total = 9;
   const GOAL_CAP = 3;
