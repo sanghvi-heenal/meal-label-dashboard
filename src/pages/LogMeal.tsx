@@ -1209,6 +1209,7 @@ const LogMeal = () => {
       )}
 
       {/* Portion size */}
+      {!(session && session.items.length > 0) && (
       <div className="space-y-2">
         <label className="text-sm font-medium text-foreground">Portion Size</label>
         <div className="flex flex-wrap gap-2">
@@ -1247,17 +1248,20 @@ const LogMeal = () => {
           </select>
         </div>
       </div>
+      )}
       </>}
 
       {/* Divider */}
+      {!(session && session.items.length > 0) && (
       <div className="flex items-center gap-3">
         <div className="flex-1 h-px bg-border" />
         <span className="text-xs text-muted-foreground">{detectionState === "done" ? "review & edit values" : "or add manually"}</span>
         <div className="flex-1 h-px bg-border" />
       </div>
+      )}
 
       {/* Manual entry */}
-      {!showManual ? (
+      {(session && session.items.length > 0) ? null : !showManual ? (
         <button
           onClick={() => setShowManual(true)}
           className="w-full card-surface flex items-center justify-center gap-2 py-3 hover:border-primary/50 transition-colors"
