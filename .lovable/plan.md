@@ -1,39 +1,27 @@
-## Changes
+## Changes to `src/pages/SettingsPage.tsx`
 
-### 1. Step 6 — Protein icon
-In `src/pages/Onboarding.tsx`, change the `pains.protein` chip emoji from `🥩` (meat) to `🫘` (beans/lentils, plant-forward) so it doesn't imply meat is the only protein source. Label text stays "Protein" / "प्रोटीन".
+### 1. Diet type dropdown — match onboarding options
+Replace the 5-option `<select>` (Balanced / Vegetarian (no meat) / Vegan / Keto / Paleo) with the same 8 options used in onboarding step 4:
 
-### 2. Step 8 — Diet-aware allergy list (fix vegan)
-Update `allowedAllergiesForDiet` in `src/pages/Onboarding.tsx` so vegan excludes `dairy` (currently vegan returns `dairy, nuts, gluten, soy`):
+Vegetarian, Vegan, Non-vegetarian, Eggetarian, Pescatarian, Jain, Keto, No preference.
 
-```text
-vegan               -> nuts, gluten, soy
-vegetarian, jain    -> dairy, nuts, gluten, soy
-eggetarian          -> dairy, nuts, gluten, soy, eggs
-pescatarian         -> dairy, nuts, gluten, soy, eggs, shellfish
-nonVeg, keto, none  -> dairy, nuts, gluten, soy, eggs, shellfish
-```
+Use the same `DIET_LABEL` mapping from `Onboarding.tsx` (extract it into a small shared helper, e.g. `src/lib/diet-options.ts`, exporting `DIET_VALUES`, `DIET_LABEL`, and a `dietValueFromStored` helper) so onboarding and settings stay in sync. The `<option value>` becomes the canonical stored label and `<option>` text uses the existing `diets.*.label` i18n keys.
 
-The existing filter already strips stale selections when the diet changes, so switching to vegan will drop a previously-picked dairy chip too.
+Paleo and "Balanced" go away; a legacy stored `dietType: "Balanced"` falls back to "No preference" in the dropdown (via `dietValueFromStored`).
 
-### 3. Step 8 — User-added custom allergies as pills
-Replace the current free-text "Other allergies" input with an add-your-own control:
+### 2. Daily Nutrition Targets card — drop diet + BMI rows
+In the "Daily Nutrition Targets" section, remove the two summary rows for `settings.dietType` and `settings.bmi` (lines 231–238). Keep the Daily hydration row, its inline editor, and the `targetsHint` footnote. The top profile card still shows age · diet · BMI, so that info isn't lost.
 
-- A text input + "Add" button (Enter also adds).
-- On add, the value is trimmed, de-duped case-insensitively, and pushed into a new `customAllergies: string[]` list stored on the profile alongside `allergies`.
-- Each custom entry renders as a chip next to the fixed chips, with a generic 🏷️ icon and an `×` to remove it. Custom chips are always "selected" (adding = selecting).
-- The legacy `allergiesOther` string field is migrated on load: if present and `customAllergies` is empty, split by commas into the new array; then cleared.
+### 3. Rename & confirm the reset action
+- Rename the button from "Restart onboarding" to "Recheck your nutritional needs" (new i18n keys `settings.recheckNeeds` + `settings.recheckNeedsHint`, added to both `en.json` and `hi.json`; old `resetOnboarding` / `resetOnboardingHint` keys removed).
+- On click, open a confirmation dialog using the existing shadcn `AlertDialog` (`@/components/ui/alert-dialog`) with:
+  - Title: "Reset your nutrition targets and diet?"
+  - Body: "This clears the diet type, goals, allergies and other preferences you picked during onboarding, and takes you back to the welcome flow. Your logged meals stay saved."
+  - Cancel + destructive Confirm buttons.
+- Only on confirm run `resetOnboarding()` + `navigate("/onboarding")`. Toast copy stays (rename key to `settings.recheckNeedsToast`).
 
-`src/lib/nutrition-store.ts` gets a new `customAllergies: string[]` field on the profile (default `[]`) and the migration above in `getProfile`. `finish()` in `Onboarding.tsx` saves `customAllergies` instead of `allergiesOther`.
-
-New i18n keys in `src/i18n/locales/en.json` and `hi.json` under `onboarding`:
-- `allergiesAddLabel` — "Add another allergy"
-- `allergiesAddPlaceholder` — "e.g. sesame, mustard, kiwi"
-- `allergiesAddCta` — "Add"
-
-Old `allergiesOtherLabel` / `allergiesOtherPlaceholder` keys are removed.
+Hindi strings will be translations of the above.
 
 ## Out of scope
-
-- No changes to the diet step, hydration step, chip visuals elsewhere, or backend schema (profile is localStorage-only today).
-- No autocomplete/suggestion dropdown for custom allergies — plain text entry only. If you want a suggested-list dropdown ("select New to add"), say so and I'll add a datalist of common allergens (sesame, mustard, kiwi, celery, sulphites, etc.).
+- No changes to what `resetOnboarding()` actually clears (still just flips `onboardedAt` to null so the onboarding flow re-runs and overwrites answers). Say the word if you want a hard wipe of goals/allergies/diet immediately on confirm instead.
+- No changes to the profile edit card, allergies card, hydration editor, or onboarding itself.
