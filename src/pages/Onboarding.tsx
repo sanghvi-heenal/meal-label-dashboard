@@ -20,6 +20,7 @@ import {
   type HydrationUnit,
   type LogPref,
   type PainPoint,
+  type UserProfile,
 } from "@/lib/nutrition-store";
 
 const Onboarding = () => {
@@ -129,7 +130,7 @@ const Onboarding = () => {
   };
 
   const finish = async () => {
-    const next = {
+    const next: UserProfile = {
       ...profile,
       language,
       age,
@@ -157,7 +158,7 @@ const Onboarding = () => {
   };
 
   const skip = async () => {
-    const next = { ...profile, language, onboardedAt: new Date().toISOString() };
+    const next: UserProfile = { ...profile, language, onboardedAt: new Date().toISOString() };
     saveProfile(next);
     await pushProfileToDb(next);
     navigate("/", { replace: true });
