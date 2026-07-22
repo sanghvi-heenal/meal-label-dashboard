@@ -81,6 +81,9 @@ const RequireAuth = ({ children }: { children: JSX.Element }) => {
   // we just read the cache here, which was refreshed before profileReady flipped true.
   void profileVersion;
   const onboarded = Boolean(getProfile().onboardedAt);
+  if (onboarded && location.pathname === "/onboarding") {
+    return <Navigate to="/" replace />;
+  }
   if (!onboarded && location.pathname !== "/onboarding") {
     return <Navigate to="/onboarding" replace />;
   }

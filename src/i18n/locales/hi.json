@@ -8,7 +8,8 @@
     "cancel": "कैंसिल",
     "today": "आज",
     "remove": "हटाएँ",
-    "loading": "लोड हो रहा है…"
+    "loading": "लोड हो रहा है…",
+    "saving": "सेव हो रहा है…"
   },
   "nav": {
     "dashboard": "डैशबोर्ड",
@@ -176,7 +177,9 @@
     "allergiesAddLabel": "कोई और एलर्जी जोड़ें",
     "allergiesAddPlaceholder": "जैसे तिल, सरसों, कीवी",
     "allergiesAddCta": "जोड़ें",
-    "allergiesSkippable": "वैकल्पिक — कोई न हो तो खाली छोड़ें।"
+    "allergiesSkippable": "वैकल्पिक — कोई न हो तो खाली छोड़ें।",
+    "saveFailedTitle": "आपका सेटअप सेव नहीं हुआ",
+    "saveFailedBody": "कृपया कनेक्शन जाँचें और फिर कोशिश करें। डैशबोर्ड खोलने से पहले सेटअप सेव होना ज़रूरी है।"
   },
   "bmi": {
     "underweight": "कम वज़न",

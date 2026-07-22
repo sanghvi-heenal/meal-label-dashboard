@@ -22,11 +22,14 @@ import {
   type PainPoint,
   type UserProfile,
 } from "@/lib/nutrition-store";
+import { useToast } from "@/hooks/use-toast";
 
 const Onboarding = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const { toast } = useToast();
   const [step, setStep] = useState(0);
+  const [saving, setSaving] = useState(false);
   const profile = getProfile();
 
   const [language, setLanguage] = useState<Language>(profile.language || "en");
@@ -130,6 +133,8 @@ const Onboarding = () => {
   };
 
   const finish = async () => {
+    if (saving) return;
+    setSaving(true);
     const next: UserProfile = {
       ...profile,
       language,
@@ -150,17 +155,35 @@ const Onboarding = () => {
       customAllergies,
       onboardedAt: new Date().toISOString(),
     };
+    const saved = await pushProfileToDb(next);
+    if (!saved) {
+      setSaving(false);
+      toast({
+        title: t("onboarding.saveFailedTitle"),
+        description: t("onboarding.saveFailedBody"),
+        variant: "destructive",
+      });
+      return;
+    }
     saveProfile(next);
-    // Wait for the DB upsert so a hard refresh right after finish
-    // doesn't bounce the user back into onboarding.
-    await pushProfileToDb(next);
     navigate("/", { replace: true });
   };
 
   const skip = async () => {
+    if (saving) return;
+    setSaving(true);
     const next: UserProfile = { ...profile, language, onboardedAt: new Date().toISOString() };
+    const saved = await pushProfileToDb(next);
+    if (!saved) {
+      setSaving(false);
+      toast({
+        title: t("onboarding.saveFailedTitle"),
+        description: t("onboarding.saveFailedBody"),
+        variant: "destructive",
+      });
+      return;
+    }
     saveProfile(next);
-    await pushProfileToDb(next);
     navigate("/", { replace: true });
   };
 
