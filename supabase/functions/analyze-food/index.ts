@@ -49,6 +49,12 @@ Rules:
 - For packaged_food, identify the product name but do NOT estimate nutrition — the user will scan the label next.
 - Supplements, vitamins, protein powders, and medicines with visible nutrition/supplement facts labels should be classified as "nutrition_label" and their values extracted. Only non-ingestible products (cosmetics, cleaning supplies, electronics) should be "not_food".
 
+CLARIFICATION LOGIC (open_meal only):
+- If ANY visible item is ambiguous, unfamiliar, or you can't tell what it is (e.g. "something green — sabzi or salad?", "unknown grain", "sauce type unclear"), OR the portion size is genuinely hard to estimate, set "needsClarification" to true and populate "questions" with 1–3 SHORT questions.
+- For each question, provide 2–4 plausible chip answers in the parallel "questionChoices" array (each question → array of answer strings). Keep chips brief (1–3 words).
+- If everything is clear and confidence is high, set "needsClarification" to false and leave "questions"/"questionChoices" empty.
+- Still return your BEST estimate of nutrition even when asking questions — the user's answers will refine it.
+
 DRINK MODE INSTRUCTIONS (when applicable):
 - For beverages (juice, soda, lassi, smoothie, cocktail, energy drink, coffee, tea, milk, etc.), classify as "open_meal" and ALWAYS estimate the volume in milliliters via the new "volumeMl" field. Use cues like glass/can/bottle size (a typical can ≈ 330ml, glass ≈ 250ml, mug ≈ 250ml, small bottle ≈ 500ml).
 - Estimate sugar carefully — drinks are often the main sugar source.
@@ -142,6 +148,20 @@ DRINK MODE INSTRUCTIONS (when applicable):
                     volumeMl: {
                       type: "number",
                       description: "Estimated drink volume in milliliters (only for beverages; 0 for non-drinks).",
+                    },
+                    needsClarification: {
+                      type: "boolean",
+                      description: "True if any item is ambiguous or portion is unclear and you need the user to confirm before finalizing.",
+                    },
+                    questions: {
+                      type: "array",
+                      items: { type: "string" },
+                      description: "0-3 short clarifying questions to ask the user (only when needsClarification is true).",
+                    },
+                    questionChoices: {
+                      type: "array",
+                      items: { type: "array", items: { type: "string" } },
+                      description: "Parallel to questions: for each question, 2-4 short suggested chip answers.",
                     },
                   },
                   required: [
