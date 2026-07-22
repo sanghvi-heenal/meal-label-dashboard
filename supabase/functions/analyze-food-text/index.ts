@@ -51,13 +51,12 @@ Other rules:
 - Combine all items into a single nutritional total if multiple foods are described.
 - If the description is not food-related, classify as "not_food".
 - Use reasonable default portions when no quantity is given (e.g. 1 chapati ~ 30g, 1 katori dal ~ 150ml, 1 avocado ~ 150g, 1 egg ~ 50g).
-- All numeric values should be numbers, not strings.${mode === "drink" ? `
+- All numeric values should be numbers, not strings.
 
 CLARIFICATION LOGIC:
 - If any item is ambiguous or unfamiliar, or a portion is genuinely unclear (and not specified by the user), set "needsClarification" to true and populate "questions" (1-3 short questions) with parallel "questionChoices" (2-4 short chip answers per question).
 - If the description is clear, set "needsClarification" to false and leave the arrays empty.
-- Always return best-estimate nutrition even when asking questions.
-${mode === "drink" ? `
+- Always return best-estimate nutrition even when asking questions.${mode === "drink" ? `
 
 DRINK MODE: The user is describing a beverage. Always estimate the total volume in milliliters in the "volumeMl" field (a glass ≈ 250ml, mug ≈ 250ml, can ≈ 330ml, bottle ≈ 500ml, katori/small bowl ≈ 150ml). Pay extra attention to sugar content. If volume is not stated, infer a reasonable serving size from the container described.` : ""}${presetType ? `
 
