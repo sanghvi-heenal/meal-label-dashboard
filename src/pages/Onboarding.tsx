@@ -12,6 +12,7 @@ import { DIET_LABEL, dietValueFromStored, type DietValue } from "@/lib/diet-opti
 import {
   computeBMI,
   getProfile,
+  pushProfileToDb,
   saveProfile,
   type Allergy,
   type AppJob,
@@ -127,8 +128,8 @@ const Onboarding = () => {
     saveProfile({ ...getProfile(), language: lang });
   };
 
-  const finish = () => {
-    saveProfile({
+  const finish = async () => {
+    const next = {
       ...profile,
       language,
       age,
@@ -147,12 +148,18 @@ const Onboarding = () => {
       allergiesOther: "",
       customAllergies,
       onboardedAt: new Date().toISOString(),
-    });
+    };
+    saveProfile(next);
+    // Wait for the DB upsert so a hard refresh right after finish
+    // doesn't bounce the user back into onboarding.
+    await pushProfileToDb(next);
     navigate("/", { replace: true });
   };
 
-  const skip = () => {
-    saveProfile({ ...profile, language, onboardedAt: new Date().toISOString() });
+  const skip = async () => {
+    const next = { ...profile, language, onboardedAt: new Date().toISOString() };
+    saveProfile(next);
+    await pushProfileToDb(next);
     navigate("/", { replace: true });
   };
 
