@@ -9,6 +9,7 @@ import Index from "./pages/Index";
 import LogMeal from "./pages/LogMeal";
 import History from "./pages/History";
 import SettingsPage from "./pages/SettingsPage";
+import About from "./pages/About";
 import Onboarding from "./pages/Onboarding";
 import Suggestions from "./pages/Suggestions";
 import NotFound from "./pages/NotFound";
@@ -100,6 +101,7 @@ const App = () => (
             <Route path="/history" element={<RequireAuth><History /></RequireAuth>} />
             <Route path="/suggestions" element={<RequireAuth><Suggestions /></RequireAuth>} />
             <Route path="/settings" element={<RequireAuth><SettingsPage /></RequireAuth>} />
+            <Route path="/about" element={<RequireAuth><About /></RequireAuth>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
           <BottomNav />
