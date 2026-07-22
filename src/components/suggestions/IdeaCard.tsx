@@ -1,4 +1,4 @@
-import { Play, Search, ExternalLink, BookOpen } from "lucide-react";
+import { Play, BookOpen } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { handleExternalClick } from "@/lib/external-link";
 
@@ -34,45 +34,51 @@ interface IdeaCardProps {
 const IdeaCard = ({ idea, index = 0 }: IdeaCardProps) => {
   const { t } = useTranslation();
   const hasVideo = Boolean(idea.youtubeId);
-  const watchUrl = idea.youtubeWatchUrl
-    ?? idea.youtubeSearchUrl
-    ?? `https://www.youtube.com/results?search_query=${encodeURIComponent(idea.searchQuery)}`;
-  const thumb = idea.youtubeThumbnailUrl ?? idea.articleImage;
+  const watchUrl = hasVideo
+    ? (idea.youtubeWatchUrl ?? `https://www.youtube.com/watch?v=${idea.youtubeId}`)
+    : null;
+  const thumb = hasVideo ? idea.youtubeThumbnailUrl : idea.articleImage;
+  const heroUrl = watchUrl ?? idea.articleUrl ?? null;
 
   return (
     <div
       className="card-surface space-y-3 animate-fade-in overflow-hidden"
       style={{ animationDelay: `${index * 60}ms` }}
     >
-      {/* Hero media */}
-      <a
-        href={watchUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        onClick={handleExternalClick(watchUrl)}
-        className="block relative -mx-4 -mt-4 mb-1 aspect-video bg-secondary/60 group"
-      >
-        {thumb ? (
+      {/* Hero media — only when we have a real video or article to open */}
+      {thumb && heroUrl ? (
+        <a
+          href={heroUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={handleExternalClick(heroUrl)}
+          className="block relative -mx-4 -mt-4 mb-1 aspect-video bg-secondary/60 group"
+        >
           <img
             src={thumb}
             alt={idea.youtubeTitle || idea.name}
             className="w-full h-full object-cover"
             loading="lazy"
           />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <Search size={28} className="text-muted-foreground" />
-          </div>
-        )}
-        <div className="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-colors flex items-center justify-center">
-          <div className="w-12 h-12 rounded-full bg-background/90 flex items-center justify-center shadow-lg">
-            <Play size={20} className="text-primary fill-primary translate-x-0.5" />
-          </div>
+          {hasVideo && (
+            <div className="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-colors flex items-center justify-center">
+              <div className="w-12 h-12 rounded-full bg-background/90 flex items-center justify-center shadow-lg">
+                <Play size={20} className="text-primary fill-primary translate-x-0.5" />
+              </div>
+            </div>
+          )}
+          <span className="absolute bottom-2 right-2 text-[10px] font-bold text-white bg-black/70 px-2 py-0.5 rounded">
+            {idea.calories} {t("dashboard.kcal")}
+          </span>
+        </a>
+      ) : (
+        <div className="-mx-4 -mt-4 mb-1 px-4 py-3 bg-secondary/40 flex items-center justify-between">
+          <span className="text-sm font-semibold text-foreground">{idea.name}</span>
+          <span className="text-[11px] font-bold text-foreground bg-background/80 px-2 py-0.5 rounded">
+            {idea.calories} {t("dashboard.kcal")}
+          </span>
         </div>
-        <span className="absolute bottom-2 right-2 text-[10px] font-bold text-white bg-black/70 px-2 py-0.5 rounded">
-          {idea.calories} {t("dashboard.kcal")}
-        </span>
-      </a>
+      )}
 
       <div>
         <h3 className="text-base font-semibold text-foreground leading-tight">{idea.name}</h3>
@@ -100,36 +106,30 @@ const IdeaCard = ({ idea, index = 0 }: IdeaCardProps) => {
       )}
 
       <div className="flex gap-2">
-        <a
-          href={watchUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={handleExternalClick(watchUrl)}
-          className="flex-1 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold flex items-center justify-center gap-2 active:scale-95 transition-transform"
-        >
-          {hasVideo ? (
-            <>
-              <Play size={14} className="fill-current" />
-              {t("suggestions.watchRecipe")}
-            </>
-          ) : (
-            <>
-              <ExternalLink size={14} />
-              {t("suggestions.searchOnYoutube")}
-            </>
-          )}
-        </a>
+        {hasVideo && watchUrl && (
+          <a
+            href={watchUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={handleExternalClick(watchUrl)}
+            className="flex-1 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold flex items-center justify-center gap-2 active:scale-95 transition-transform"
+          >
+            <Play size={14} className="fill-current" />
+            {t("suggestions.watchRecipe")}
+          </a>
+        )}
         {idea.articleUrl && (
           <a
             href={idea.articleUrl}
             target="_blank"
             rel="noopener noreferrer"
             onClick={handleExternalClick(idea.articleUrl)}
-            className="px-3 py-2 rounded-lg bg-secondary hover:bg-secondary/80 border border-border text-foreground text-sm font-semibold flex items-center justify-center gap-1.5 active:scale-95 transition-transform"
+            className={`${hasVideo ? "px-3" : "flex-1"} py-2 rounded-lg bg-secondary hover:bg-secondary/80 border border-border text-foreground text-sm font-semibold flex items-center justify-center gap-1.5 active:scale-95 transition-transform`}
             aria-label={t("suggestions.readArticle")}
             title={idea.articleTitle || t("suggestions.readArticle")}
           >
             <BookOpen size={14} />
+            {!hasVideo && <span>{t("suggestions.readArticle")}</span>}
           </a>
         )}
       </div>
