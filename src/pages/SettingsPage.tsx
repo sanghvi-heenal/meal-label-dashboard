@@ -343,13 +343,17 @@ const SettingsPage = () => {
       </div>
 
       {/* About */}
-      <div className="card-surface space-y-2">
+      <button
+        onClick={() => navigate("/about")}
+        className="w-full card-surface space-y-2 text-left hover:bg-secondary/40 transition-colors"
+      >
         <div className="flex items-center gap-2">
           <Info size={18} className="text-primary" />
           <h2 className="font-semibold text-foreground">{t("settings.about")}</h2>
         </div>
         <p className="text-sm text-muted-foreground">{t("settings.aboutSub")}</p>
-      </div>
+        <p className="text-xs text-primary font-medium">Read the Plate Method guide →</p>
+      </button>
 
       {/* Reset onboarding */}
       <button
