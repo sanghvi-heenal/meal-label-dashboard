@@ -25,6 +25,17 @@ import { supabase } from "@/integrations/supabase/client";
 import DrinkDescribeSheet, { type DrinkAnalysisResult } from "@/components/DrinkDescribeSheet";
 import VerdictCard from "@/components/meal/VerdictCard";
 import { verdictFor } from "@/lib/insights";
+import MealChat from "@/components/meal/MealChat";
+import {
+  emptySession,
+  toMealItem,
+  totals as sessionTotals,
+  combinedName,
+  MAX_ITEMS,
+  MAX_CLARIFY_ROUNDS,
+  type MealSession,
+  type ChatMessage,
+} from "@/lib/meal-session";
 
 const mealTypeBase = [
   { value: "breakfast" as const, key: "breakfast", icon: Sun },
@@ -100,6 +111,8 @@ const LogMeal = () => {
   const [sizeHelperOpen, setSizeHelperOpen] = useState(false);
   const [describeSheetOpen, setDescribeSheetOpen] = useState(false);
   const [describePreset, setDescribePreset] = useState<string | null>(null);
+  const [session, setSession] = useState<MealSession | null>(null);
+  const [chatBusy, setChatBusy] = useState(false);
   const recognitionRef = useRef<any>(null);
   const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const maxTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -187,6 +200,220 @@ const LogMeal = () => {
     setIsAiFilled(true);
   }, []);
 
+  // ============ Meal Chat Session helpers ============
+  const pushMsg = useCallback((msg: Omit<ChatMessage, "id">) => {
+    setSession((prev) => {
+      if (!prev) return prev;
+      return { ...prev, messages: [...prev.messages, { id: crypto.randomUUID(), ...msg }] };
+    });
+  }, []);
+
+  const ensureSession = useCallback(() => {
+    setSession((prev) => prev ?? emptySession(selectedMeal === "drink" ? "lunch" : selectedMeal));
+  }, [selectedMeal]);
+
+  const routeAnalysisIntoSession = useCallback(
+    (
+      data: any,
+      source: "photo" | "text",
+      opts: { imagePreview?: string; description?: string; base64?: string; language?: string },
+    ) => {
+      const draft = toMealItem(data, source, opts.imagePreview);
+      const questions: string[] = Array.isArray(data.questions) ? data.questions.slice(0, 3) : [];
+      const choices: string[][] = Array.isArray(data.questionChoices) ? data.questionChoices : [];
+      const needsClarify =
+        (data.needsClarification === true || (typeof data.confidence === "number" && data.confidence < 0.6)) &&
+        questions.length > 0;
+
+      setSession((prev) => {
+        const base = prev ?? emptySession(selectedMeal === "drink" ? "lunch" : selectedMeal);
+        const nextMessages: ChatMessage[] = [...base.messages];
+        if (source === "photo") {
+          nextMessages.push({ id: crypto.randomUUID(), role: "ai", text: `I see: ${draft.name}. Estimated ${Math.round(draft.calories)} kcal.`, kind: "info" });
+        } else {
+          nextMessages.push({ id: crypto.randomUUID(), role: "ai", text: `Got it: ${draft.name}. Estimated ${Math.round(draft.calories)} kcal.`, kind: "info" });
+        }
+        if (needsClarify) {
+          nextMessages.push({
+            id: crypto.randomUUID(),
+            role: "ai",
+            text: questions[0],
+            chips: choices[0] || [],
+            kind: "question",
+          });
+        }
+        return {
+          ...base,
+          draft,
+          draftInput: opts.base64
+            ? { kind: "photo", base64: opts.base64 }
+            : opts.description
+              ? { kind: "text", description: opts.description, language: opts.language }
+              : undefined,
+          messages: nextMessages,
+          pendingQuestions: needsClarify ? questions : [],
+          pendingChoices: needsClarify ? choices : [],
+          clarifyRound: needsClarify ? (base.clarifyRound || 0) + 1 : base.clarifyRound || 0,
+        };
+      });
+      // Reset the standalone capture UI so the chat becomes the primary surface
+      setImagePreview(null);
+      setDescribeMode(false);
+      setTextDescription("");
+      setDetectionState("idle");
+    },
+    [selectedMeal],
+  );
+
+  const reAnalyzeWithAnswer = useCallback(async (answerText: string) => {
+    setSession((prev) => {
+      if (!prev) return prev;
+      const nextQuestions = prev.pendingQuestions.slice(1);
+      const nextChoices = prev.pendingChoices.slice(1);
+      const msgs: ChatMessage[] = [...prev.messages, { id: crypto.randomUUID(), role: "user", text: answerText }];
+      if (nextQuestions.length > 0) {
+        msgs.push({ id: crypto.randomUUID(), role: "ai", text: nextQuestions[0], chips: nextChoices[0] || [], kind: "question" });
+      }
+      return { ...prev, messages: msgs, pendingQuestions: nextQuestions, pendingChoices: nextChoices };
+    });
+
+    // Collect all user answers from message log after the last AI info bubble
+    const cur = session;
+    if (!cur?.draftInput) return;
+    // If there are still more pending questions, don't re-analyze yet
+    if (cur.pendingQuestions.length > 1) return;
+    if (cur.clarifyRound >= MAX_CLARIFY_ROUNDS) return;
+
+    // Gather user answers accumulated so far (this turn's answer + previous)
+    const userAnswers = [
+      ...cur.messages.filter((m) => m.role === "user").map((m) => m.text),
+      answerText,
+    ].join("; ");
+
+    setChatBusy(true);
+    try {
+      if (cur.draftInput.kind === "photo") {
+        const { data, error } = await supabase.functions.invoke("analyze-food", {
+          body: { imageBase64: cur.draftInput.base64, userContext: userAnswers },
+        });
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error);
+        if (data.foodType === "open_meal" || data.foodType === "nutrition_label") {
+          const refined = toMealItem(data, "photo");
+          setSession((p) => p && { ...p, draft: refined });
+          pushMsg({ role: "ai", text: `Updated: ${refined.name} — ${Math.round(refined.calories)} kcal.`, kind: "info" });
+        }
+      } else {
+        const composed = `${cur.draftInput.description} (${userAnswers})`;
+        const { data, error } = await supabase.functions.invoke("analyze-food-text", {
+          body: { description: composed, language: cur.draftInput.language || "en-US" },
+        });
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error);
+        if (data.foodType === "open_meal") {
+          const refined = toMealItem(data, "text");
+          setSession((p) => p && { ...p, draft: refined });
+          pushMsg({ role: "ai", text: `Updated: ${refined.name} — ${Math.round(refined.calories)} kcal.`, kind: "info" });
+        }
+      }
+    } catch (e) {
+      console.error("Refine error:", e);
+      pushMsg({ role: "ai", text: "Couldn't refine the estimate. You can still add or discard.", kind: "error" });
+    } finally {
+      setChatBusy(false);
+    }
+  }, [session, pushMsg]);
+
+  const acceptDraft = useCallback(() => {
+    setSession((prev) => {
+      if (!prev?.draft) return prev;
+      if (prev.items.length >= MAX_ITEMS) {
+        return {
+          ...prev,
+          messages: [...prev.messages, { id: crypto.randomUUID(), role: "ai", text: `Maximum ${MAX_ITEMS} items per meal.`, kind: "error" }],
+        };
+      }
+      return {
+        ...prev,
+        items: [...prev.items, prev.draft],
+        draft: undefined,
+        draftInput: undefined,
+        pendingQuestions: [],
+        pendingChoices: [],
+        clarifyRound: 0,
+        messages: [...prev.messages, { id: crypto.randomUUID(), role: "ai", text: `Added. Is this the whole meal, or adding more?`, kind: "confirm" }],
+      };
+    });
+  }, []);
+
+  const discardDraft = useCallback(() => {
+    setSession((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        draft: undefined,
+        draftInput: undefined,
+        pendingQuestions: [],
+        pendingChoices: [],
+        messages: [...prev.messages, { id: crypto.randomUUID(), role: "ai", text: "Discarded. Add another item or save what you have.", kind: "info" }],
+      };
+    });
+  }, []);
+
+  const removeItem = useCallback((id: string) => {
+    setSession((prev) => prev && { ...prev, items: prev.items.filter((i) => i.id !== id) });
+  }, []);
+
+  const cancelSession = useCallback(() => {
+    setSession(null);
+    setChatBusy(false);
+    setImagePreview(null);
+    setDescribeMode(false);
+    setTextDescription("");
+    setDetectionState("idle");
+  }, []);
+
+  const addMorePhoto = useCallback(() => {
+    setDescribeMode(false);
+    cameraInputRef.current?.click();
+  }, []);
+
+  const addMoreDescribe = useCallback(() => {
+    setDescribeMode(true);
+  }, []);
+
+  const finishMealFromSession = useCallback(() => {
+    if (!session || session.items.length === 0) return;
+    const t = sessionTotals(session.items);
+    const entry: MealEntry = {
+      id: crypto.randomUUID(),
+      date: logDate,
+      mealType: session.mealType,
+      name: combinedName(session.items),
+      calories: t.calories,
+      protein: t.protein,
+      carbs: t.carbs,
+      fat: t.fat,
+      fiber: t.fiber,
+      sodium: t.sodium,
+      sugar: t.sugar,
+      satFat: t.satFat,
+      timestamp: Date.now(),
+    };
+    saveMeal(entry);
+    toast({ title: "Meal logged!", description: `${entry.name} · ${Math.round(t.calories)} kcal` });
+    setSession(null);
+    setShowSuccess(true);
+    setTimeout(() => {
+      setShowSuccess(false);
+      navigate(isLoggingToday ? "/" : "/history");
+    }, 900);
+  }, [session, logDate, toast, navigate, isLoggingToday]);
+
+  const setSessionMealType = useCallback((mt: MealEntry["mealType"]) => {
+    setSession((prev) => prev && { ...prev, mealType: mt });
+  }, []);
+
   const clearForm = useCallback(() => {
     setFoodName("");
     setCalories("");
@@ -245,13 +472,18 @@ const LogMeal = () => {
 
         case "nutrition_label":
         case "open_meal":
-          autoFillForm(data);
-          setIsApproximate(false);
-          setDetectionState("done");
-          toast({
-            title: foodType === "nutrition_label" ? "Label scanned!" : "Meal detected!",
-            description: `Detected: ${data.name}`,
-          });
+          if (foodType === "nutrition_label") {
+            autoFillForm(data);
+            setIsApproximate(false);
+            setDetectionState("done");
+            toast({ title: "Label scanned!", description: `Detected: ${data.name}` });
+          } else {
+            // Route into conversational session
+            routeAnalysisIntoSession(data, "photo", {
+              imagePreview: imagePreview || undefined,
+              base64: imagePreview || undefined,
+            });
+          }
           break;
 
         default:
@@ -262,7 +494,7 @@ const LogMeal = () => {
       toast({ title: "Could not analyze image", description: "Try a clearer photo.", variant: "destructive" });
       setDetectionState("idle");
     }
-  }, [toast, autoFillForm, isSecondScan, detectedName]);
+  }, [toast, autoFillForm, isSecondScan, detectedName, routeAnalysisIntoSession, imagePreview]);
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -324,10 +556,10 @@ const LogMeal = () => {
         toast({ title: "Not a food item", description: data.message || "Try describing a meal.", variant: "destructive" });
         return;
       }
-      autoFillForm(data);
-      setIsApproximate(data.quantitySpecified === false);
-      setDescribeMode(false);
-      toast({ title: "Meal estimated!", description: `Detected: ${data.name}` });
+      routeAnalysisIntoSession(data, "text", {
+        description: textDescription.trim(),
+        language: speechLang,
+      });
     } catch (err) {
       console.error("Text analyze error:", err);
       toast({ title: "Could not analyze description", description: "Please try again.", variant: "destructive" });
@@ -623,7 +855,7 @@ const LogMeal = () => {
           {mealTypes.map(({ value, label, icon: Icon }) => (
             <button
               key={value}
-              onClick={() => setSelectedMeal(value)}
+              onClick={() => { setSelectedMeal(value); setSessionMealType(value); }}
               className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${
                 selectedMeal === value
                   ? "border-primary text-primary bg-primary/10"
@@ -635,6 +867,22 @@ const LogMeal = () => {
             </button>
           ))}
         </div>
+      )}
+
+      {/* Conversational meal chat panel */}
+      {!isDrinkMode && session && (session.items.length > 0 || session.draft || chatBusy) && (
+        <MealChat
+          session={session}
+          busy={chatBusy}
+          onAnswer={reAnalyzeWithAnswer}
+          onAcceptDraft={acceptDraft}
+          onDiscardDraft={discardDraft}
+          onRemoveItem={removeItem}
+          onAddMorePhoto={addMorePhoto}
+          onAddMoreDescribe={addMoreDescribe}
+          onDone={finishMealFromSession}
+          onCancel={cancelSession}
+        />
       )}
 
 
@@ -961,6 +1209,7 @@ const LogMeal = () => {
       )}
 
       {/* Portion size */}
+      {!(session && session.items.length > 0) && (
       <div className="space-y-2">
         <label className="text-sm font-medium text-foreground">Portion Size</label>
         <div className="flex flex-wrap gap-2">
@@ -999,17 +1248,20 @@ const LogMeal = () => {
           </select>
         </div>
       </div>
+      )}
       </>}
 
       {/* Divider */}
+      {!(session && session.items.length > 0) && (
       <div className="flex items-center gap-3">
         <div className="flex-1 h-px bg-border" />
         <span className="text-xs text-muted-foreground">{detectionState === "done" ? "review & edit values" : "or add manually"}</span>
         <div className="flex-1 h-px bg-border" />
       </div>
+      )}
 
       {/* Manual entry */}
-      {!showManual ? (
+      {(session && session.items.length > 0) ? null : !showManual ? (
         <button
           onClick={() => setShowManual(true)}
           className="w-full card-surface flex items-center justify-center gap-2 py-3 hover:border-primary/50 transition-colors"
