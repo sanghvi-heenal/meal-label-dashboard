@@ -200,6 +200,220 @@ const LogMeal = () => {
     setIsAiFilled(true);
   }, []);
 
+  // ============ Meal Chat Session helpers ============
+  const pushMsg = useCallback((msg: Omit<ChatMessage, "id">) => {
+    setSession((prev) => {
+      if (!prev) return prev;
+      return { ...prev, messages: [...prev.messages, { id: crypto.randomUUID(), ...msg }] };
+    });
+  }, []);
+
+  const ensureSession = useCallback(() => {
+    setSession((prev) => prev ?? emptySession(selectedMeal === "drink" ? "lunch" : selectedMeal));
+  }, [selectedMeal]);
+
+  const routeAnalysisIntoSession = useCallback(
+    (
+      data: any,
+      source: "photo" | "text",
+      opts: { imagePreview?: string; description?: string; base64?: string; language?: string },
+    ) => {
+      const draft = toMealItem(data, source, opts.imagePreview);
+      const questions: string[] = Array.isArray(data.questions) ? data.questions.slice(0, 3) : [];
+      const choices: string[][] = Array.isArray(data.questionChoices) ? data.questionChoices : [];
+      const needsClarify =
+        (data.needsClarification === true || (typeof data.confidence === "number" && data.confidence < 0.6)) &&
+        questions.length > 0;
+
+      setSession((prev) => {
+        const base = prev ?? emptySession(selectedMeal === "drink" ? "lunch" : selectedMeal);
+        const nextMessages: ChatMessage[] = [...base.messages];
+        if (source === "photo") {
+          nextMessages.push({ id: crypto.randomUUID(), role: "ai", text: `I see: ${draft.name}. Estimated ${Math.round(draft.calories)} kcal.`, kind: "info" });
+        } else {
+          nextMessages.push({ id: crypto.randomUUID(), role: "ai", text: `Got it: ${draft.name}. Estimated ${Math.round(draft.calories)} kcal.`, kind: "info" });
+        }
+        if (needsClarify) {
+          nextMessages.push({
+            id: crypto.randomUUID(),
+            role: "ai",
+            text: questions[0],
+            chips: choices[0] || [],
+            kind: "question",
+          });
+        }
+        return {
+          ...base,
+          draft,
+          draftInput: opts.base64
+            ? { kind: "photo", base64: opts.base64 }
+            : opts.description
+              ? { kind: "text", description: opts.description, language: opts.language }
+              : undefined,
+          messages: nextMessages,
+          pendingQuestions: needsClarify ? questions : [],
+          pendingChoices: needsClarify ? choices : [],
+          clarifyRound: needsClarify ? (base.clarifyRound || 0) + 1 : base.clarifyRound || 0,
+        };
+      });
+      // Reset the standalone capture UI so the chat becomes the primary surface
+      setImagePreview(null);
+      setDescribeMode(false);
+      setTextDescription("");
+      setDetectionState("idle");
+    },
+    [selectedMeal],
+  );
+
+  const reAnalyzeWithAnswer = useCallback(async (answerText: string) => {
+    setSession((prev) => {
+      if (!prev) return prev;
+      const nextQuestions = prev.pendingQuestions.slice(1);
+      const nextChoices = prev.pendingChoices.slice(1);
+      const msgs: ChatMessage[] = [...prev.messages, { id: crypto.randomUUID(), role: "user", text: answerText }];
+      if (nextQuestions.length > 0) {
+        msgs.push({ id: crypto.randomUUID(), role: "ai", text: nextQuestions[0], chips: nextChoices[0] || [], kind: "question" });
+      }
+      return { ...prev, messages: msgs, pendingQuestions: nextQuestions, pendingChoices: nextChoices };
+    });
+
+    // Collect all user answers from message log after the last AI info bubble
+    const cur = session;
+    if (!cur?.draftInput) return;
+    // If there are still more pending questions, don't re-analyze yet
+    if (cur.pendingQuestions.length > 1) return;
+    if (cur.clarifyRound >= MAX_CLARIFY_ROUNDS) return;
+
+    // Gather user answers accumulated so far (this turn's answer + previous)
+    const userAnswers = [
+      ...cur.messages.filter((m) => m.role === "user").map((m) => m.text),
+      answerText,
+    ].join("; ");
+
+    setChatBusy(true);
+    try {
+      if (cur.draftInput.kind === "photo") {
+        const { data, error } = await supabase.functions.invoke("analyze-food", {
+          body: { imageBase64: cur.draftInput.base64, userContext: userAnswers },
+        });
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error);
+        if (data.foodType === "open_meal" || data.foodType === "nutrition_label") {
+          const refined = toMealItem(data, "photo");
+          setSession((p) => p && { ...p, draft: refined });
+          pushMsg({ role: "ai", text: `Updated: ${refined.name} — ${Math.round(refined.calories)} kcal.`, kind: "info" });
+        }
+      } else {
+        const composed = `${cur.draftInput.description} (${userAnswers})`;
+        const { data, error } = await supabase.functions.invoke("analyze-food-text", {
+          body: { description: composed, language: cur.draftInput.language || "en-US" },
+        });
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error);
+        if (data.foodType === "open_meal") {
+          const refined = toMealItem(data, "text");
+          setSession((p) => p && { ...p, draft: refined });
+          pushMsg({ role: "ai", text: `Updated: ${refined.name} — ${Math.round(refined.calories)} kcal.`, kind: "info" });
+        }
+      }
+    } catch (e) {
+      console.error("Refine error:", e);
+      pushMsg({ role: "ai", text: "Couldn't refine the estimate. You can still add or discard.", kind: "error" });
+    } finally {
+      setChatBusy(false);
+    }
+  }, [session, pushMsg]);
+
+  const acceptDraft = useCallback(() => {
+    setSession((prev) => {
+      if (!prev?.draft) return prev;
+      if (prev.items.length >= MAX_ITEMS) {
+        return {
+          ...prev,
+          messages: [...prev.messages, { id: crypto.randomUUID(), role: "ai", text: `Maximum ${MAX_ITEMS} items per meal.`, kind: "error" }],
+        };
+      }
+      return {
+        ...prev,
+        items: [...prev.items, prev.draft],
+        draft: undefined,
+        draftInput: undefined,
+        pendingQuestions: [],
+        pendingChoices: [],
+        clarifyRound: 0,
+        messages: [...prev.messages, { id: crypto.randomUUID(), role: "ai", text: `Added. Is this the whole meal, or adding more?`, kind: "confirm" }],
+      };
+    });
+  }, []);
+
+  const discardDraft = useCallback(() => {
+    setSession((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        draft: undefined,
+        draftInput: undefined,
+        pendingQuestions: [],
+        pendingChoices: [],
+        messages: [...prev.messages, { id: crypto.randomUUID(), role: "ai", text: "Discarded. Add another item or save what you have.", kind: "info" }],
+      };
+    });
+  }, []);
+
+  const removeItem = useCallback((id: string) => {
+    setSession((prev) => prev && { ...prev, items: prev.items.filter((i) => i.id !== id) });
+  }, []);
+
+  const cancelSession = useCallback(() => {
+    setSession(null);
+    setChatBusy(false);
+    setImagePreview(null);
+    setDescribeMode(false);
+    setTextDescription("");
+    setDetectionState("idle");
+  }, []);
+
+  const addMorePhoto = useCallback(() => {
+    setDescribeMode(false);
+    cameraInputRef.current?.click();
+  }, []);
+
+  const addMoreDescribe = useCallback(() => {
+    setDescribeMode(true);
+  }, []);
+
+  const finishMealFromSession = useCallback(() => {
+    if (!session || session.items.length === 0) return;
+    const t = sessionTotals(session.items);
+    const entry: MealEntry = {
+      id: crypto.randomUUID(),
+      date: logDate,
+      mealType: session.mealType,
+      name: combinedName(session.items),
+      calories: t.calories,
+      protein: t.protein,
+      carbs: t.carbs,
+      fat: t.fat,
+      fiber: t.fiber,
+      sodium: t.sodium,
+      sugar: t.sugar,
+      satFat: t.satFat,
+      timestamp: Date.now(),
+    };
+    saveMeal(entry);
+    toast({ title: "Meal logged!", description: `${entry.name} · ${Math.round(t.calories)} kcal` });
+    setSession(null);
+    setShowSuccess(true);
+    setTimeout(() => {
+      setShowSuccess(false);
+      navigate(isLoggingToday ? "/" : "/history");
+    }, 900);
+  }, [session, logDate, toast, navigate, isLoggingToday]);
+
+  const setSessionMealType = useCallback((mt: MealEntry["mealType"]) => {
+    setSession((prev) => prev && { ...prev, mealType: mt });
+  }, []);
+
   const clearForm = useCallback(() => {
     setFoodName("");
     setCalories("");
