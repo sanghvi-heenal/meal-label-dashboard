@@ -8,6 +8,7 @@ import LanguagePicker from "@/components/onboarding/LanguagePicker";
 import AboutYouStep from "@/components/onboarding/AboutYouStep";
 import HydrationStep from "@/components/onboarding/HydrationStep";
 import i18n, { type Language } from "@/i18n";
+import { DIET_LABEL, dietValueFromStored, type DietValue } from "@/lib/diet-options";
 import {
   computeBMI,
   getProfile,
@@ -19,34 +20,6 @@ import {
   type LogPref,
   type PainPoint,
 } from "@/lib/nutrition-store";
-
-type DietValue =
-  | "vegetarian"
-  | "vegan"
-  | "nonVeg"
-  | "eggetarian"
-  | "pescatarian"
-  | "jain"
-  | "keto"
-  | "none";
-
-const DIET_LABEL: Record<DietValue, string> = {
-  vegetarian: "Vegetarian",
-  vegan: "Vegan",
-  nonVeg: "Non-vegetarian",
-  eggetarian: "Eggetarian",
-  pescatarian: "Pescatarian",
-  jain: "Jain",
-  keto: "Keto",
-  none: "Balanced",
-};
-
-const dietValueFromStored = (stored: string): DietValue => {
-  const match = (Object.keys(DIET_LABEL) as DietValue[]).find(
-    (k) => DIET_LABEL[k] === stored
-  );
-  return match ?? "none";
-};
 
 const Onboarding = () => {
   const navigate = useNavigate();
