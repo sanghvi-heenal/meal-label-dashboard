@@ -1,4 +1,4 @@
-import { Play, Search, ExternalLink } from "lucide-react";
+import { Play, Search } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { handleExternalClick } from "@/lib/external-link";
 
@@ -28,41 +28,41 @@ interface SwapCardProps {
 const SwapCard = ({ swap, index = 0 }: SwapCardProps) => {
   const { t } = useTranslation();
   const hasVideo = Boolean(swap.youtubeId);
-  const watchUrl = hasVideo
-    ? `https://www.youtube.com/watch?v=${swap.youtubeId}`
-    : swap.youtubeSearchUrl;
+  const watchUrl = hasVideo ? `https://www.youtube.com/watch?v=${swap.youtubeId}` : null;
 
   return (
     <div
       className="card-surface space-y-3 animate-fade-in overflow-hidden"
       style={{ animationDelay: `${index * 60}ms` }}
     >
-      {/* Thumbnail */}
-      <a
-        href={watchUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        onClick={handleExternalClick(watchUrl)}
-        className="block relative -mx-4 -mt-4 mb-1 aspect-video bg-secondary/60 group"
-      >
-        {swap.thumbnailUrl ? (
-          <img
-            src={swap.thumbnailUrl}
-            alt={swap.youtubeTitle || swap.name}
-            className="w-full h-full object-cover"
-            loading="lazy"
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <Search size={28} className="text-muted-foreground" />
+      {/* Thumbnail — only when a real playable video exists */}
+      {hasVideo && watchUrl && (
+        <a
+          href={watchUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={handleExternalClick(watchUrl)}
+          className="block relative -mx-4 -mt-4 mb-1 aspect-video bg-secondary/60 group"
+        >
+          {swap.thumbnailUrl ? (
+            <img
+              src={swap.thumbnailUrl}
+              alt={swap.youtubeTitle || swap.name}
+              className="w-full h-full object-cover"
+              loading="lazy"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center">
+              <Search size={28} className="text-muted-foreground" />
+            </div>
+          )}
+          <div className="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-colors flex items-center justify-center">
+            <div className="w-12 h-12 rounded-full bg-background/90 flex items-center justify-center shadow-lg">
+              <Play size={20} className="text-primary fill-primary translate-x-0.5" />
+            </div>
           </div>
-        )}
-        <div className="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-colors flex items-center justify-center">
-          <div className="w-12 h-12 rounded-full bg-background/90 flex items-center justify-center shadow-lg">
-            <Play size={20} className="text-primary fill-primary translate-x-0.5" />
-          </div>
-        </div>
-      </a>
+        </a>
+      )}
 
       <div className="flex items-start justify-between gap-2">
         <h3 className="text-base font-semibold text-foreground leading-tight flex-1">{swap.name}</h3>
@@ -110,25 +110,18 @@ const SwapCard = ({ swap, index = 0 }: SwapCardProps) => {
         </div>
       )}
 
-      <a
-        href={watchUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        onClick={handleExternalClick(watchUrl)}
-        className="w-full py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold flex items-center justify-center gap-2 active:scale-95 transition-transform"
-      >
-        {hasVideo ? (
-          <>
-            <Play size={14} className="fill-current" />
-            {t("suggestions.watchRecipe")}
-          </>
-        ) : (
-          <>
-            <ExternalLink size={14} />
-            {t("suggestions.searchOnYoutube")}
-          </>
-        )}
-      </a>
+      {hasVideo && watchUrl && (
+        <a
+          href={watchUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={handleExternalClick(watchUrl)}
+          className="w-full py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold flex items-center justify-center gap-2 active:scale-95 transition-transform"
+        >
+          <Play size={14} className="fill-current" />
+          {t("suggestions.watchRecipe")}
+        </a>
+      )}
     </div>
   );
 };
