@@ -25,6 +25,17 @@ import { supabase } from "@/integrations/supabase/client";
 import DrinkDescribeSheet, { type DrinkAnalysisResult } from "@/components/DrinkDescribeSheet";
 import VerdictCard from "@/components/meal/VerdictCard";
 import { verdictFor } from "@/lib/insights";
+import MealChat from "@/components/meal/MealChat";
+import {
+  emptySession,
+  toMealItem,
+  totals as sessionTotals,
+  combinedName,
+  MAX_ITEMS,
+  MAX_CLARIFY_ROUNDS,
+  type MealSession,
+  type ChatMessage,
+} from "@/lib/meal-session";
 
 const mealTypeBase = [
   { value: "breakfast" as const, key: "breakfast", icon: Sun },
@@ -100,6 +111,8 @@ const LogMeal = () => {
   const [sizeHelperOpen, setSizeHelperOpen] = useState(false);
   const [describeSheetOpen, setDescribeSheetOpen] = useState(false);
   const [describePreset, setDescribePreset] = useState<string | null>(null);
+  const [session, setSession] = useState<MealSession | null>(null);
+  const [chatBusy, setChatBusy] = useState(false);
   const recognitionRef = useRef<any>(null);
   const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const maxTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
