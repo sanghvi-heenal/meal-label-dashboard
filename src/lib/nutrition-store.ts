@@ -99,6 +99,157 @@ export function isOnboarded(): boolean {
   return Boolean(getProfile().onboardedAt);
 }
 
+// ------------------------------------------------------------------
+// Supabase-backed profile persistence
+// ------------------------------------------------------------------
+// We keep the sync getProfile/saveProfile API (many consumers rely on
+// it) but back it with the database. The AuthProvider calls
+// hydrateProfileFromDb() as soon as the user's session is known, which
+// merges the DB row into localStorage. saveProfile() writes locally
+// AND pushes to the DB (fire-and-forget) whenever a user id is
+// registered via setProfileUserId().
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let _supabaseClient: any = null;
+let _currentUserId: string | null = null;
+
+async function getSupabase() {
+  if (_supabaseClient) return _supabaseClient;
+  const mod = await import("@/integrations/supabase/client");
+  _supabaseClient = mod.supabase;
+  return _supabaseClient;
+}
+
+export function setProfileUserId(userId: string | null) {
+  _currentUserId = userId;
+}
+
+function toDbRow(userId: string, p: UserProfile) {
+  return {
+    user_id: userId,
+    age: p.age,
+    height_cm: p.heightCm,
+    weight_kg: p.weightKg,
+    bmi: p.bmi,
+    diet_type: p.dietType,
+    calorie_target: p.calorieTarget,
+    protein_target: p.proteinTarget,
+    carbs_target: p.carbsTarget,
+    fat_target: p.fatTarget,
+    fiber_target: p.fiberTarget,
+    sodium_target: p.sodiumTarget,
+    sugar_target: p.sugarTarget,
+    sat_fat_target: p.satFatTarget,
+    hydration_target: p.hydrationTarget,
+    hydration_unit: p.hydrationUnit,
+    current_hydration_ml: p.currentHydrationMl,
+    reminders_enabled: p.remindersEnabled,
+    reminder_times: p.reminderTimes,
+    goals: p.goals,
+    log_prefs: p.logPrefs,
+    pain_points: p.painPoints,
+    app_jobs: p.appJobs,
+    language: p.language,
+    allergies: p.allergies,
+    custom_allergies: p.customAllergies,
+    onboarded_at: p.onboardedAt,
+  };
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function fromDbRow(row: any): Partial<UserProfile> {
+  if (!row) return {};
+  const out: Partial<UserProfile> = {};
+  const set = <K extends keyof UserProfile>(k: K, v: unknown) => {
+    if (v !== null && v !== undefined) (out as Record<string, unknown>)[k as string] = v;
+  };
+  set("age", row.age);
+  set("heightCm", row.height_cm);
+  set("weightKg", row.weight_kg);
+  set("bmi", row.bmi);
+  set("dietType", row.diet_type);
+  set("calorieTarget", row.calorie_target);
+  set("proteinTarget", row.protein_target);
+  set("carbsTarget", row.carbs_target);
+  set("fatTarget", row.fat_target);
+  set("fiberTarget", row.fiber_target);
+  set("sodiumTarget", row.sodium_target);
+  set("sugarTarget", row.sugar_target);
+  set("satFatTarget", row.sat_fat_target);
+  set("hydrationTarget", row.hydration_target);
+  set("hydrationUnit", row.hydration_unit);
+  set("currentHydrationMl", row.current_hydration_ml);
+  set("remindersEnabled", row.reminders_enabled);
+  set("reminderTimes", row.reminder_times);
+  set("goals", row.goals);
+  set("logPrefs", row.log_prefs);
+  set("painPoints", row.pain_points);
+  set("appJobs", row.app_jobs);
+  set("language", row.language);
+  set("allergies", row.allergies);
+  set("customAllergies", row.custom_allergies);
+  set("onboardedAt", row.onboarded_at);
+  return out;
+}
+
+/**
+ * Fetch the profile row for `userId` and merge it into the local cache.
+ * If the DB has no onboarding data but localStorage does, push local
+ * data up so returning users on new devices keep their setup.
+ * Returns the merged profile.
+ */
+export async function hydrateProfileFromDb(userId: string): Promise<UserProfile> {
+  setProfileUserId(userId);
+  const supabase = await getSupabase();
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (error) {
+    console.warn("[profile] hydrate failed", error);
+    return getProfile();
+  }
+  const dbPatch = fromDbRow(data);
+  const local = getProfile();
+
+  // If DB has an onboarded profile, it wins.
+  if (dbPatch.onboardedAt) {
+    const merged = { ...local, ...dbPatch };
+    localStorage.setItem("nutrilens-profile", JSON.stringify(merged));
+    return merged;
+  }
+  // DB has no onboarding — if local does, migrate it up.
+  if (local.onboardedAt) {
+    void pushProfileToDb(local);
+    return local;
+  }
+  // Neither side has onboarding data — keep defaults.
+  const merged = { ...local, ...dbPatch };
+  localStorage.setItem("nutrilens-profile", JSON.stringify(merged));
+  return merged;
+}
+
+/** Upsert the given profile to the database for the currently registered user. */
+export async function pushProfileToDb(profile: UserProfile): Promise<void> {
+  if (!_currentUserId) return;
+  const supabase = await getSupabase();
+  const { error } = await supabase
+    .from("profiles")
+    .upsert(toDbRow(_currentUserId, profile), { onConflict: "user_id" });
+  if (error) console.warn("[profile] push failed", error);
+}
+
+/** Clear the in-memory user id + wipe the cached profile from localStorage. */
+export function clearProfileCache() {
+  _currentUserId = null;
+  try {
+    localStorage.removeItem("nutrilens-profile");
+  } catch {
+    /* ignore */
+  }
+}
+
 const ML_PER_GLASS = 250;
 const ML_PER_OZ = 29.5735;
 
@@ -193,6 +344,8 @@ export function getProfile(): UserProfile {
 
 export function saveProfile(profile: UserProfile) {
   localStorage.setItem("nutrilens-profile", JSON.stringify(profile));
+  // Fire-and-forget DB write if a user is signed in.
+  void pushProfileToDb(profile);
 }
 
 /** Clears the onboarding flag so the user is sent back to /onboarding. Keeps language + other prefs. */
