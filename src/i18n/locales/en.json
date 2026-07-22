@@ -249,16 +249,18 @@
     "addOnsSub": "Dishes that fill today's nutrition gaps",
     "readArticle": "Read article",
     "filters": {
-      "all": "All",
       "breakfast": "Breakfast",
       "lunch": "Lunch",
       "dinner": "Dinner",
       "snack": "Snack",
       "light": "Light",
-      "heavy": "Heavy"
+      "heavy": "Heavy",
+      "weightPrompt": "What kind of meal do you want?",
+      "weightHelp": "Light = under ~350 kcal, easy to digest. Heavy = filling, ~500+ kcal."
     },
     "ideasForTitle": "Ideas for you",
     "ideasForSub": "{{type}} · {{weight}}",
+    "pickMealPrompt": "Pick a meal type above to see ideas.",
     "cached": "Saved earlier today"
   },
   "logToast": {
