@@ -472,13 +472,18 @@ const LogMeal = () => {
 
         case "nutrition_label":
         case "open_meal":
-          autoFillForm(data);
-          setIsApproximate(false);
-          setDetectionState("done");
-          toast({
-            title: foodType === "nutrition_label" ? "Label scanned!" : "Meal detected!",
-            description: `Detected: ${data.name}`,
-          });
+          if (foodType === "nutrition_label") {
+            autoFillForm(data);
+            setIsApproximate(false);
+            setDetectionState("done");
+            toast({ title: "Label scanned!", description: `Detected: ${data.name}` });
+          } else {
+            // Route into conversational session
+            routeAnalysisIntoSession(data, "photo", {
+              imagePreview: imagePreview || undefined,
+              base64: imagePreview || undefined,
+            });
+          }
           break;
 
         default:
@@ -489,7 +494,7 @@ const LogMeal = () => {
       toast({ title: "Could not analyze image", description: "Try a clearer photo.", variant: "destructive" });
       setDetectionState("idle");
     }
-  }, [toast, autoFillForm, isSecondScan, detectedName]);
+  }, [toast, autoFillForm, isSecondScan, detectedName, routeAnalysisIntoSession, imagePreview]);
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -551,10 +556,10 @@ const LogMeal = () => {
         toast({ title: "Not a food item", description: data.message || "Try describing a meal.", variant: "destructive" });
         return;
       }
-      autoFillForm(data);
-      setIsApproximate(data.quantitySpecified === false);
-      setDescribeMode(false);
-      toast({ title: "Meal estimated!", description: `Detected: ${data.name}` });
+      routeAnalysisIntoSession(data, "text", {
+        description: textDescription.trim(),
+        language: speechLang,
+      });
     } catch (err) {
       console.error("Text analyze error:", err);
       toast({ title: "Could not analyze description", description: "Please try again.", variant: "destructive" });
