@@ -8,7 +8,8 @@
     "cancel": "Cancel",
     "today": "Today",
     "remove": "Remove",
-    "loading": "Loading…"
+    "loading": "Loading…",
+    "saving": "Saving…"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -176,7 +177,9 @@
     "allergiesAddLabel": "Add another allergy",
     "allergiesAddPlaceholder": "e.g. sesame, mustard, kiwi",
     "allergiesAddCta": "Add",
-    "allergiesSkippable": "Optional — leave empty if none."
+    "allergiesSkippable": "Optional — leave empty if none.",
+    "saveFailedTitle": "Could not save your setup",
+    "saveFailedBody": "Please check your connection and try again. Your setup must save before the dashboard opens."
   },
   "bmi": {
     "underweight": "Underweight",

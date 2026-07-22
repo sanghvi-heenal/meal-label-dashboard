@@ -221,7 +221,7 @@ export async function hydrateProfileFromDb(userId: string): Promise<UserProfile>
   }
   // DB has no onboarding — if local does, migrate it up.
   if (local.onboardedAt) {
-    void pushProfileToDb(local);
+    await pushProfileToDb(local);
     return local;
   }
   // Neither side has onboarding data — keep defaults.
@@ -231,13 +231,17 @@ export async function hydrateProfileFromDb(userId: string): Promise<UserProfile>
 }
 
 /** Upsert the given profile to the database for the currently registered user. */
-export async function pushProfileToDb(profile: UserProfile): Promise<void> {
-  if (!_currentUserId) return;
+export async function pushProfileToDb(profile: UserProfile): Promise<boolean> {
+  if (!_currentUserId) return false;
   const supabase = await getSupabase();
   const { error } = await supabase
     .from("profiles")
     .upsert(toDbRow(_currentUserId, profile), { onConflict: "user_id" });
-  if (error) console.warn("[profile] push failed", error);
+  if (error) {
+    console.warn("[profile] push failed", error);
+    return false;
+  }
+  return true;
 }
 
 /** Clear the in-memory user id + wipe the cached profile from localStorage. */
