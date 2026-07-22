@@ -3,15 +3,27 @@ import { useNavigate } from "react-router-dom";
 import { User, Bell, Target, Info, Pencil, Droplets, Languages, RotateCcw, ShieldAlert, LogOut } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { computeBMI, formatHydration, getProfile, mlToUnit, resetOnboarding, saveProfile, type Allergy, type HydrationUnit, type Language, type UserProfile } from "@/lib/nutrition-store";
+import { DIET_LABEL, DIET_VALUES, dietValueFromStored, type DietValue } from "@/lib/diet-options";
 import { useToast } from "@/hooks/use-toast";
 import i18n from "@/i18n";
 import { useAuth } from "@/hooks/useAuth";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const SettingsPage = () => {
   const { t } = useTranslation();
   const [profile, setProfile] = useState<UserProfile>(getProfile());
   const [editing, setEditing] = useState(false);
   const [editingHydration, setEditingHydration] = useState(false);
+  const [resetOpen, setResetOpen] = useState(false);
   const [hydrationAmount, setHydrationAmount] = useState(String(mlToUnit(profile.hydrationTarget, profile.hydrationUnit)));
   const [hydrationUnit, setHydrationUnit] = useState<HydrationUnit>(profile.hydrationUnit);
   const { toast } = useToast();
@@ -19,8 +31,9 @@ const SettingsPage = () => {
   const { user, signOut } = useAuth();
 
   const handleResetOnboarding = () => {
+    setResetOpen(false);
     resetOnboarding();
-    toast({ title: t("settings.resetOnboardingToast") });
+    toast({ title: t("settings.recheckNeedsToast") });
     navigate("/onboarding");
   };
 
@@ -174,12 +187,16 @@ const SettingsPage = () => {
           </div>
           <div>
             <label className="text-xs text-muted-foreground">{t("settings.dietType")}</label>
-            <select value={profile.dietType} onChange={(e) => update({ dietType: e.target.value })} className="w-full mt-1 px-3 py-2 rounded-lg bg-secondary border border-border text-foreground text-sm focus:outline-none focus:ring-1 focus:ring-primary">
-              <option value="Balanced">{t("settings.diet.balanced")}</option>
-              <option value="Vegetarian (no meat)">{t("settings.diet.vegetarian")}</option>
-              <option value="Vegan">{t("settings.diet.vegan")}</option>
-              <option value="Keto">{t("settings.diet.keto")}</option>
-              <option value="Paleo">{t("settings.diet.paleo")}</option>
+            <select
+              value={DIET_LABEL[dietValueFromStored(profile.dietType)]}
+              onChange={(e) => update({ dietType: e.target.value })}
+              className="w-full mt-1 px-3 py-2 rounded-lg bg-secondary border border-border text-foreground text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+            >
+              {DIET_VALUES.map((v: DietValue) => (
+                <option key={v} value={DIET_LABEL[v]}>
+                  {t(`diets.${v}.label`)}
+                </option>
+              ))}
             </select>
           </div>
           <button onClick={() => { setEditing(false); toast({ title: t("settings.profileSaved") }); }} className="w-full py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold">
@@ -228,16 +245,7 @@ const SettingsPage = () => {
           <Target size={18} className="text-primary" />
           <h2 className="font-semibold text-foreground">{t("settings.targets")}</h2>
         </div>
-        <div className="flex justify-between text-sm">
-          <span className="text-muted-foreground">{t("settings.dietType")}</span>
-          <span className="font-medium text-foreground">{profile.dietType}</span>
-        </div>
-        <div className="flex justify-between text-sm">
-          <span className="text-muted-foreground">{t("settings.bmi")}</span>
-          <span className="font-medium text-foreground">{profile.bmi}</span>
-        </div>
-
-        <div className="pt-2 mt-2 border-t border-border">
+        <div>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Droplets size={14} className="text-info" />
@@ -345,17 +353,35 @@ const SettingsPage = () => {
 
       {/* Reset onboarding */}
       <button
-        onClick={handleResetOnboarding}
+        onClick={() => setResetOpen(true)}
         className="w-full card-surface flex items-center gap-3 text-left hover:bg-secondary/40 transition-colors"
       >
         <div className="w-10 h-10 rounded-full bg-destructive/15 flex items-center justify-center shrink-0">
           <RotateCcw size={18} className="text-destructive" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="font-semibold text-foreground">{t("settings.resetOnboarding")}</p>
-          <p className="text-xs text-muted-foreground">{t("settings.resetOnboardingHint")}</p>
+          <p className="font-semibold text-foreground">{t("settings.recheckNeeds")}</p>
+          <p className="text-xs text-muted-foreground">{t("settings.recheckNeedsHint")}</p>
         </div>
       </button>
+
+      <AlertDialog open={resetOpen} onOpenChange={setResetOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("settings.recheckConfirmTitle")}</AlertDialogTitle>
+            <AlertDialogDescription>{t("settings.recheckConfirmBody")}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleResetOnboarding}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {t("settings.recheckConfirmCta")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Sign out */}
       <button
