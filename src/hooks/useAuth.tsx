@@ -8,11 +8,20 @@ import {
   getRememberPreference,
   restoreSessionForCurrentTab,
 } from "@/lib/auth-persistence";
+import {
+  clearProfileCache,
+  hydrateProfileFromDb,
+  setProfileUserId,
+} from "@/lib/nutrition-store";
 
 interface AuthContextValue {
   session: Session | null;
   user: User | null;
   loading: boolean;
+  /** True once the user's DB profile row has been fetched (or we know there is none). */
+  profileReady: boolean;
+  /** Bumps whenever the profile row is refreshed from the DB. Consumers can watch this to re-render. */
+  profileVersion: number;
   refreshSession: () => Promise<Session | null>;
   signOut: () => Promise<void>;
 }
@@ -22,6 +31,8 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [profileReady, setProfileReady] = useState(false);
+  const [profileVersion, setProfileVersion] = useState(0);
 
   const refreshSession = useCallback(async () => {
     restoreSessionForCurrentTab();
@@ -32,12 +43,37 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return existing;
   }, []);
 
+  // Whenever the signed-in user changes, hydrate the profile from Supabase
+  // so RequireAuth can decide onboarding correctly without going through
+  // localStorage-only state.
+  useEffect(() => {
+    const uid = session?.user?.id ?? null;
+    if (!uid) {
+      setProfileUserId(null);
+      setProfileReady(false);
+      return;
+    }
+    setProfileReady(false);
+    let cancelled = false;
+    void hydrateProfileFromDb(uid).finally(() => {
+      if (cancelled) return;
+      setProfileReady(true);
+      setProfileVersion((v) => v + 1);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [session?.user?.id]);
+
   useEffect(() => {
     restoreSessionForCurrentTab();
 
     // Set up listener BEFORE getSession to avoid race conditions.
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, newSession) => {
-      if (event === "SIGNED_OUT") clearStoredAuthSession();
+      if (event === "SIGNED_OUT") {
+        clearStoredAuthSession();
+        clearProfileCache();
+      }
       setSession(newSession);
       setLoading(false);
       applySessionPersistence(getRememberPreference());
@@ -70,11 +106,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signOut = async () => {
     await supabase.auth.signOut();
     clearStoredAuthSession();
+    clearProfileCache();
     setSession(null);
   };
 
   return (
-    <AuthContext.Provider value={{ session, user: session?.user ?? null, loading, refreshSession, signOut }}>
+    <AuthContext.Provider
+      value={{
+        session,
+        user: session?.user ?? null,
+        loading,
+        profileReady,
+        profileVersion,
+        refreshSession,
+        signOut,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

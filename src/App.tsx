@@ -15,7 +15,7 @@ import Suggestions from "./pages/Suggestions";
 import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
 import OAuthConsent from "./pages/OAuthConsent";
-import { isOnboarded } from "@/lib/nutrition-store";
+import { getProfile } from "@/lib/nutrition-store";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { getAuthStorageKey, restoreSessionForCurrentTab } from "@/lib/auth-persistence";
 import { Loader2 } from "lucide-react";
@@ -24,7 +24,7 @@ const queryClient = new QueryClient();
 
 const RequireAuth = ({ children }: { children: JSX.Element }) => {
   const location = useLocation();
-  const { session, loading, refreshSession } = useAuth();
+  const { session, loading, refreshSession, profileReady, profileVersion } = useAuth();
   const [graceElapsed, setGraceElapsed] = useState(false);
   const [recovered, setRecovered] = useState<boolean | null>(null);
 
@@ -67,7 +67,7 @@ const RequireAuth = ({ children }: { children: JSX.Element }) => {
     };
   }, [loading, session, refreshSession]);
 
-  if (loading || (!session && !graceElapsed && recovered !== false)) {
+  if (loading || (!session && !graceElapsed && recovered !== false) || (session && !profileReady)) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="size-6 animate-spin text-muted-foreground" />
@@ -77,7 +77,11 @@ const RequireAuth = ({ children }: { children: JSX.Element }) => {
   if (!session) {
     return <Navigate to="/auth" state={{ from: location.pathname }} replace />;
   }
-  if (!isOnboarded() && location.pathname !== "/onboarding") {
+  // profileVersion in the deps of the parent effect chain isn't needed —
+  // we just read the cache here, which was refreshed before profileReady flipped true.
+  void profileVersion;
+  const onboarded = Boolean(getProfile().onboardedAt);
+  if (!onboarded && location.pathname !== "/onboarding") {
     return <Navigate to="/onboarding" replace />;
   }
   return children;

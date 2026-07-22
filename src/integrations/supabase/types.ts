@@ -49,28 +49,106 @@ export type Database = {
       }
       profiles: {
         Row: {
+          age: number | null
+          allergies: string[] | null
+          app_jobs: string[] | null
           avatar_url: string | null
+          bmi: number | null
+          calorie_target: number | null
+          carbs_target: number | null
           created_at: string
+          current_hydration_ml: number | null
+          custom_allergies: string[] | null
+          diet_type: string | null
           display_name: string | null
+          fat_target: number | null
+          fiber_target: number | null
+          goals: string[] | null
+          height_cm: number | null
+          hydration_target: number | null
+          hydration_unit: string | null
           id: string
+          language: string | null
+          log_prefs: string[] | null
+          onboarded_at: string | null
+          pain_points: string[] | null
+          protein_target: number | null
+          reminder_times: Json | null
+          reminders_enabled: boolean | null
+          sat_fat_target: number | null
+          sodium_target: number | null
+          sugar_target: number | null
           updated_at: string
           user_id: string
+          weight_kg: number | null
         }
         Insert: {
+          age?: number | null
+          allergies?: string[] | null
+          app_jobs?: string[] | null
           avatar_url?: string | null
+          bmi?: number | null
+          calorie_target?: number | null
+          carbs_target?: number | null
           created_at?: string
+          current_hydration_ml?: number | null
+          custom_allergies?: string[] | null
+          diet_type?: string | null
           display_name?: string | null
+          fat_target?: number | null
+          fiber_target?: number | null
+          goals?: string[] | null
+          height_cm?: number | null
+          hydration_target?: number | null
+          hydration_unit?: string | null
           id?: string
+          language?: string | null
+          log_prefs?: string[] | null
+          onboarded_at?: string | null
+          pain_points?: string[] | null
+          protein_target?: number | null
+          reminder_times?: Json | null
+          reminders_enabled?: boolean | null
+          sat_fat_target?: number | null
+          sodium_target?: number | null
+          sugar_target?: number | null
           updated_at?: string
           user_id: string
+          weight_kg?: number | null
         }
         Update: {
+          age?: number | null
+          allergies?: string[] | null
+          app_jobs?: string[] | null
           avatar_url?: string | null
+          bmi?: number | null
+          calorie_target?: number | null
+          carbs_target?: number | null
           created_at?: string
+          current_hydration_ml?: number | null
+          custom_allergies?: string[] | null
+          diet_type?: string | null
           display_name?: string | null
+          fat_target?: number | null
+          fiber_target?: number | null
+          goals?: string[] | null
+          height_cm?: number | null
+          hydration_target?: number | null
+          hydration_unit?: string | null
           id?: string
+          language?: string | null
+          log_prefs?: string[] | null
+          onboarded_at?: string | null
+          pain_points?: string[] | null
+          protein_target?: number | null
+          reminder_times?: Json | null
+          reminders_enabled?: boolean | null
+          sat_fat_target?: number | null
+          sodium_target?: number | null
+          sugar_target?: number | null
           updated_at?: string
           user_id?: string
+          weight_kg?: number | null
         }
         Relationships: []
       }

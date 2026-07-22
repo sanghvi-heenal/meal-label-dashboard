@@ -1,35 +1,48 @@
-## 1. Fiber alert only after first meal
+# Persist onboarding & profile in the database
 
-In `src/lib/insights.ts` → `buildRisk`, gate the "Fiber is very low" branch on `meals.length > 0` (and require `totals.calories > 0`) so a fresh, empty day never triggers it. Other risks (sodium, sugar, drink calories, carb/protein imbalance, sat fat) already depend on logged totals, but add the same guard defensively where a target-fraction check could fire on zeros.
+Move the user profile (onboarding answers, targets, hydration prefs, allergies, language) from `localStorage` to the `profiles` table so returning users skip onboarding on any device/browser.
 
-## 2. Ideas only load on explicit filter tap
+## Database
 
-In `src/pages/Suggestions.tsx`:
+Extend `public.profiles` with the fields currently stored in `nutrilens-profile`:
 
-- Change `mealType` state to allow `null` and default to `null` (drop the `autoPickMealType()` initial call).
-- In the `useEffect` that calls `fetchIdeas`, skip when `mealType` is `null`.
-- In `IdeasFilters` (`src/components/suggestions/IdeasFilters.tsx`), update the type to `MealTypeFilter | null`, treat `null` as "nothing selected" (no pill active), and remove the "all" pill so the user must pick Breakfast / Lunch / Snack / Dinner.
-- Show an empty prompt card before any selection: "Pick a meal to see ideas" (new i18n key `suggestions.pickMealPrompt` in `en.json` + `hi.json`).
-- Hide the "Ideas for you" subtitle line that interpolates `{type}` until a selection exists.
+- `age`, `height_cm`, `weight_kg` (int)
+- `diet_type` (text), `bmi` (numeric)
+- `calorie_target`, `protein_target`, `carbs_target`, `fat_target`, `fiber_target`, `sodium_target`, `sugar_target`, `sat_fat_target` (int)
+- `hydration_target` (int, ml), `hydration_unit` (text), `current_hydration_ml` (int)
+- `reminders_enabled` (bool), `reminder_times` (jsonb)
+- `goals` (text[]), `log_prefs` (text[]), `pain_points` (text[]), `app_jobs` (text[])
+- `language` (text)
+- `allergies` (text[]), `custom_allergies` (text[])
+- `onboarded_at` (timestamptz) — presence = onboarding complete
 
-## 3. Explain Light vs Heavy
+RLS + GRANTs already exist on `profiles`; migration only adds columns. Add `updated_at` trigger if missing.
 
-In `src/components/suggestions/IdeasFilters.tsx`, add a small label above the Light/Heavy segmented control: "What kind of meal do you want?" plus a one-line helper: "Light = under ~350 kcal, easy to digest. Heavy = filling, ~500+ kcal." New i18n keys: `suggestions.filters.weightPrompt` and `suggestions.filters.weightHelp` in both locale files.
+Meals stay in `localStorage` for this change (out of scope; separate migration later).
 
-## 4. Remove broken YouTube search fallback
+## App changes
 
-In `src/components/suggestions/IdeaCard.tsx`:
+1. **`src/lib/nutrition-store.ts`** — convert to async, backend-backed:
+   - `loadProfile()`, `saveProfile(patch)`, `isOnboarded()` all hit Supabase.
+   - Keep a small in-memory cache + optional `localStorage` mirror for instant paint, but treat DB as source of truth.
+   - Migration path: on first load after this change, if DB row has `onboarded_at IS NULL` but `localStorage` has a completed profile, upload it once, then clear the local copy.
 
-- Only render the hero media + Play overlay + "Watch recipe" button when `idea.youtubeId` is present (real embeddable video).
-- When there is no `youtubeId`:
-  - Drop the hero image block entirely (or show a plain colored header with the calorie chip — no play button, no link).
-  - Do NOT render the "Search on YouTube" fallback button. Keep the "Read article" button if `articleUrl` exists; otherwise show no external CTA.
-- Same treatment in `src/components/suggestions/SwapCard.tsx` if it has an equivalent YouTube-search fallback (verify during build).
+2. **New `src/hooks/useProfile.tsx`** — React context that:
+   - Loads the row for `auth.uid()` on sign-in.
+   - Exposes `profile`, `loading`, `updateProfile(patch)`, `resetOnboarding()`.
+   - Invalidates on `SIGNED_OUT`.
 
-Net effect: users only see a YouTube link when it will actually play; otherwise the card stays informational.
+3. **`RequireAuth` in `src/App.tsx`** — gate on `useProfile().profile?.onboarded_at` instead of the sync `isOnboarded()`, showing the loader while the profile is fetching. This is what fixes the "returning user sent back to onboarding" bug.
 
-## Technical notes
+4. **Consumers** — update pages/components that call `getProfile`/`saveProfile` synchronously (`Onboarding`, `SettingsPage`, `Dashboard`, `LogMeal`, `Suggestions`, `HydrationRing`, insights helpers, MCP `get-profile` tool) to read from the hook / async helpers. MCP tool already queries `profiles` directly — extend its select to the new columns.
 
-- Files: `src/lib/insights.ts`, `src/pages/Suggestions.tsx`, `src/components/suggestions/IdeasFilters.tsx`, `src/components/suggestions/IdeaCard.tsx`, `src/components/suggestions/SwapCard.tsx` (conditional), `src/i18n/locales/en.json`, `src/i18n/locales/hi.json`.
-- No backend/edge-function changes — the suggest-meals function already returns `youtubeId` when found; we simply stop rendering the broken fallback.
-- No data-model changes.
+5. **Reset flow** — `resetOnboarding()` sets `onboarded_at = null` in DB (keeps language + prefs), then routes to `/onboarding`.
+
+## Out of scope
+
+- Meal history migration (still `localStorage`).
+- Cached AI ideas (already in `cached_ideas` table).
+
+## Risks
+
+Broad refactor: many components read `getProfile()` synchronously today. They'll need to accept an async/loading state or read via the new hook. I'll do this in one pass and verify build + a Playwright sign-in → dashboard smoke.
