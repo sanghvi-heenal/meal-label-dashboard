@@ -249,16 +249,18 @@
     "addOnsSub": "आज की कमी पूरी करने वाले डिशेज़",
     "readArticle": "लेख पढ़ें",
     "filters": {
-      "all": "सभी",
       "breakfast": "नाश्ता",
       "lunch": "लंच",
       "dinner": "डिनर",
       "snack": "स्नैक",
       "light": "हल्का",
-      "heavy": "भारी"
+      "heavy": "भारी",
+      "weightPrompt": "आप कैसा खाना चाहते हैं?",
+      "weightHelp": "हल्का = ~350 kcal से कम, आसानी से पचने वाला। भारी = पेट भरने वाला, ~500+ kcal।"
     },
     "ideasForTitle": "आपके लिए आइडियाज़",
     "ideasForSub": "{{type}} · {{weight}}",
+    "pickMealPrompt": "आइडियाज़ देखने के लिए ऊपर मील टाइप चुनें।",
     "cached": "आज पहले सेव किया गया"
   },
   "logToast": {

@@ -86,6 +86,9 @@ export function buildRisk(
   profile: UserProfile,
   meals: MealEntry[],
 ): { label: string; detail: string; severity: "ok" | "watch" | "high" } | null {
+  // No data yet — don't fabricate warnings for an empty day.
+  if (meals.length === 0 || totals.calories === 0) return null;
+
   const drinkCal = meals.filter((m) => m.mealType === "drink").reduce((s, m) => s + m.calories, 0);
 
   // Highest signal wins.
