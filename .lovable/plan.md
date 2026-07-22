@@ -1,48 +1,32 @@
-# Persist onboarding & profile in the database
+Current situation I verified:
+- The app is now wired to store onboarding completion in the backend `profiles` table, using the `onboarded_at` field.
+- The backend table structure is valid for this: `profiles.user_id` is unique, so the app can save one permanent profile per signed-in user.
+- But the database currently has 2 profile rows and 0 rows with `onboarded_at` saved. In plain terms: no signed-in user is currently marked as “onboarding complete” in the permanent backend.
 
-Move the user profile (onboarding answers, targets, hydration prefs, allergies, language) from `localStorage` to the `profiles` table so returning users skip onboarding on any device/browser.
+What likely happened:
+- Earlier onboarding answers were probably stored only in the browser cache.
+- The backend persistence fix was added after you had already completed onboarding.
+- If that old browser cache was cleared, changed browser/device, preview storage reset, or sign-out cleared the profile cache, the app has nothing permanent to restore.
+- So yes: for existing users who completed onboarding before the backend fix, you may need to complete onboarding one more time unless the old local browser cache still exists. After that, it should be stored permanently in the backend.
 
-## Database
+What is not the issue:
+- You do not need MCP for this.
+- This is not Google auth account memory.
+- The right place is the app backend/database profile row, and that exists now.
 
-Extend `public.profiles` with the fields currently stored in `nutrilens-profile`:
+Plan to make this safer:
+1. Add a one-time repair path for returning users:
+   - If a signed-in user has old browser onboarding data, migrate it into the backend immediately.
+   - If not, show onboarding but make it clear it is needed once to save the permanent profile.
 
-- `age`, `height_cm`, `weight_kg` (int)
-- `diet_type` (text), `bmi` (numeric)
-- `calorie_target`, `protein_target`, `carbs_target`, `fat_target`, `fiber_target`, `sodium_target`, `sugar_target`, `sat_fat_target` (int)
-- `hydration_target` (int, ml), `hydration_unit` (text), `current_hydration_ml` (int)
-- `reminders_enabled` (bool), `reminder_times` (jsonb)
-- `goals` (text[]), `log_prefs` (text[]), `pain_points` (text[]), `app_jobs` (text[])
-- `language` (text)
-- `allergies` (text[]), `custom_allergies` (text[])
-- `onboarded_at` (timestamptz) — presence = onboarding complete
+2. Make onboarding completion harder to lose:
+   - When the user finishes or skips onboarding, wait for the backend save to succeed before navigating to the dashboard.
+   - If the save fails, show an error and keep the user on onboarding instead of silently continuing.
 
-RLS + GRANTs already exist on `profiles`; migration only adds columns. Add `updated_at` trigger if missing.
+3. Improve the auth gate:
+   - If the user is already marked onboarded in the backend, send them directly to the dashboard.
+   - If they visit `/onboarding` while already onboarded, redirect them to the dashboard instead of step one.
 
-Meals stay in `localStorage` for this change (out of scope; separate migration later).
-
-## App changes
-
-1. **`src/lib/nutrition-store.ts`** — convert to async, backend-backed:
-   - `loadProfile()`, `saveProfile(patch)`, `isOnboarded()` all hit Supabase.
-   - Keep a small in-memory cache + optional `localStorage` mirror for instant paint, but treat DB as source of truth.
-   - Migration path: on first load after this change, if DB row has `onboarded_at IS NULL` but `localStorage` has a completed profile, upload it once, then clear the local copy.
-
-2. **New `src/hooks/useProfile.tsx`** — React context that:
-   - Loads the row for `auth.uid()` on sign-in.
-   - Exposes `profile`, `loading`, `updateProfile(patch)`, `resetOnboarding()`.
-   - Invalidates on `SIGNED_OUT`.
-
-3. **`RequireAuth` in `src/App.tsx`** — gate on `useProfile().profile?.onboarded_at` instead of the sync `isOnboarded()`, showing the loader while the profile is fetching. This is what fixes the "returning user sent back to onboarding" bug.
-
-4. **Consumers** — update pages/components that call `getProfile`/`saveProfile` synchronously (`Onboarding`, `SettingsPage`, `Dashboard`, `LogMeal`, `Suggestions`, `HydrationRing`, insights helpers, MCP `get-profile` tool) to read from the hook / async helpers. MCP tool already queries `profiles` directly — extend its select to the new columns.
-
-5. **Reset flow** — `resetOnboarding()` sets `onboarded_at = null` in DB (keeps language + prefs), then routes to `/onboarding`.
-
-## Out of scope
-
-- Meal history migration (still `localStorage`).
-- Cached AI ideas (already in `cached_ideas` table).
-
-## Risks
-
-Broad refactor: many components read `getProfile()` synchronously today. They'll need to accept an async/loading state or read via the new hook. I'll do this in one pass and verify build + a Playwright sign-in → dashboard smoke.
+4. Add a quick backend verification after implementation:
+   - Confirm the signed-in profile receives `onboarded_at` after onboarding.
+   - Confirm refresh returns to dashboard, not onboarding.
