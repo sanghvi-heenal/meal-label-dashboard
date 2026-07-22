@@ -855,7 +855,7 @@ const LogMeal = () => {
           {mealTypes.map(({ value, label, icon: Icon }) => (
             <button
               key={value}
-              onClick={() => setSelectedMeal(value)}
+              onClick={() => { setSelectedMeal(value); setSessionMealType(value); }}
               className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${
                 selectedMeal === value
                   ? "border-primary text-primary bg-primary/10"
@@ -867,6 +867,22 @@ const LogMeal = () => {
             </button>
           ))}
         </div>
+      )}
+
+      {/* Conversational meal chat panel */}
+      {!isDrinkMode && session && (session.items.length > 0 || session.draft || chatBusy) && (
+        <MealChat
+          session={session}
+          busy={chatBusy}
+          onAnswer={reAnalyzeWithAnswer}
+          onAcceptDraft={acceptDraft}
+          onDiscardDraft={discardDraft}
+          onRemoveItem={removeItem}
+          onAddMorePhoto={addMorePhoto}
+          onAddMoreDescribe={addMoreDescribe}
+          onDone={finishMealFromSession}
+          onCancel={cancelSession}
+        />
       )}
 
 
