@@ -13,7 +13,6 @@ import { sumTotals } from "@/lib/insights";
 import GapSummary from "@/components/suggestions/GapSummary";
 import IdeaCard, { type IdeaSuggestion } from "@/components/suggestions/IdeaCard";
 import IdeasFilters, {
-  autoPickMealType,
   type MealTypeFilter,
   type MealWeightFilter,
 } from "@/components/suggestions/IdeasFilters";
@@ -89,8 +88,8 @@ const Suggestions = () => {
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  // Filter state (defaults: auto-pick by clock, light)
-  const [mealType, setMealType] = useState<MealTypeFilter>(() => autoPickMealType());
+  // Filter state (no default — user must pick a meal type to load ideas)
+  const [mealType, setMealType] = useState<MealTypeFilter | null>(null);
   const [mealWeight, setMealWeight] = useState<MealWeightFilter>("light");
 
   const [data, setData] = useState<SuggestionsResponse | null>(null);
@@ -156,7 +155,7 @@ const Suggestions = () => {
 
   const fetchIdeas = useCallback(
     async (forceRefresh = false) => {
-      if (!user) return;
+      if (!user || !mealType) return;
       const reqId = ++requestIdRef.current;
       setError(null);
 
@@ -257,9 +256,9 @@ const Suggestions = () => {
     [user?.id, mealType, mealWeight, profile.dietType, today],
   );
 
-  // Refetch whenever filter or user changes.
+  // Refetch whenever filter or user changes (only after a meal type is picked).
   useEffect(() => {
-    fetchIdeas(false);
+    if (mealType) fetchIdeas(false);
   }, [fetchIdeas]);
 
   const runSearch = useCallback(
@@ -323,7 +322,7 @@ const Suggestions = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const filterLabel = t(`suggestions.filters.${mealType}`);
+  const filterLabel = mealType ? t(`suggestions.filters.${mealType}`) : "";
   const weightLabel = t(`suggestions.filters.${mealWeight}`);
 
   return (
@@ -419,9 +418,11 @@ const Suggestions = () => {
       {/* ============ Ideas-for-you section ============ */}
       <div className="pt-2 px-1">
         <h2 className="text-lg font-bold text-foreground">{t("suggestions.ideasForTitle")}</h2>
-        <p className="text-xs text-muted-foreground">
-          {t("suggestions.ideasForSub", { type: filterLabel, weight: weightLabel })}
-        </p>
+        {mealType && (
+          <p className="text-xs text-muted-foreground">
+            {t("suggestions.ideasForSub", { type: filterLabel, weight: weightLabel })}
+          </p>
+        )}
       </div>
 
       <IdeasFilters
@@ -430,6 +431,13 @@ const Suggestions = () => {
         onMealTypeChange={setMealType}
         onMealWeightChange={setMealWeight}
       />
+
+      {/* Prompt state — before any meal-type pick */}
+      {!mealType && !loading && (
+        <div className="card-surface text-center text-sm text-muted-foreground animate-fade-in">
+          {t("suggestions.pickMealPrompt")}
+        </div>
+      )}
 
       {/* Loading skeleton */}
       {loading && (
