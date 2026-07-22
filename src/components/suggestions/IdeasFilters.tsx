@@ -1,18 +1,17 @@
 import { useTranslation } from "react-i18next";
-import { Sun, Moon, UtensilsCrossed, Cookie, Coffee, LayoutGrid, Leaf, Flame } from "lucide-react";
+import { Sun, Moon, Cookie, Coffee, Leaf, Flame } from "lucide-react";
 
-export type MealTypeFilter = "all" | "breakfast" | "lunch" | "dinner" | "snack";
+export type MealTypeFilter = "breakfast" | "lunch" | "dinner" | "snack";
 export type MealWeightFilter = "light" | "heavy";
 
 interface IdeasFiltersProps {
-  mealType: MealTypeFilter;
+  mealType: MealTypeFilter | null;
   mealWeight: MealWeightFilter;
   onMealTypeChange: (v: MealTypeFilter) => void;
   onMealWeightChange: (v: MealWeightFilter) => void;
 }
 
 const TYPE_OPTIONS: Array<{ value: MealTypeFilter; icon: typeof Sun; tKey: string }> = [
-  { value: "all", icon: LayoutGrid, tKey: "suggestions.filters.all" },
   { value: "breakfast", icon: Coffee, tKey: "suggestions.filters.breakfast" },
   { value: "lunch", icon: Sun, tKey: "suggestions.filters.lunch" },
   { value: "snack", icon: Cookie, tKey: "suggestions.filters.snack" },
@@ -46,8 +45,10 @@ const IdeasFilters = ({ mealType, mealWeight, onMealTypeChange, onMealWeightChan
         })}
       </div>
 
-      {/* Light / Heavy segmented control */}
-      <div className="inline-flex p-1 rounded-full bg-secondary/60 border border-border">
+      {/* Light / Heavy segmented control with helper text */}
+      <div className="space-y-1.5">
+        <p className="text-xs font-semibold text-foreground">{t("suggestions.filters.weightPrompt")}</p>
+        <div className="inline-flex p-1 rounded-full bg-secondary/60 border border-border">
         <button
           onClick={() => onMealWeightChange("light")}
           className={`inline-flex items-center gap-1.5 px-4 h-8 rounded-full text-xs font-semibold transition-colors ${
@@ -72,6 +73,8 @@ const IdeasFilters = ({ mealType, mealWeight, onMealTypeChange, onMealWeightChan
           <Flame size={13} />
           {t("suggestions.filters.heavy")}
         </button>
+        </div>
+        <p className="text-[11px] text-muted-foreground leading-snug">{t("suggestions.filters.weightHelp")}</p>
       </div>
     </div>
   );
