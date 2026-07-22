@@ -223,6 +223,7 @@ const Onboarding = () => {
         </div>
         <button
           onClick={skip}
+          disabled={saving}
           className="text-xs font-medium text-muted-foreground hover:text-foreground"
         >
           {t("common.skip")}
@@ -460,6 +461,7 @@ const Onboarding = () => {
         {step > 0 && (
           <button
             onClick={() => setStep((s) => s - 1)}
+            disabled={saving}
             className="flex items-center gap-1 px-4 py-3 rounded-xl bg-secondary text-foreground text-sm font-medium hover:bg-secondary/80"
           >
             <ArrowLeft size={16} /> {t("common.back")}
@@ -467,7 +469,7 @@ const Onboarding = () => {
         )}
         <button
           onClick={() => (step < total - 1 ? setStep((s) => s + 1) : finish())}
-          disabled={!stepValid()}
+          disabled={!stepValid() || saving}
           className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           {step < total - 1 ? (
@@ -476,7 +478,7 @@ const Onboarding = () => {
             </>
           ) : (
             <>
-              {t("common.finish")} <Sparkles size={14} />
+              {saving ? t("common.saving") : t("common.finish")} <Sparkles size={14} />
             </>
           )}
         </button>
